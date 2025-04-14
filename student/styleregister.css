@@ -1,0 +1,110 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+}
+
+/* Left panel */
+.left-panel {
+    background-color: #002366;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    width: 40%;
+}
+
+.left-panel img {
+    max-width: 80px;
+    margin-bottom: 20px;
+}
+
+.left-panel h1 {
+    margin: 0;
+    font-size: 30px;
+    text-align: center;
+}
+
+.left-panel p {
+    margin: 5px 0;
+    text-align: center;
+    font-size: 20px;
+}
+
+/* Right panel for the form */
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
+    width: 70%;
+    height: 100%;
+    padding: 20px;
+}
+
+.form-container {
+    background-color: #e0e0e0;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+form input,
+form select {
+    padding: 10px;
+    width: 100%;
+    margin: 8px 0;
+    border: none; /* No borders */
+    border-radius: 5px;
+}
+
+form button {
+    background-color: #4caf50;
+    color: white;
+    padding: 10px;
+    border: none; /* No borders */
+    border-radius: 5px;
+    width: 100%;
+    margin: 10px 0;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+form button:hover {
+    background-color: #45a049;
+}
+
+.researchers-section {
+    margin: 10px 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .left-panel,
+    .right-panel {
+        width: 100%;
+    }
+}

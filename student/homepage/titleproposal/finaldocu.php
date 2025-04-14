@@ -1,0 +1,526 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+session_start();
+
+if (!isset($_SESSION['student_id'])) {
+    header("Location: ../../../logout.php");
+    exit;
+}
+
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "trs";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Database connection failed: " . $conn->connect_error);
+}
+
+$alertMessage = "";
+
+// HANDLE DELETE REQUEST
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
+    $student_id = $_SESSION['student_id'];
+    $fileToDelete = $_POST['delete_file'];
+
+    $stmt = $conn->prepare("SELECT finaldocu FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
+    $stmt->bind_param("ss", $student_id, $fileToDelete);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        if (file_exists($fileToDelete)) {
+            unlink($fileToDelete); // Delete the file from folder
+        }
+        $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
+        $deleteStmt->bind_param("ss", $student_id, $fileToDelete);
+        $deleteStmt->execute();
+        $deleteStmt->close();
+        $alertMessage = "File deleted successfully.";
+    } else {
+        $alertMessage = "File not found or you don't have permission.";
+    }
+    $stmt->close();
+
+    $_SESSION['alert_message'] = $alertMessage;
+    header("Location: finaldocu.php");
+    exit;
+}
+// HANDLE UPLOAD
+// HANDLE UPLOAD
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
+    $student_id = $_POST["student_id"];
+
+    // Sanitize student_id for security
+    $student_id = filter_var($student_id, FILTER_SANITIZE_STRING);
+
+    // Fetch the department from the student's account
+    $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
+    if (!$stmt) {
+        die("Query failed: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($department);
+    $stmt->fetch();
+    $stmt->close();
+
+    if (!$department) {
+        echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
+        exit;
+    } else {
+        // Fetch panel and adviser IDs from the 'route1proposal_files' table for the student
+        $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+        if (!$panelStmt) {
+            die("Query failed: " . $conn->error);
+        }
+        $panelStmt->bind_param("s", $student_id);
+        $panelStmt->execute();
+        $panelStmt->store_result(); // This stores the result to check row count
+
+        if ($panelStmt->num_rows > 0) {
+            $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+            $panelStmt->fetch();
+            $panelStmt->close();
+
+        } else {
+            echo "<script>alert('No Route 1 information found for this student.'); window.history.back();</script>";
+            exit;
+        }
+
+        if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
+            $fileName = $_FILES["finaldocu"]["name"];
+            $uploadDir = "../../../uploads/";
+            $filePath = $uploadDir . basename($fileName);
+
+            $allowedTypes = [
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ];
+
+            if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
+                // Check if the student already has an uploaded file
+                $stmt = $conn->prepare("SELECT COUNT(*) FROM finaldocuproposal_files WHERE student_id = ? AND department = ?");
+                if (!$stmt) {
+                    die("Query failed: " . $conn->error);
+                }
+                $stmt->bind_param("ss", $student_id, $department);
+                $stmt->execute();
+                $stmt->bind_result($count);
+                $stmt->fetch();
+                $stmt->close();
+
+                if ($count > 0) {
+                    echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
+                    exit;
+                } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
+                    // Set the current date and time for date_submitted
+                    $date_submitted = date("Y-m-d H:i:s");
+
+                    // Insert file information in the database
+                    $stmt = $conn->prepare("INSERT INTO finaldocuproposal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    if (!$stmt) {
+                        die("Query failed: " . $conn->error);
+                    }
+                    $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
+                    if ($stmt->execute()) {
+                        echo "<script>alert('File uploaded successfully.'); window.location.href = 'finaldocu.php';</script>";
+                    } else {
+                        echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
+                    }
+                    $stmt->close();
+                } else {
+                    echo "<script>alert('Error moving the file.'); window.history.back();</script>";
+                }
+            } else {
+                echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
+            }
+        } else {
+            echo "<script>alert('Error uploading file.'); window.history.back();</script>";
+        }
+    }
+}
+
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Route 1 - Thesis Routing System</title>
+    <link rel="stylesheet" href="studstyles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <style>
+.modal {
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.modal-layout {
+    display: flex;
+    height: 100%;
+    width: 98%;
+}
+
+.file-preview-section,
+.routing-form-section {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
+}
+
+.routing-form-section {
+    flex: 1;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.form-input-row input,
+.form-input-row textarea {
+    text-align: center;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.form-grid-container {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    border: 1px outset #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.form-grid-container>div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    font-size: 0.8rem;
+    border: 1px solid #ccc;
+    background-color: white;
+    box-sizing: border-box;
+}
+
+.form-grid-container input,
+.form-grid-container textarea {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    font-size: 0.75rem;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    resize: none;
+}
+
+
+@media (max-width: 768px) {
+    .modal-layout {
+        flex-direction: column;
+    }
+
+    .file-preview-section {
+        border-right: none;
+        border-bottom: 1px solid #ccc;
+    }
+}
+
+.div-fileview #adviserInput {
+    width: 200px;
+}
+    </style>
+    <script>
+        function viewFile(filePath, student_id, route3_id, route1_id, route2_id) {
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingFormArea = document.getElementById("routingForm");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "Loading file...";
+            routingFormArea.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+            <div style="text-align: center;">
+                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+            </div>
+            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+        </div>
+        <hr style="border: 1px solid black; margin: 0.2rem 0;">
+        <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+            <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+        </div>
+<!-- Header row for submitted forms -->
+<div class="form-grid-container" style="margin-top: 20px;">
+    <div><strong>Date Submitted</strong></div>
+    <div><strong>Chapter</strong></div>
+    <div><strong>Feedback</strong></div>
+    <div><strong>Paragraph No</strong></div>
+    <div><strong>Page No</strong></div>
+    <div><strong>adviser Name</strong></div>
+    <div><strong>panel Name</strong></div>
+    <div><strong>Date Released</strong></div>
+    <div><strong>Status</strong></div>
+</div>
+<!-- Container for submitted form data -->
+<div id="submittedFormsContainer" class="form-grid-container"></div>
+<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+    `;
+
+            // Load form data dynamically
+            // Load form data dynamically using finaldocu_id
+            fetch(`get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(route3_id)}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Fetched forms:", data);
+                    const rowsContainer = document.getElementById("submittedFormsContainer");
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+                        return;
+                    }
+                    data.forEach(row => {
+                        rowsContainer.innerHTML += `
+                <div>${row.date_submitted}</div>
+                <div>${row.chapter}</div>
+                <div>${row.feedback}</div>
+                <div>${row.paragraph_number}</div>
+                <div>${row.page_number}</div>
+                <div>${row.adviser_name}</div>
+                <div>${row.panel_name}</div>
+                <div>${row.date_released}</div>
+                <div>${row.status}</div>
+            `;
+                    });
+                })
+                .catch(err => {
+                    console.error("Error loading form data:", err);
+                });
+
+
+
+            // Load file
+            const extension = filePath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then((response) => response.arrayBuffer())
+                    .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                    .then((result) => {
+                        contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
+                    })
+                    .catch((err) => {
+                        console.error("Error viewing file:", err);
+                        alert("Failed to display the file.");
+                    });
+            } else {
+                contentArea.innerHTML = "Unsupported file type.";
+            }
+        }
+
+
+        function closeModal() {
+            const modal = document.getElementById("fileModal");
+            modal.style.display = "none";
+            document.getElementById("fileModalContent").innerHTML = '';
+            document.getElementById("routingForm").innerHTML = '';
+        }
+
+        function confirmDelete(filePath) {
+            if (confirm("Are you sure you want to delete this file?")) {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = "finaldocu.php";
+
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "delete_file";
+                input.value = filePath;
+                form.appendChild(input);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</head>
+
+<body>
+<?php
+if (isset($_SESSION['alert_message'])) {
+    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+    unset($_SESSION['alert_message']); // Clear it after showing
+}
+?>
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <img src="../../../assets/logo.png" alt="Logo">
+                <div class="logo">Thesis Routing System</div>
+            </div>
+        </header>
+
+        <div class="top-bar">
+            <div class="navigation">
+                <a id="homepage" href="../homepage.php">Home Page</a>
+                <a href="#" id="submit-file-button">Submit File</a>
+
+            </div>
+            <div class="user-info">
+                <div class="vl"></div>
+                <span class="role">Student:</span>
+                <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <nav class="sidebar">
+                <div class="menu">
+                    <div class="menu-section">
+                        <div class="menu-title">Research Proposal</div>
+                        <ul>
+                            <li><a href="../titleproposal/route1.php">Route 1</a></li>
+                            <li><a href="../titleproposal/route2.php">Route 2</a></li>
+                            <li><a href="../titleproposal/route3.php">Route 3</a></li>
+                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
+                        </ul>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-title">Final Defense</div>
+                        <ul>
+                            <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route2.php">Route 2</a></li>
+                            <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="logout">
+                    <a href="../../../logout.php">Logout</a>
+                </div>
+            </nav>
+            <div class="content" id="content-area">
+                <?php
+                $student_id = $_SESSION['student_id'];
+                $stmt = $conn->prepare("SELECT finaldocu, finaldocu_id FROM finaldocuproposal_files WHERE student_id = ?");
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
+                        $finaldocu_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
+                        $fileName = basename($filePath);
+
+                        echo "
+                        <div class='file-preview'>
+                            <div class='file-name'>$fileName</div>
+                            <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
+                            <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
+                            <input style=\"width: 200px;\" type=\"text\" id=\"adviserInput\" placeholder=\"Enter Adviser Name\">
+                            <input style=\"width: 200px;\" type=\"text\" id=\"studentsInput\" placeholder=\"Enter Student Names (comma-separated)\">
+                            <button id='downloadButton'>Download</button>
+                        </div>
+                    ";
+                    }
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
+                $stmt->close();
+                ?>
+            </div>
+
+        </div>
+    </div>
+    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form" style="display: none;">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); ?>">
+        <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
+        <input type="file" name="finaldocu" id="finaldocu" accept=".pdf" required>
+    </form>
+
+    <script>
+        document.getElementById("submit-file-button").addEventListener("click", function (e) {
+            e.preventDefault();
+            document.querySelector("#finaldocu").click();
+        });
+        document.querySelector("#finaldocu").addEventListener("change", function () {
+            document.querySelector("#file-upload-form").submit();
+        });
+    </script>
+
+
+    <div id="fileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="fileModalContent" class="file-preview-section"></div>
+                <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+document.getElementById('downloadButton').addEventListener('click', function() {
+    const adviserName = encodeURIComponent(document.getElementById('adviserInput').value);
+    const studentNames = encodeURIComponent(document.getElementById('studentsInput').value);
+    
+    const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${adviserName}&student=${studentNames}`;
+    
+    window.location.href = url;
+});
+</script>
