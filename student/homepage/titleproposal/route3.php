@@ -445,6 +445,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
 
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>

@@ -6,38 +6,16 @@ $dbname = "trs";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Get route1_id, route2_id, and route3_id from query parameters
-$route1_id = $_GET['route1_id'] ?? '';
-$route2_id = $_GET['route2_id'] ?? '';
-$route3_id = $_GET['route3_id'] ?? '';
+$student_id = $_GET['student_id'] ?? '';
 
-$query = "SELECT * FROM proposal_monitoring_form";
-$params = [];
-$types = "";
-$conditions = [];
-
-if (!empty($route1_id)) {
-    $conditions[] = "route1_id = ?";
-    $params[] = $route1_id;
-    $types .= "s";
-}
-
-if (!empty($route2_id)) {
-    $conditions[] = "route2_id = ?";
-    $params[] = $route2_id;
-    $types .= "s";
-}
-
-if (!empty($route3_id)) {
-    $conditions[] = "route3_id = ?";
-    $params[] = $route3_id;
-    $types .= "s";
-}
-
-if (!empty($conditions)) {
-    $query .= " WHERE " . implode(" OR ", $conditions); // Use OR to match any route ID
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param($types, ...$params);
+if ($student_id) {
+    $stmt = $conn->prepare("
+        SELECT * FROM proposal_monitoring_form 
+        WHERE student_id = ?
+        AND (route1_id IS NOT NULL OR route2_id IS NOT NULL OR route3_id IS NOT NULL)
+        ORDER BY date_submitted ASC
+    ");
+    $stmt->bind_param("s", $student_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -46,9 +24,15 @@ if (!empty($conditions)) {
         $forms[] = $row;
     }
 
-    header('Content-Type: application/json');
-    echo json_encode($forms);
+    // Debugging: Check the result array
+    if (empty($forms)) {
+        echo "No forms found for this student with route1_id or route2_id.";
+    } else {
+        // Output the forms array as JSON
+        header('Content-Type: application/json');
+        echo json_encode($forms);
+    }
 } else {
-    echo json_encode([]); // No route ID provided
+    echo json_encode([]);
 }
 ?>

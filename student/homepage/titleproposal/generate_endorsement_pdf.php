@@ -4,8 +4,13 @@ require '../../../vendor/autoload.php';
 use Fpdf\Fpdf;
 
 // Adjust the path to where you have FPDF stored
-$adviserName = $_GET['adviserName'] ?? 'Unknown Adviser';  // Default value if not provided
-$studentNames = isset($_GET['student']) ? explode(',', $_GET['student']) : [];  // Default empty array if not provided
+$adviserName = $_GET['adviserName'] ?? 'Unknown Adviser';
+$studentNames = isset($_GET['student']) ? explode(',', $_GET['student']) : [];
+$studentNames = array_map('trim', $studentNames); // remove extra spaces
+
+
+
+  // Default empty array if not provided
 
 $date = date('F j, Y'); // Current date
 

@@ -52,86 +52,86 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
 // HANDLE UPLOAD
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
-        $student_id = $_POST["student_id"];
+    $student_id = $_POST["student_id"];
 
-        // Fetch the department from the student's account
-        $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $stmt->bind_result($department);
-        $stmt->fetch();
-        $stmt->close();
+    // Fetch the department from the student's account
+    $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($department);
+    $stmt->fetch();
+    $stmt->close();
 
-        if (!$department) {
-            echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
-            exit;
-        } else {
-            if (isset($_FILES["docuRoute2"]) && $_FILES["docuRoute2"]["error"] == UPLOAD_ERR_OK) {
-                $fileTmpPath = $_FILES["docuRoute2"]["tmp_name"];
-                $fileName = $_FILES["docuRoute2"]["name"];
-                $uploadDir = "../../../uploads/";
-                $filePath = $uploadDir . basename($fileName);
+    if (!$department) {
+        echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
+        exit;
+    } else {
+        if (isset($_FILES["docuRoute2"]) && $_FILES["docuRoute2"]["error"] == UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES["docuRoute2"]["tmp_name"];
+            $fileName = $_FILES["docuRoute2"]["name"];
+            $uploadDir = "../../../uploads/";
+            $filePath = $uploadDir . basename($fileName);
 
-                $allowedTypes = [
-                    "application/pdf",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                ];
+            $allowedTypes = [
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ];
 
-                if (in_array($_FILES["docuRoute2"]["type"], $allowedTypes)) {
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
+            if (in_array($_FILES["docuRoute2"]["type"], $allowedTypes)) {
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
+                // Check if the student already uploaded for Route 2
+                $stmt = $conn->prepare("SELECT COUNT(*) FROM route2proposal_files WHERE student_id = ? AND department = ?");
+                $stmt->bind_param("ss", $student_id, $department);
+                $stmt->execute();
+                $stmt->bind_result($count);
+                $stmt->fetch();
+                $stmt->close();
+
+                if ($count > 0) {
+                    echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
+                    exit;
+                } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
+
+                    // Fetch panel and adviser IDs from Route 1
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    $panelStmt->bind_param("s", $student_id);
+                    $panelStmt->execute();
+                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                    $panelStmt->fetch();
+                    $panelStmt->close();
+
+                    if (!isset($panel1_id)) {
+                        echo "<script>alert('Route 1 information not found. Please complete Route 1 first.'); window.history.back();</script>";
+                        exit;
                     }
 
-                    // Check if the student already uploaded for Route 2
-                    $stmt = $conn->prepare("SELECT COUNT(*) FROM route2proposal_files WHERE student_id = ? AND department = ?");
-                    $stmt->bind_param("ss", $student_id, $department);
-                    $stmt->execute();
-                    $stmt->bind_result($count);
-                    $stmt->fetch();
-                    $stmt->close();
+                    // Get current date/time
+                    $date_submitted = date("Y-m-d H:i:s");
 
-                    if ($count > 0) {
-                        echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
-                        exit;
-                    } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-
-                        // Fetch panel and adviser IDs from Route 1
-                        $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
-                        $panelStmt->bind_param("s", $student_id);
-                        $panelStmt->execute();
-                        $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
-                        $panelStmt->fetch();
-                        $panelStmt->close();
-
-                        if (!isset($panel1_id)) {
-                            echo "<script>alert('Route 1 information not found. Please complete Route 1 first.'); window.history.back();</script>";
-                            exit;
+                    // Insert into Route 2 with date_submitted
+                    $stmt = $conn->prepare("INSERT INTO route2proposal_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    if ($stmt) {
+                        $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
+                        if ($stmt->execute()) {
+                            echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
+                        } else {
+                            echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
                         }
-
-                        // Get current date/time
-                        $date_submitted = date("Y-m-d H:i:s");
-
-                        // Insert into Route 2 with date_submitted
-                        $stmt = $conn->prepare("INSERT INTO route2proposal_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        if ($stmt) {
-                            $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
-                            if ($stmt->execute()) {
-                                echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
-                            } else {
-                                echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
-                            }
-                            $stmt->close();
-                        }
-                    } else {
-                        echo "<script>alert('Error moving the file.'); window.history.back();</script>";
+                        $stmt->close();
                     }
                 } else {
-                    echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
+                    echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
             } else {
-                echo "<script>alert('Error uploading file.'); window.history.back();</script>";
+                echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
             }
+        } else {
+            echo "<script>alert('Error uploading file.'); window.history.back();</script>";
         }
+    }
 }
 
 
@@ -176,7 +176,7 @@ if (!empty($panel_ids)) {
     $placeholders = implode(',', array_fill(0, count($panel_ids), '?'));
     $sql = "SELECT COUNT(DISTINCT panel_id) FROM proposal_monitoring_form WHERE route1_id = ? AND panel_id IN ($placeholders)";
     $stmt = $conn->prepare($sql);
-    
+
     $params = array_merge([$route1_id], $panel_ids);
     $types = str_repeat('i', count($params));
     $bind_names[] = $types;
@@ -220,120 +220,121 @@ if ($total_submitted < $total_required) {
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
 
-.modal-content {
-    background-color: #fff;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
 
-.modal-layout {
-    display: flex;
-    height: 100%;
-    width: 98%;
-}
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 98%;
+        }
 
-.file-preview-section,
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    border-right: 1px solid #ccc;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    background-color: #f9f9f9;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    overflow-y: auto;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 5px;
-    margin-bottom: 10px;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
-.form-input-row input,
-.form-input-row textarea {
-    text-align: center;
-}
+        .form-input-row input,
+        .form-input-row textarea {
+            text-align: center;
+        }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-}
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
 
-.form-grid-container {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    border: 1px outset #ccc;
-    border-radius: 6px;
-    overflow: hidden;
-}
-.form-grid-container>div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    font-size: 0.8rem;
-    border: 1px solid #ccc;
-    background-color: white;
-    box-sizing: border-box;
-}
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px outset #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
 
-.form-grid-container input,
-.form-grid-container textarea {
-    width: 100%;
-    height: 100%;
-    padding: 4px;
-    font-size: 0.75rem;
-    border: none;
-    outline: none;
-    box-sizing: border-box;
-    resize: none;
-}
+        .form-grid-container>div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            resize: none;
+        }
 
 
-@media (max-width: 768px) {
-    .modal-layout {
-        flex-direction: column;
-    }
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
 
-    .file-preview-section {
-        border-right: none;
-        border-bottom: 1px solid #ccc;
-    }
-}
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
     </style>
-        <script>
+    <script>
         function viewFile(filePath, student_id, route2_id, route1_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
@@ -453,12 +454,12 @@ if ($total_submitted < $total_required) {
 </head>
 
 <body>
-<?php
-if (isset($_SESSION['alert_message'])) {
-    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
-    unset($_SESSION['alert_message']); // Clear it after showing
-}
-?>
+    <?php
+    if (isset($_SESSION['alert_message'])) {
+        echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+        unset($_SESSION['alert_message']); // Clear it after showing
+    }
+    ?>
 
     <div class="container">
         <header class="header">
@@ -475,6 +476,7 @@ if (isset($_SESSION['alert_message'])) {
 
             </div>
             <div class="user-info">
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -496,7 +498,7 @@ if (isset($_SESSION['alert_message'])) {
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -508,32 +510,32 @@ if (isset($_SESSION['alert_message'])) {
                 </div>
             </nav>
             <div class="content" id="content-area">
-        <?php
-$student_id = $_SESSION['student_id'];
-$stmt = $conn->prepare("SELECT docuRoute2, route2_id FROM route2proposal_files WHERE student_id = ?");
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
+                <?php
+                $student_id = $_SESSION['student_id'];
+                $stmt = $conn->prepare("SELECT docuRoute2, route2_id FROM route2proposal_files WHERE student_id = ?");
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
-        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
+                        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
+                        $fileName = basename($filePath);
 
-        echo "
+                        echo "
         <div class='file-preview'>
             <div class='file-name'>$fileName</div>
             <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
             <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
         </div>
         ";
-    }
-} else {
-    echo "<p>No files uploaded yet.</p>";
-}
-$stmt->close();
-?>
+                    }
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
+                $stmt->close();
+                ?>
             </div>
 
         </div>

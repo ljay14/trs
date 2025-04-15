@@ -28,6 +28,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $course = mysqli_real_escape_string($conn, $_POST['course']);
     $adviser = mysqli_real_escape_string($conn, $_POST['adviser']);
     $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
+    $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
+    $group_members_json = json_encode($members); // Now properly defined    
+    $controlNo = mysqli_real_escape_string($conn, $_POST['controlNo']);
 
     // Validate passwords match
     if ($password !== $confirm_password) {
@@ -36,8 +39,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Insert data into the database (no need for student_id since it's auto-incremented)
-    $sql = "INSERT INTO student (school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number) 
-            VALUES ('$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number')";
+    $sql = "INSERT INTO student (controlNo, school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number, group_members) 
+            VALUES ('$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members_json')";
 
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id
@@ -61,6 +64,118 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thesis Routing System</title>
     <link rel="stylesheet" href="styleregister.css">
+    <style>
+        * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: auto;
+}
+
+/* Left panel */
+.left-panel {
+    background-color: #002366;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    width: 40%;
+}
+
+.left-panel img {
+    max-width: 80px;
+    margin-bottom: 20px;
+}
+
+.left-panel h1 {
+    margin: 0;
+    font-size: 30px;
+    text-align: center;
+}
+
+.left-panel p {
+    margin: 5px 0;
+    text-align: center;
+    font-size: 20px;
+}
+
+/* Right panel for the form */
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
+    width: 70%;
+    height: 100%;
+    padding: 20px;
+}
+
+.form-container {
+    background-color: #e0e0e0;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+form input,
+form select {
+    padding: 10px;
+    width: 100%;
+    margin: 8px 0;
+    border: none; /* No borders */
+    border-radius: 5px;
+}
+
+form button {
+    background-color: #4caf50;
+    color: white;
+    padding: 10px;
+    border: none; /* No borders */
+    border-radius: 5px;
+    width: 100%;
+    margin: 10px 0;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+form button:hover {
+    background-color: #45a049;
+}
+
+.researchers-section {
+    margin: 10px 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .left-panel,
+    .right-panel {
+        width: 100%;
+    }
+}
+    </style>
 </head>
 
 <body>
@@ -74,11 +189,17 @@ $conn->close();
         <div class="form-container">
             <h2>Student Registration</h2>
             <form action="register.php" method="POST">
+            <input type="text" name="controlNo" placeholder="Control Number" required>
+
                 <input type="text" name="school_id" placeholder="School ID" required>
                 <input type="password" name="password" placeholder="Password" required>
                 <input type="password" name="confirm_password" placeholder="Confirm Password" required>
                 <div class="researchers-section">Researchers</div>
                 <input type="text" name="fullname" placeholder="Complete Name" required>
+                <div id="members-container">
+        <input type="text" name="member_fullname[]" placeholder="Name of Member">
+    </div>
+    <button type="button" onclick="addMemberField()">Add Member</button>
                 <input type="text" name="school_year" placeholder="School Year" required>
 
                 <!-- Department Dropdown Menu -->
@@ -109,6 +230,16 @@ $conn->close();
                 <button type="submit">Register</button>
                 <button type="button" onclick="window.location.href='login.php'">Back</button>
             </form>
+            <script>
+function addMemberField() {
+    const container = document.getElementById('members-container');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'member_fullname[]';
+    input.placeholder = 'Name of Member';
+    container.appendChild(input);
+}
+</script>
         </div>
     </div>
 </body>

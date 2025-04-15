@@ -301,7 +301,7 @@ if (isset($_SESSION['panel_id'])) {
 
         <div class="main-content">
             <nav class="sidebar">
-                <div class="menu">
+            <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -317,6 +317,7 @@ if (isset($_SESSION['panel_id'])) {
                             <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                 </div>

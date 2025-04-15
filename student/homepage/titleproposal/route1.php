@@ -387,7 +387,10 @@ if (isset($_SESSION['alert_message'])) {
                 <a id="homepage" href="../homepage.php">Home Page</a>
                 <a href="#" id="submit-file-button">Submit File</a>
             </div>
+
             <div class="user-info">
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Route 1</div>
+                
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>

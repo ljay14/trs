@@ -51,16 +51,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
 // HANDLE UPLOAD
 // HANDLE UPLOAD
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
+// HANDLE UPLOAD
+if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
     $student_id = $_POST["student_id"];
-
-    // Sanitize student_id for security
-    $student_id = filter_var($student_id, FILTER_SANITIZE_STRING);
 
     // Fetch the department from the student's account
     $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
     if (!$stmt) {
-        die("Query failed: " . $conn->error);
+        die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
     }
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
@@ -72,25 +70,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
         exit;
     } else {
-        // Fetch panel and adviser IDs from the 'route1proposal_files' table for the student
-        $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
-        if (!$panelStmt) {
-            die("Query failed: " . $conn->error);
+        // Check Route 1 approval status by checking the status for the panels and adviser
+        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
         }
-        $panelStmt->bind_param("s", $student_id);
-        $panelStmt->execute();
-        $panelStmt->store_result(); // This stores the result to check row count
 
-        if ($panelStmt->num_rows > 0) {
-            $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
-            $panelStmt->fetch();
-            $panelStmt->close();
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $stmt->bind_result($status);
 
-        } else {
-            echo "<script>alert('No Route 1 information found for this student.'); window.history.back();</script>";
+        // Check if all statuses are 'approved'
+        $allApproved = true;
+        while ($stmt->fetch()) {
+            if ($status != 'Approved') {
+                $allApproved = false;
+                break;
+            }
+        }
+        $stmt->close();
+
+        if (!$allApproved) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and the adviser approve your Route 1 submission.'); window.history.back();</script>";
             exit;
         }
 
+        // Proceed with file upload if Route 1 is approved
         if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
             $fileName = $_FILES["finaldocu"]["name"];
@@ -107,10 +112,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     mkdir($uploadDir, 0777, true);
                 }
 
-                // Check if the student already has an uploaded file
+                // Check if the student already uploaded for Route 3
                 $stmt = $conn->prepare("SELECT COUNT(*) FROM finaldocuproposal_files WHERE student_id = ? AND department = ?");
                 if (!$stmt) {
-                    die("Query failed: " . $conn->error);
+                    die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
                 }
                 $stmt->bind_param("ss", $student_id, $department);
                 $stmt->execute();
@@ -119,24 +124,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 $stmt->close();
 
                 if ($count > 0) {
-                    echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
+                    echo "<script>alert('You can only upload one file for Route 3.'); window.history.back();</script>";
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-                    // Set the current date and time for date_submitted
+                    // Fetch panel and adviser IDs from Route 1
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    if (!$panelStmt) {
+                        die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
+                    }
+                    $panelStmt->bind_param("s", $student_id);
+                    $panelStmt->execute();
+                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                    $panelStmt->fetch();
+                    $panelStmt->close();
+
+                    if (!isset($panel1_id)) {
+                        echo "<script>alert('Route 1 and Route 2 information not found. Please complete Route 1 and Route 2 first.'); window.history.back();</script>";
+                        exit;
+                    }
+
+                    // Get current date/time
                     $date_submitted = date("Y-m-d H:i:s");
 
-                    // Insert file information in the database
+                    // Insert into Route 3 with date_submitted
                     $stmt = $conn->prepare("INSERT INTO finaldocuproposal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    if (!$stmt) {
-                        die("Query failed: " . $conn->error);
+                    if ($stmt) {
+                        $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
+                        if ($stmt->execute()) {
+                            echo "<script>alert('File uploaded successfully.'); window.location.href = 'finaldocu.php';</script>";
+                        } else {
+                            echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
+                        }
+                        $stmt->close();
                     }
-                    $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
-                    if ($stmt->execute()) {
-                        echo "<script>alert('File uploaded successfully.'); window.location.href = 'finaldocu.php';</script>";
-                    } else {
-                        echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
-                    }
-                    $stmt->close();
                 } else {
                     echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
@@ -148,7 +168,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
         }
     }
 }
+$student_id = $_SESSION['student_id'];
 
+$sql = "SELECT fullname, adviser, group_members FROM student WHERE student_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    $student = $result->fetch_assoc();
+
+    $fullname = $student['fullname'];
+    $adviser = $student['adviser'];
+    $groupMembers = $student['group_members'];
+
+    $groupMembersRaw = $student['group_members'];
+
+// Convert JSON string to PHP array
+$groupMembersArray = json_decode($groupMembersRaw, true);
+
+// Check if decoding was successful
+if (json_last_error() === JSON_ERROR_NONE && is_array($groupMembersArray)) {
+    $allStudentsArray = array_merge([$fullname], $groupMembersArray); // Combine arrays
+} else {
+    // Fallback if decoding fails (treat as plain string)
+    $allStudentsArray = array_merge([$fullname], explode(',', $groupMembersRaw));
+}
+// Join names into one comma-separated string
+$allStudents = implode(', ', $allStudentsArray);
+
+    // Combine main student name + group members
+    // Example: Pass this to your PDF generator
+
+} else {
+    echo "No student found.";
+}
 
 ?>
 
@@ -161,122 +216,123 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
 
-.modal-content {
-    background-color: #fff;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
 
-.modal-layout {
-    display: flex;
-    height: 100%;
-    width: 98%;
-}
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 98%;
+        }
 
-.file-preview-section,
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    border-right: 1px solid #ccc;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    background-color: #f9f9f9;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    overflow-y: auto;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 5px;
-    margin-bottom: 10px;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
-.form-input-row input,
-.form-input-row textarea {
-    text-align: center;
-}
+        .form-input-row input,
+        .form-input-row textarea {
+            text-align: center;
+        }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-}
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
 
-.form-grid-container {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    border: 1px outset #ccc;
-    border-radius: 6px;
-    overflow: hidden;
-}
-.form-grid-container>div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    font-size: 0.8rem;
-    border: 1px solid #ccc;
-    background-color: white;
-    box-sizing: border-box;
-}
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px outset #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
 
-.form-grid-container input,
-.form-grid-container textarea {
-    width: 100%;
-    height: 100%;
-    padding: 4px;
-    font-size: 0.75rem;
-    border: none;
-    outline: none;
-    box-sizing: border-box;
-    resize: none;
-}
+        .form-grid-container>div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            resize: none;
+        }
 
 
-@media (max-width: 768px) {
-    .modal-layout {
-        flex-direction: column;
-    }
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
 
-    .file-preview-section {
-        border-right: none;
-        border-bottom: 1px solid #ccc;
-    }
-}
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
 
-.div-fileview #adviserInput {
-    width: 200px;
-}
+        .div-fileview #adviserInput {
+            width: 200px;
+        }
     </style>
     <script>
         function viewFile(filePath, student_id, route3_id, route1_id, route2_id) {
@@ -398,12 +454,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
 </head>
 
 <body>
-<?php
-if (isset($_SESSION['alert_message'])) {
-    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
-    unset($_SESSION['alert_message']); // Clear it after showing
-}
-?>
+    <?php
+    if (isset($_SESSION['alert_message'])) {
+        echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+        unset($_SESSION['alert_message']); // Clear it after showing
+    }
+    ?>
     <div class="container">
         <header class="header">
             <div class="logo-container">
@@ -419,6 +475,10 @@ if (isset($_SESSION['alert_message'])) {
 
             </div>
             <div class="user-info">
+            <div class="certif" style="margin-right: 20px;">
+  <button id='downloadButton'>Download Endorsement Certificate</button>
+</div>
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -470,9 +530,6 @@ if (isset($_SESSION['alert_message'])) {
                             <div class='file-name'>$fileName</div>
                             <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
                             <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
-                            <input style=\"width: 200px;\" type=\"text\" id=\"adviserInput\" placeholder=\"Enter Adviser Name\">
-                            <input style=\"width: 200px;\" type=\"text\" id=\"studentsInput\" placeholder=\"Enter Student Names (comma-separated)\">
-                            <button id='downloadButton'>Download</button>
                         </div>
                     ";
                     }
@@ -485,7 +542,8 @@ if (isset($_SESSION['alert_message'])) {
 
         </div>
     </div>
-    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form" style="display: none;">
+    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form"
+        style="display: none;">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); ?>">
         <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
         <input type="file" name="finaldocu" id="finaldocu" accept=".pdf" required>
@@ -512,15 +570,16 @@ if (isset($_SESSION['alert_message'])) {
         </div>
     </div>
 </body>
+
 </html>
 
 <script>
-document.getElementById('downloadButton').addEventListener('click', function() {
-    const adviserName = encodeURIComponent(document.getElementById('adviserInput').value);
-    const studentNames = encodeURIComponent(document.getElementById('studentsInput').value);
-    
-    const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${adviserName}&student=${studentNames}`;
-    
+document.getElementById('downloadButton').addEventListener('click', function () {
+    const adviserName = `<?= $adviser ?>`;
+    const studentNames = `<?= $allStudents ?>`;
+
+    const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${encodeURIComponent(adviserName)}&student=${encodeURIComponent(studentNames)}`;
     window.location.href = url;
 });
 </script>
+
