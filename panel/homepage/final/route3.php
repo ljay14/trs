@@ -478,12 +478,8 @@ if (isset($_SESSION['panel_id'])) {
                     <div><input type="number" name="paragraphNumber[]" required></div>
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div><input type="text" name="adviserName[]" required></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-
                     <!-- Fill the last 2 columns with empty cells -->
-                    <div></div>
-                    <div></div>
                 </div>
 
             </form>
@@ -503,10 +499,7 @@ if (isset($_SESSION['panel_id'])) {
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
-                <div><input type="text" name="panelName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
                 <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-                <div></div>
-                <div></div>
             </div>
         `;
         document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);

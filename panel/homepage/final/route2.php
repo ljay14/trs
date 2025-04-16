@@ -275,7 +275,6 @@ if (isset($_SESSION['panel_id'])) {
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
-
         <div class="top-bar">
             <div class="homepage">
                 <a href="../homepage.php">Home Page</a>

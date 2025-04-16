@@ -235,6 +235,15 @@ if (isset($_SESSION['panel_id'])) {
             text-align: center;
 
         }
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            border: 1px solid #ccc;
+            border-radius: 1px;
+            overflow: hidden;
+            text-align: center;
+
+        }
 
         .form-grid-container>div {
             border: 1px solid #ccc;
@@ -478,10 +487,8 @@ if (isset($_SESSION['panel_id'])) {
                     <div><input type="number" name="paragraphNumber[]" required></div>
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div><input type="text" name="adviserName[]" required></div>
+                    <div></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-
-                    <!-- Fill the last 2 columns with empty cells -->
                     <div></div>
                     <div></div>
                 </div>
@@ -502,7 +509,7 @@ if (isset($_SESSION['panel_id'])) {
                 <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
-                <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
+                <div></div>
                 <div><input type="text" name="panelName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
                 <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
                 <div></div>

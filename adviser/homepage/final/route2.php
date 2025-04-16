@@ -515,7 +515,7 @@ function autoGrow(textarea) {
         textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
     }
 
-function saveStatus(formId, event) {
+    function saveStatus(formId, event) {
     event.preventDefault();  // Prevent any form submission
 
     const statusSelect = document.getElementById(`statusSelect_${formId}`);

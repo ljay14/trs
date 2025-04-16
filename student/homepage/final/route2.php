@@ -176,7 +176,7 @@ if (!empty($panel_ids)) {
     $placeholders = implode(',', array_fill(0, count($panel_ids), '?'));
     $sql = "SELECT COUNT(DISTINCT panel_id) FROM final_monitoring_form WHERE route1_id = ? AND panel_id IN ($placeholders)";
     $stmt = $conn->prepare($sql);
-    
+
     $params = array_merge([$route1_id], $panel_ids);
     $types = str_repeat('i', count($params));
     $bind_names[] = $types;
@@ -220,118 +220,119 @@ if ($total_submitted < $total_required) {
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
 
-.modal-content {
-    background-color: #fff;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
 
-.modal-layout {
-    display: flex;
-    height: 100%;
-    width: 98%;
-}
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 98%;
+        }
 
-.file-preview-section,
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    border-right: 1px solid #ccc;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    background-color: #f9f9f9;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    overflow-y: auto;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 5px;
-    margin-bottom: 10px;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
-.form-input-row input,
-.form-input-row textarea {
-    text-align: center;
-}
+        .form-input-row input,
+        .form-input-row textarea {
+            text-align: center;
+        }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-}
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
 
-.form-grid-container {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    border: 1px outset #ccc;
-    border-radius: 6px;
-    overflow: hidden;
-}
-.form-grid-container>div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    font-size: 0.8rem;
-    border: 1px solid #ccc;
-    background-color: white;
-    box-sizing: border-box;
-}
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px outset #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
 
-.form-grid-container input,
-.form-grid-container textarea {
-    width: 100%;
-    height: 100%;
-    padding: 4px;
-    font-size: 0.75rem;
-    border: none;
-    outline: none;
-    box-sizing: border-box;
-    resize: none;
-}
+        .form-grid-container>div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            resize: none;
+        }
 
 
-@media (max-width: 768px) {
-    .modal-layout {
-        flex-direction: column;
-    }
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
 
-    .file-preview-section {
-        border-right: none;
-        border-bottom: 1px solid #ccc;
-    }
-}
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
     </style>
     <script>
         function viewFile(filePath, student_id, route2_id, route1_id) {
@@ -376,17 +377,17 @@ if ($total_submitted < $total_required) {
             // Load form data dynamically
             // Load form data dynamically using route2_id
             fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
-    .then(res => res.json())
-    .then(data => {
-        console.log("Fetched forms:", data);
-        const rowsContainer = document.getElementById("submittedFormsContainer");
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Fetched forms:", data);
+                    const rowsContainer = document.getElementById("submittedFormsContainer");
 
-        if (!Array.isArray(data) || data.length === 0) {
-            rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
-            return;
-        }
-        data.forEach(row => {
-            rowsContainer.innerHTML += `
+                    if (!Array.isArray(data) || data.length === 0) {
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+                        return;
+                    }
+                    data.forEach(row => {
+                        rowsContainer.innerHTML += `
                 <div>${row.date_submitted}</div>
                 <div>${row.chapter}</div>
                 <div>${row.feedback}</div>
@@ -397,13 +398,11 @@ if ($total_submitted < $total_required) {
                 <div>${row.date_released}</div>
                 <div>${row.status}</div>
             `;
-        });
-    })
-    .catch(err => {
-        console.error("Error loading form data:", err);
-    });
-
-
+                    });
+                })
+                .catch(err => {
+                    console.error("Error loading form data:", err);
+                });
 
             // Load file
             const extension = filePath.split('.').pop().toLowerCase();
@@ -454,12 +453,12 @@ if ($total_submitted < $total_required) {
 </head>
 
 <body>
-<?php
-if (isset($_SESSION['alert_message'])) {
-    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
-    unset($_SESSION['alert_message']); // Clear it after showing
-}
-?>
+    <?php
+    if (isset($_SESSION['alert_message'])) {
+        echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+        unset($_SESSION['alert_message']); // Clear it after showing
+    }
+    ?>
 
     <div class="container">
         <header class="header">
@@ -476,7 +475,7 @@ if (isset($_SESSION['alert_message'])) {
 
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
+                <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -498,7 +497,7 @@ if (isset($_SESSION['alert_message'])) {
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -510,32 +509,32 @@ if (isset($_SESSION['alert_message'])) {
                 </div>
             </nav>
             <div class="content" id="content-area">
-        <?php
-$student_id = $_SESSION['student_id'];
-$stmt = $conn->prepare("SELECT docuRoute2, route2_id FROM route2final_files WHERE student_id = ?");
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
+                <?php
+                $student_id = $_SESSION['student_id'];
+                $stmt = $conn->prepare("SELECT docuRoute2, route2_id FROM route2final_files WHERE student_id = ?");
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
-        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
+                        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
+                        $fileName = basename($filePath);
 
-        echo "
+                        echo "
         <div class='file-preview'>
             <div class='file-name'>$fileName</div>
             <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
             <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
         </div>
         ";
-    }
-} else {
-    echo "<p>No files uploaded yet.</p>";
-}
-$stmt->close();
-?>
+                    }
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
+                $stmt->close();
+                ?>
             </div>
 
         </div>
