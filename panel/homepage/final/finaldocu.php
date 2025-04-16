@@ -30,7 +30,7 @@ $selectedDepartment = $_POST['department'] ?? '';
 $panel_id = $_SESSION['panel_id'];
 $fullname = $_SESSION['fullname'] ?? 'Panelist';
 
-$stmt = $conn->prepare("SELECT student_id, finaldocu_id FROM finaldocufinal_files 
+$stmt = $conn->prepare("SELECT student_id, finaldocu_id FROM finaldocuproposal_files 
                         WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?");
 if ($stmt === false) {
     die("Error preparing the query: " . $conn->error);

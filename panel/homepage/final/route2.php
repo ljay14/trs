@@ -600,7 +600,6 @@ if (isset($_SESSION['panel_id'])) {
     });
 }
 
-
     function enableSaveButton(formId) {
     const saveButton = document.getElementById(`saveButton_${formId}`);
     saveButton.disabled = false;  // Enable the save button

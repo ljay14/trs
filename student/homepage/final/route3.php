@@ -125,7 +125,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
                     if (!$panelStmt) {
                         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
                     }
@@ -432,6 +432,7 @@ if (isset($_SESSION['alert_message'])) {
                 <a href="#" id="submit-file-button">Submit File</a>
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>

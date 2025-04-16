@@ -96,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
 
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
                     $panelStmt->bind_param("s", $student_id);
                     $panelStmt->execute();
                     $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
@@ -139,7 +139,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
 $student_id = $_SESSION['student_id'];
 
 // Get route1_id for the student
-$stmt = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ?");
+$stmt = $conn->prepare("SELECT route1_id FROM route1final_files WHERE student_id = ?");
 $stmt->bind_param("s", $student_id);
 $stmt->execute();
 $stmt->bind_result($route1_id);
@@ -152,7 +152,7 @@ if (!$route1_id) {
 }
 
 // Get panel and adviser IDs
-$stmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE route1_id = ?");
+$stmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE route1_id = ?");
 $stmt->bind_param("i", $route1_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -220,10 +220,121 @@ if ($total_submitted < $total_required) {
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
+.modal {
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
 
+.modal-content {
+    background-color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.modal-layout {
+    display: flex;
+    height: 100%;
+    width: 98%;
+}
+
+.file-preview-section,
+.routing-form-section {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
+}
+
+.routing-form-section {
+    flex: 1;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.form-input-row input,
+.form-input-row textarea {
+    text-align: center;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.form-grid-container {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    border: 1px outset #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.form-grid-container>div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    font-size: 0.8rem;
+    border: 1px solid #ccc;
+    background-color: white;
+    box-sizing: border-box;
+}
+
+.form-grid-container input,
+.form-grid-container textarea {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    font-size: 0.75rem;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    resize: none;
+}
+
+
+@media (max-width: 768px) {
+    .modal-layout {
+        flex-direction: column;
+    }
+
+    .file-preview-section {
+        border-right: none;
+        border-bottom: 1px solid #ccc;
+    }
+}
     </style>
     <script>
-        function viewFile(filePath, student_id, route2_id) {
+        function viewFile(filePath, student_id, route2_id, route1_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
@@ -254,6 +365,7 @@ if ($total_submitted < $total_required) {
     <div><strong>adviser Name</strong></div>
     <div><strong>panel Name</strong></div>
     <div><strong>Date Released</strong></div>
+    <div><strong>Status</strong></div>
 </div>
 <!-- Container for submitted form data -->
 <div id="submittedFormsContainer" class="form-grid-container"></div>
@@ -283,6 +395,7 @@ if ($total_submitted < $total_required) {
                 <div>${row.adviser_name}</div>
                 <div>${row.panel_name}</div>
                 <div>${row.date_released}</div>
+                <div>${row.status}</div>
             `;
         });
     })
@@ -363,6 +476,7 @@ if (isset($_SESSION['alert_message'])) {
 
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
