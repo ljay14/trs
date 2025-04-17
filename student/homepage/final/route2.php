@@ -55,10 +55,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number);
     $stmt->fetch();
     $stmt->close();
 
@@ -112,9 +112,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 2 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
+                        $stmt->bind_param("sssiiiiissss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
                         } else {
@@ -293,7 +293,7 @@ if ($total_submitted < $total_required) {
 
         .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(9, 1fr);
+            grid-template-columns: repeat(8, 1fr);
             border: 1px outset #ccc;
             border-radius: 6px;
             overflow: hidden;
@@ -363,8 +363,7 @@ if ($total_submitted < $total_required) {
     <div><strong>Feedback</strong></div>
     <div><strong>Paragraph No</strong></div>
     <div><strong>Page No</strong></div>
-    <div><strong>adviser Name</strong></div>
-    <div><strong>panel Name</strong></div>
+    <div><strong>Submitted By</strong></div>
     <div><strong>Date Released</strong></div>
     <div><strong>Status</strong></div>
 </div>
@@ -387,18 +386,24 @@ if ($total_submitted < $total_required) {
                         return;
                     }
                     data.forEach(row => {
-                        rowsContainer.innerHTML += `
-                <div>${row.date_submitted}</div>
-                <div>${row.chapter}</div>
-                <div>${row.feedback}</div>
-                <div>${row.paragraph_number}</div>
-                <div>${row.page_number}</div>
-                <div>${row.adviser_name}</div>
-                <div>${row.panel_name}</div>
-                <div>${row.date_released}</div>
-                <div>${row.status}</div>
-            `;
-                    });
+    let submittedBy = "N/A";
+    if (row.adviser_name) {
+        submittedBy = `${row.adviser_name} - Adviser`;
+    } else if (row.panel_name) {
+        submittedBy = `${row.panel_name} - Panel`;
+    }
+
+    rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+        <div>${row.status}</div>
+    `;
+});
                 })
                 .catch(err => {
                     console.error("Error loading form data:", err);
@@ -475,7 +480,7 @@ if ($total_submitted < $total_required) {
 
             </div>
             <div class="user-info">
-                <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
+                <div class="routeNo" style="margin-right: 20px;">Final - Route 2</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -509,32 +514,73 @@ if ($total_submitted < $total_required) {
                 </div>
             </nav>
             <div class="content" id="content-area">
-                <?php
-                $student_id = $_SESSION['student_id'];
-                $stmt = $conn->prepare("SELECT docuRoute2, route2_id FROM route2final_files WHERE student_id = ?");
-                $stmt->bind_param("s", $student_id);
-                $stmt->execute();
-                $result = $stmt->get_result();
+            <?php
+$student_id = $_SESSION['student_id'];
 
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
-                        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
-                        $fileName = basename($filePath);
+$stmt = $conn->prepare("
+    SELECT 
+        docuRoute2, 
+        route2_id, 
+        controlNo, 
+        fullname, 
+        group_number 
+    FROM 
+        route2final_files 
+    WHERE 
+        student_id = ?
+");
 
-                        echo "
-        <div class='file-preview'>
-            <div class='file-name'>$fileName</div>
-            <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
-            <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
-        </div>
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(202, 200, 200);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Full Name</th>
+                <th>Group No.</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
+
+    while ($row = $result->fetch_assoc()) {
+        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
+        $route3_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
+        $fileName = basename($filePath);
+        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+
+        echo "
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullName</td>
+                <td>$groupNo</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
+                    <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
+                </td>
+            </tr>
         ";
-                    }
-                } else {
-                    echo "<p>No files uploaded yet.</p>";
-                }
-                $stmt->close();
-                ?>
+    }
+
+    echo "
+        </tbody>
+    </table>
+    ";
+} else {
+    echo "<p>No files uploaded yet.</p>";
+}
+
+$stmt->close();
+?>
             </div>
 
         </div>

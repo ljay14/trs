@@ -409,6 +409,7 @@ function showAllForms(route1_id) {
                 <a href="../homepage.php">Home Page</a>
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Adviser:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -443,34 +444,64 @@ function showAllForms(route1_id) {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
-                $stmt = $conn->prepare("SELECT docuRoute1, student_id, route1_id FROM route1proposal_files WHERE adviser_id = ?");
-                $stmt->bind_param("s", $adviser_id);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = htmlspecialchars($row['docuRoute1']);
-                        $fileName = basename($filePath);
-                        $student_id = htmlspecialchars($row['student_id']);
-                        $route1_id = htmlspecialchars($row['route1_id']);
-                
-                        echo "
-                            <div class='file-preview'>
-                                <div class='file-name'>{$fileName}</div>
-                                <button class='view-button' onclick=\"viewFile('{$filePath}', '{$student_id}', '{$route1_id}')\">View</button>
-                            </div>
-                        ";
-                    }
-                }
-                 else {
-                    echo "<p>No files uploaded yet.</p>";
-                }
+<?php
+$stmt = $conn->prepare("SELECT docuRoute1, student_id, route1_id, group_number, controlNo, fullname FROM route1proposal_files WHERE adviser_id = ?");
+$stmt->bind_param("s", $adviser_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-                $stmt->close();
-                ?>
-            </div>
+if ($result->num_rows > 0) {
+    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(202, 200, 200);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Leader</th>
+                <th>Group No.</th>
+                <th>Student ID</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
+
+    while ($row = $result->fetch_assoc()) {
+        $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
+        $fileName = basename($filePath);
+        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+        $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
+        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+
+        echo "
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullName</td>
+                <td>$groupNo</td>
+                <td>$student_id</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
+                </td>
+            </tr>
+        ";
+    }
+
+    echo "
+        </tbody>
+    </table>
+    ";
+} else {
+    echo "<p>No files uploaded yet.</p>";
+}
+
+$stmt->close();
+?>
+</div>
+
+
         </div>
     </div>
 

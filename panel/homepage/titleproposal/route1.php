@@ -217,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 
     .form-grid-container {
         display: grid;
-        grid-template-columns: repeat(8, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         border: 1px solid #ccc;
         border-radius: 6px;
         overflow: hidden;
@@ -300,8 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     <div><strong>Feedback</strong></div>
     <div><strong>Paragraph No</strong></div>
     <div><strong>Page No</strong></div>
-    <div><strong>Panel Name</strong></div>
-    <div><strong>Adviser Name</strong></div>
+    <div><strong>Submitted By</strong></div>
     <div><strong>Date Released</strong></div>
 </div>
 
@@ -317,7 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
                         <div><input type="number" name="paragraphNumber[]" required></div>
                         <div><input type="number" name="pageNumber[]" required></div>
                         <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                        <div><input type="text"></div>
                         <div><input type="date" name="dateReleased[]" value="${today}" required></div>
                     </div>
                 </div>
@@ -339,7 +337,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                <div><input type="text"></div>
                 <div><input type="date" name="dateReleased[]" value="${today}" required></div>
             </div>
         `;
@@ -348,12 +345,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 
     let formsVisible = false;
 
-function showAllForms(route1_id) {
+    function showAllForms(route1_id) {
     const formDataContainer = document.getElementById("submittedFormsContainer");
     const noFormsMessage = document.getElementById("noFormsMessage");
     const showButton = document.querySelector("button[onclick^='showAllForms']");
 
     if (formsVisible) {
+        // Clear content and toggle button
         formDataContainer.innerHTML = "";
         noFormsMessage.innerText = "";
         showButton.textContent = "Show all Forms";
@@ -361,33 +359,44 @@ function showAllForms(route1_id) {
         return;
     }
 
+    // Fetch data
     fetch('get_all_forms.php?route1_id=' + route1_id)
         .then(response => response.json())
         .then(data => {
-            if (data.length === 0) {
+            formDataContainer.innerHTML = ""; // Clear old content first
+
+            if (!data || data.length === 0) {
                 noFormsMessage.innerText = "No routing forms submitted yet.";
                 return;
             }
 
-            noFormsMessage.innerText = ""; // Clear message
+            noFormsMessage.innerText = ""; // Clear message if forms exist
 
-            data.forEach(form => {
+            data.forEach(row => {
+                let submittedBy = "N/A";
+                if (row.adviser_name) {
+                    submittedBy = `${row.adviser_name} - Adviser`;
+                } else if (row.panel_name) {
+                    submittedBy = `${row.panel_name} - Panel`;
+                }
+
                 formDataContainer.innerHTML += `
-                    <div>${form.date_submitted}</div>
-                    <div>${form.chapter}</div>
-                    <div>${form.feedback}</div>
-                    <div>${form.paragraph_number}</div>
-                    <div>${form.page_number}</div>
-                    <div>${form.panel_name}</div>
-                    <div>${form.adviser_name}</div>
-                    <div>${form.date_released}</div>
+                    <div>${row.date_submitted}</div>
+                    <div>${row.chapter}</div>
+                    <div>${row.feedback}</div>
+                    <div>${row.paragraph_number}</div>
+                    <div>${row.page_number}</div>
+                    <div>${submittedBy}</div>
+                    <div>${row.date_released}</div>
                 `;
             });
+
             showButton.textContent = "Show less";
             formsVisible = true;
         })
         .catch(error => {
             console.error('Error fetching forms:', error);
+            noFormsMessage.innerText = "Failed to load forms.";
         });
 }
 
@@ -421,6 +430,7 @@ function showAllForms(route1_id) {
                 </form>
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -455,43 +465,79 @@ function showAllForms(route1_id) {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
-                $query = "
-                SELECT docuRoute1, department, student_id, route1_id 
-                FROM route1proposal_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
-                " . ($selectedDepartment ? " AND department = ?" : "");
+            <?php
+$query = "
+    SELECT 
+        docuRoute1, 
+        department, 
+        student_id, 
+        route1_id, 
+        controlNo, 
+        fullname, 
+        group_number 
+    FROM route1proposal_files 
+    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+    " . ($selectedDepartment ? " AND department = ?" : "");
 
+$stmt = $conn->prepare($query);
 
-                $stmt = $conn->prepare($query);
-                if ($selectedDepartment) {
-                    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
-                } else {
-                    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
-                }
-                $stmt->execute();
-                $result = $stmt->get_result();
+if ($selectedDepartment) {
+    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
+} else {
+    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+}
 
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = $row['docuRoute1']; // This is the path to the file
-                        $route1_id = $row['route1_id'];
-                        $student_id = $row['student_id'];
-                        $fileName = basename($filePath); // ✅ Add this line with the correct field name
-                    
-                        echo "
-                        <div class='file-preview'>
-                            <div class='file-name'>$fileName</div>
-                            <button onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View File</button>
-                        </div>
-                        ";
-                    }
-                    
+$stmt->execute();
+$result = $stmt->get_result();
 
-                } else {
-                    echo "<p>No files uploaded yet.</p>";
-                }
-                ?>
+if ($result->num_rows > 0) {
+    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(156, 153, 153);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Leader</th>
+                <th>Group No.</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
+
+    while ($row = $result->fetch_assoc()) {
+        $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
+        $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
+        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+        $fileName = basename($filePath);
+        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+
+        echo "
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullname</td>
+                <td>$groupNo</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
+                </td>
+            </tr>
+        ";
+    }
+
+    echo "
+        </tbody>
+    </table>
+    ";
+} else {
+    echo "<p>No files uploaded yet.</p>";
+}
+
+$stmt->close();
+?>
+
             </div>
         </div>
     </div>

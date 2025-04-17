@@ -43,7 +43,7 @@ body {
     justify-content: space-between;
     align-items: center;
     background-color: #ccc;
-    padding: 25px 0;
+    padding: 9px 0;
     color: black;
     margin: 0;
     margin-top: 10px;
@@ -156,71 +156,3 @@ a {
 
 /* Panelist Registration Form */
 /* Panelist Registration Form */
-.form-container {
-    max-width: 700px;
-    background-color: #ccc;
-    margin: auto;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    text-align: left;
-}
-
-.form-container h1 {
-    text-align: center;
-    color: #003399;
-    margin-bottom: 20px;
-}
-
-.form-container label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #333;
-}
-
-.form-container input {
-    width: 97%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-/* Centering the button */
-.form-container .button-container {
-    display: flex;
-    justify-content: center;
-}
-
-.form-container button {
-    background-color: #003399;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    width: 100px;
-}
-
-.form-container button:hover {
-    background-color: #001a4d;
-}
-
-.alert {
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 5px;
-    font-size: 16px;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-}

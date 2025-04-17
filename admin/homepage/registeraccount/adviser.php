@@ -69,7 +69,92 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="adminstyle.css">
+    <style>
+        .form-container {
+    max-width: 700px;
+    background-color: #ccc;
+    margin: auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+.form-container h1 {
+    text-align: center;
+    color: #003399;
+    margin-bottom: 20px;
+}
+
+.form-container label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-container input {
+    width: 97%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Centering the button */
+.form-container .button-container {
+    display: flex;
+    justify-content: center;
+}
+
+.form-container button {
+    background-color: #003399;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    width: 100px;
+}
+
+.form-container button:hover {
+    background-color: #001a4d;
+}
+
+.alert {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.vl {
+    border-left: 2px solid;
+    height: 50px;
+    margin-right: 20px;
+}
+
+.user-info a{
+    color: black;
+    margin-right: 20px;
+    padding: 10px;
+    background-color: #879ecc;
+    border-radius: 5px;
+    font-weight: bold;
+}
+    </style>
     <script>
         // JavaScript to hide the alert initially and show it upon success
         window.onload = function () {
@@ -92,8 +177,11 @@ $conn->close();
         <div class="top-bar">
             <div class="homepage">
                 <a href="../../homepage/homepage.php">Home Page</a>
+                
             </div>
             <div class="user-info">
+            <a href="adviser_register.php" ;">Registered Account</a>
+                <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span
                     class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>
@@ -113,7 +201,7 @@ $conn->close();
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                         </ul>
@@ -123,6 +211,7 @@ $conn->close();
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
+                            <li><a href="../registeraccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>

@@ -55,13 +55,13 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
     }
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number);
     $stmt->fetch();
     $stmt->close();
 
@@ -146,9 +146,9 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 3 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO finaldocufinal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO finaldocufinal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiis", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted);
+                        $stmt->bind_param("sssiiiiissss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'finaldocu.php';</script>";
                         } else {
@@ -321,8 +321,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
     <div><strong>Feedback</strong></div>
     <div><strong>Paragraph No</strong></div>
     <div><strong>Page No</strong></div>
-    <div><strong>adviser Name</strong></div>
-    <div><strong>panel Name</strong></div>
+    <div><strong>Submitted By</strong></div>
     <div><strong>Date Released</strong></div>
     <div><strong>Status</strong></div>
 </div>
@@ -334,7 +333,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
 
             // Load form data dynamically
             // Load form data dynamically using finaldocu_id
-            fetch(`get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(route3_id)}`)
+            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(route3_id)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Fetched forms:", data);
@@ -345,18 +344,23 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                         return;
                     }
                     data.forEach(row => {
-                        rowsContainer.innerHTML += `
-                <div>${row.date_submitted}</div>
-                <div>${row.chapter}</div>
-                <div>${row.feedback}</div>
-                <div>${row.paragraph_number}</div>
-                <div>${row.page_number}</div>
-                <div>${row.adviser_name}</div>
-                <div>${row.panel_name}</div>
-                <div>${row.date_released}</div>
-                <div>${row.status}</div>
-            `;
-                    });
+    let submittedBy = "N/A";
+    if (row.adviser_name) {
+        submittedBy = `${row.adviser_name} - Adviser`;
+    } else if (row.panel_name) {
+        submittedBy = `${row.panel_name} - Panel`;
+    }
+
+    rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+    `;
+});
                 })
                 .catch(err => {
                     console.error("Error loading form data:", err);
@@ -466,32 +470,73 @@ if (isset($_SESSION['alert_message'])) {
                 </div>
             </nav>
             <div class="content" id="content-area">
-                <?php
-                $student_id = $_SESSION['student_id'];
-                $stmt = $conn->prepare("SELECT finaldocu, finaldocu_id FROM finaldocufinal_files WHERE student_id = ?");
-                $stmt->bind_param("s", $student_id);
-                $stmt->execute();
-                $result = $stmt->get_result();
+            <?php
+$student_id = $_SESSION['student_id'];
 
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
-                        $finaldocu_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
-                        $fileName = basename($filePath);
+$stmt = $conn->prepare("
+    SELECT 
+        finaldocu, 
+        finaldocu_id, 
+        controlNo, 
+        fullname, 
+        group_number 
+    FROM 
+        finaldocufinal_files 
+    WHERE 
+        student_id = ?
+");
 
-                        echo "
-        <div class='file-preview'>
-            <div class='file-name'>$fileName</div>
-            <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
-            <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
-        </div>
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(202, 200, 200);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Full Name</th>
+                <th>Group No.</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
+
+    while ($row = $result->fetch_assoc()) {
+        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
+        $route3_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
+        $fileName = basename($filePath);
+        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+
+        echo "
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullName</td>
+                <td>$groupNo</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
+                    <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
+                </td>
+            </tr>
         ";
-                    }
-                } else {
-                    echo "<p>No files uploaded yet.</p>";
-                }
-                $stmt->close();
-                ?>
+    }
+
+    echo "
+        </tbody>
+    </table>
+    ";
+} else {
+    echo "<p>No files uploaded yet.</p>";
+}
+
+$stmt->close();
+?>
             </div>
 
         </div>

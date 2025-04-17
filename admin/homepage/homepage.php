@@ -61,6 +61,7 @@ if (!isset($_SESSION['admin_id'])) {
                         <ul>
                             <li><a href="registeraccount/panel.php">Panel</a></li>
                             <li><a href="registeraccount/adviser.php">Adviser</a></li>
+                            <li><a href="registeraccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>

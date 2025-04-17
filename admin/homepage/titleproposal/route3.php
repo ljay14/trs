@@ -257,6 +257,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             </div>
             <button id="external-submit-button">Submit</button>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name">
@@ -275,7 +276,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             <li><a href="../titleproposal/route1.php">Route 1</a></li>
                             <li><a href="../titleproposal/route2.php">Route 2</a></li>
                             <li><a href="../titleproposal/route3.php">Route 3</a></li>
-                            <li><a href="titleproposal/route3.php">Indorsement Form</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -292,6 +292,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
+                            <li><a href="../registeraccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>

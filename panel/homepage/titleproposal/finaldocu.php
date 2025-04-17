@@ -156,6 +156,7 @@ if (isset($_SESSION['panel_id'])) {
                 </form>
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -190,43 +191,78 @@ if (isset($_SESSION['panel_id'])) {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
-                $query = "
-                SELECT finaldocu, department, student_id, finaldocu_id 
-                FROM finaldocuproposal_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
-                " . ($selectedDepartment ? " AND department = ?" : "");
+            <?php
+$query = "
+    SELECT 
+        finaldocu, 
+        department, 
+        student_id, 
+        finaldocu_id, 
+        controlNo, 
+        fullname, 
+        group_number 
+    FROM finaldocuproposal_files 
+    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+    " . ($selectedDepartment ? " AND department = ?" : "");
 
+$stmt = $conn->prepare($query);
 
-                $stmt = $conn->prepare($query);
-                if ($selectedDepartment) {
-                    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
-                } else {
-                    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
-                }
-                $stmt->execute();
-                $result = $stmt->get_result();
+if ($selectedDepartment) {
+    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
+} else {
+    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+}
 
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = $row['finaldocu']; // This is the path to the file
-                        $finaldocu_id = $row['finaldocu_id'];
-                        $student_id = $row['student_id'];
-                        $fileName = basename($filePath); // ✅ Add this line with the correct field name
-                
-                        echo "
-                        <div class='file-preview'>
-                            <div class='file-name'>$fileName</div>
-                            <button onclick=\"viewFile('$filePath', '$finaldocu_id', '$student_id')\">View File</button>
-                        </div>
-                        ";
-                    }
+$stmt->execute();
+$result = $stmt->get_result();
 
+if ($result->num_rows > 0) {
+    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(156, 153, 153);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Leader</th>
+                <th>Group No.</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
 
-                } else {
-                    echo "<p>No files uploaded yet.</p>";
-                }
-                ?>
+    while ($row = $result->fetch_assoc()) {
+        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
+        $route1_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
+        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+        $fileName = basename($filePath);
+        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+
+        echo "
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullname</td>
+                <td>$groupNo</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
+                </td>
+            </tr>
+        ";
+    }
+
+    echo "
+        </tbody>
+    </table>
+    ";
+} else {
+    echo "<p>No files uploaded yet.</p>";
+}
+
+$stmt->close();
+?>
             </div>
         </div>
     </div>

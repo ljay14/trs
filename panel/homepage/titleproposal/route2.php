@@ -211,7 +211,6 @@ if (isset($_SESSION['panel_id'])) {
             resize: none;
         }
 
-
         .form-input-row textarea {
             resize: vertical;
             min-height: 24px;
@@ -228,7 +227,7 @@ if (isset($_SESSION['panel_id'])) {
 
         .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(10, 1fr);
+            grid-template-columns: repeat(9, 1fr);
             border: 1px solid #ccc;
             border-radius: 1px;
             overflow: hidden;
@@ -248,6 +247,7 @@ if (isset($_SESSION['panel_id'])) {
             vertical-align: center;
             /* Ensures content starts from the top */
         }
+
         .feedback-cell {
             max-height: 120px;
             overflow-y: auto;
@@ -293,6 +293,7 @@ if (isset($_SESSION['panel_id'])) {
                 </form>
             </div>
             <div class="user-info">
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -301,7 +302,7 @@ if (isset($_SESSION['panel_id'])) {
 
         <div class="main-content">
             <nav class="sidebar">
-            <div class="menu">
+                <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -329,40 +330,75 @@ if (isset($_SESSION['panel_id'])) {
             <div class="content" id="content-area">
                 <?php
                 $query = "
-                SELECT docuRoute2, department, student_id, route2_id 
-                FROM route2proposal_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
-                " . ($selectedDepartment ? " AND department = ?" : "");
-
+    SELECT 
+        docuRoute2, 
+        department, 
+        student_id, 
+        route2_id, 
+        controlNo, 
+        fullname, 
+        group_number 
+    FROM route2proposal_files 
+    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+    " . ($selectedDepartment ? " AND department = ?" : "");
 
                 $stmt = $conn->prepare($query);
+
                 if ($selectedDepartment) {
                     $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
                 } else {
                     $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
                 }
+
                 $stmt->execute();
                 $result = $stmt->get_result();
 
                 if ($result->num_rows > 0) {
+                    echo "
+    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(156, 153, 153);'>
+        <thead>
+            <tr style='text-align: center;'>
+                <th>Control No.</th>
+                <th>Leader</th>
+                <th>Group No.</th>
+                <th>File Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    ";
+
                     while ($row = $result->fetch_assoc()) {
-                        $filePath = $row['docuRoute2']; // This is the path to the file
-                        $route2_id = $row['route2_id'];
-                        $student_id = $row['student_id'];
-                        $fileName = basename($filePath); // ✅ Add this line with the correct field name
-                
+                        $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
+                        $route1_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
+                        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+                        $fileName = basename($filePath);
+                        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+
                         echo "
-                        <div class='file-preview'>
-                            <div class='file-name'>$fileName</div>
-                            <button onclick=\"viewFile('$filePath', '$route2_id', '$student_id')\">View File</button>
-                        </div>
-                        ";
+            <tr>
+                <td>$controlNo</td>
+                <td>$fullname</td>
+                <td>$groupNo</td>
+                <td>$fileName</td>
+                <td style='text-align: center;'>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
+                </td>
+            </tr>
+        ";
                     }
 
-
+                    echo "
+        </tbody>
+    </table>
+    ";
                 } else {
                     echo "<p>No files uploaded yet.</p>";
                 }
+
+                $stmt->close();
                 ?>
             </div>
         </div>
@@ -460,8 +496,7 @@ if (isset($_SESSION['panel_id'])) {
                     <div><strong>Feedback</strong></div>
                     <div><strong>Paragraph No</strong></div>
                     <div><strong>Page No</strong></div>
-                    <div><strong>Panel Name</strong></div>
-                    <div><strong>Adviser Name</strong></div>
+                    <div><strong>Submitted By</strong></div>
                     <div><strong>Date Released</strong></div>
                     <div><strong>Status</strong></div>
                     <div><strong>Action</strong></div>
@@ -478,10 +513,7 @@ if (isset($_SESSION['panel_id'])) {
                     <div><input type="number" name="paragraphNumber[]" required></div>
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                    <div></div>
-                    <div></div>
                 </div>
             </form>
         `;
@@ -500,10 +532,7 @@ if (isset($_SESSION['panel_id'])) {
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="panelName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
-                <div></div>
                 <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-                <div></div>
-                <div></div>
             </div>
         `;
         document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
@@ -534,31 +563,38 @@ if (isset($_SESSION['panel_id'])) {
 
                 noFormsMessage.innerText = ""; // Clear message
 
-                data.forEach(form => {
-                    const formId = form.id;
-                    const statusValue = (form.status || 'Pending').trim(); // <- Clean it
+data.forEach(form => {
+    const formId = form.id;
+    const statusValue = (form.status || 'Pending').trim();
 
-                    formDataContainer.innerHTML += `
-                        <div>${form.date_submitted}</div>
-                        <div>${form.chapter}</div>
-                        <div class="feedback-cell">${form.feedback}</div>
-                        <div>${form.paragraph_number}</div>
-                        <div>${form.page_number}</div>
-                        <div>${form.panel_name}</div>
-                        <div>${form.adviser_name}</div>
-                        <div>${form.date_released}</div>
-                        <div>
-                            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
-                        </div>
-                    `;
-                });
+    let submittedBy = 'N/A';
+    if (form.adviser_name) {
+        submittedBy = `${form.adviser_name} - Adviser`;
+    } else if (form.panel_name) {
+        submittedBy = `${form.panel_name} - Panel`;
+    }
+
+    formDataContainer.innerHTML += `
+        <div>${form.date_submitted}</div>
+        <div>${form.chapter}</div>
+        <div class="feedback-cell">${form.feedback}</div>
+        <div>${form.paragraph_number}</div>
+        <div>${form.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${form.date_released}</div>
+        <div>
+            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+            </select>
+        </div>
+        <div>
+            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+        </div>
+    `;
+});
+
 
                 showButton.textContent = "Show less";
                 formsVisible = true;
@@ -574,33 +610,33 @@ if (isset($_SESSION['panel_id'])) {
     }
 
     function saveStatus(formId, event) {
-    event.preventDefault();
-    const status = document.getElementById(`statusSelect_${formId}`).value;
+        event.preventDefault();
+        const status = document.getElementById(`statusSelect_${formId}`).value;
 
-    fetch('update_form_status.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: formId, status: status })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Disable the save button once status is saved
-            document.getElementById(`saveButton_${formId}`).disabled = true;
-        } else {
-            alert(data.message || 'Failed to update.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while saving the status.');
-    });
-}
+        fetch('update_form_status.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: formId, status: status })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Disable the save button once status is saved
+                    document.getElementById(`saveButton_${formId}`).disabled = true;
+                } else {
+                    alert(data.message || 'Failed to update.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving the status.');
+            });
+    }
 
     function enableSaveButton(formId) {
-    const saveButton = document.getElementById(`saveButton_${formId}`);
-    saveButton.disabled = false;  // Enable the save button
-}
+        const saveButton = document.getElementById(`saveButton_${formId}`);
+        saveButton.disabled = false;  // Enable the save button
+    }
 
 
 </script>
