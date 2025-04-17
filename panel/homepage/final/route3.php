@@ -228,7 +228,7 @@ if (isset($_SESSION['panel_id'])) {
 
         .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(10, 1fr);
+            grid-template-columns: repeat(9, 1fr);
             border: 1px solid #ccc;
             border-radius: 1px;
             overflow: hidden;
@@ -496,8 +496,7 @@ if (isset($_SESSION['panel_id'])) {
                     <div><strong>Feedback</strong></div>
                     <div><strong>Paragraph No</strong></div>
                     <div><strong>Page No</strong></div>
-                    <div><strong>Panel Name</strong></div>
-                    <div><strong>Adviser Name</strong></div>
+                    <div><strong>Submitted By</strong></div>
                     <div><strong>Date Released</strong></div>
                     <div><strong>Status</strong></div>
                     <div><strong>Action</strong></div>
@@ -567,29 +566,35 @@ if (isset($_SESSION['panel_id'])) {
                 noFormsMessage.innerText = ""; // Clear message
 
                 data.forEach(form => {
-                    const formId = form.id;
-                    const statusValue = (form.status || 'Pending').trim(); // <- Clean it
+    const formId = form.id;
+    const statusValue = (form.status || 'Pending').trim();
 
-                    formDataContainer.innerHTML += `
-                        <div>${form.date_submitted}</div>
-                        <div>${form.chapter}</div>
-                        <div class="feedback-cell">${form.feedback}</div>
-                        <div>${form.paragraph_number}</div>
-                        <div>${form.page_number}</div>
-                        <div>${form.panel_name}</div>
-                        <div>${form.adviser_name}</div>
-                        <div>${form.date_released}</div>
-                        <div>
-                            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
-                        </div>
-                    `;
+    let submittedBy = 'N/A';
+    if (form.adviser_name) {
+        submittedBy = `${form.adviser_name} - Adviser`;
+    } else if (form.panel_name) {
+        submittedBy = `${form.panel_name} - Panel`;
+    }
+
+    formDataContainer.innerHTML += `
+        <div>${form.date_submitted}</div>
+        <div>${form.chapter}</div>
+        <div class="feedback-cell">${form.feedback}</div>
+        <div>${form.paragraph_number}</div>
+        <div>${form.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${form.date_released}</div>
+        <div>
+            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+            </select>
+        </div>
+        <div>
+            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+        </div>
+    `;
                 });
 
                 showButton.textContent = "Show less";

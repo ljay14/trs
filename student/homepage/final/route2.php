@@ -217,7 +217,7 @@ if ($total_submitted < $total_required) {
 <head>
     <meta charset="UTF-8">
     <title>Route 2 - Thesis Routing System</title>
-    <link rel="stylesheet" href="studstyles.css">
+    <link rel="stylesheet" href="studstyle.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
         .modal {
@@ -386,14 +386,14 @@ if ($total_submitted < $total_required) {
                         return;
                     }
                     data.forEach(row => {
-    let submittedBy = "N/A";
-    if (row.adviser_name) {
-        submittedBy = `${row.adviser_name} - Adviser`;
-    } else if (row.panel_name) {
-        submittedBy = `${row.panel_name} - Panel`;
-    }
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
 
-    rowsContainer.innerHTML += `
+                        rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
         <div>${row.feedback}</div>

@@ -315,14 +315,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                         return;
                     }
                     data.forEach(row => {
-    let submittedBy = "N/A";
-    if (row.adviser_name) {
-        submittedBy = `${row.adviser_name} - Adviser`;
-    } else if (row.panel_name) {
-        submittedBy = `${row.panel_name} - Panel`;
-    }
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
 
-    rowsContainer.innerHTML += `
+                        rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
         <div>${row.feedback}</div>

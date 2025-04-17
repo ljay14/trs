@@ -348,23 +348,23 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                         return;
                     }
                     data.forEach(row => {
-            let submittedBy = "N/A";
-            if (row.adviser_name) {
-                submittedBy = `${row.adviser_name} - Adviser`;
-            } else if (row.panel_name) {
-                submittedBy = `${row.panel_name} - Panel`;
-            }
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
 
-            rowsContainer.innerHTML += `
-                <div>${row.date_submitted}</div>
-                <div>${row.chapter}</div>
-                <div>${row.feedback}</div>
-                <div>${row.paragraph_number}</div>
-                <div>${row.page_number}</div>
-                <div>${submittedBy}</div>
-                <div>${row.date_released}</div>
-                <div>${row.status}</div>
-            `;
+                        rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+        <div>${row.status}</div>
+    `;
         });
                 })
                 .catch(err => {

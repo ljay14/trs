@@ -73,14 +73,14 @@ if (isset($_SESSION['selected_department'])) {
 // Fetch files
 $fileStmt = $conn->prepare(
     "SELECT 
-        docuRoute2 AS filepath, 
-        docuRoute2 AS filename, 
+        finaldocu AS filepath, 
+        finaldocu AS filename, 
         date_submitted,
         controlNo,
         group_number,
         fullname,
         student_id, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id
-     FROM route2proposal_files 
+     FROM finaldocufinal_files 
      WHERE department = ?"
 );
 
@@ -127,7 +127,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             $fileName = $filePath; // Use the full path stored in the DB
 
             // Check if the file exists in DB
-            $checkStmt = $conn->prepare("SELECT * FROM route2proposal_files WHERE docuRoute2 = ?");
+            $checkStmt = $conn->prepare("SELECT * FROM finaldocufinal_files WHERE finaldocu = ?");
             $checkStmt->bind_param("s", $fileName);
             $checkStmt->execute();
             $result = $checkStmt->get_result();
@@ -137,9 +137,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             if ($fileExists) {
                 // Update panel and adviser and set date_submitted
                 $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
-                $updatePanelStmt = $conn->prepare("UPDATE route2proposal_files 
+                $updatePanelStmt = $conn->prepare("UPDATE finaldocufinal_files 
                     SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, adviser_id = ?, date_submitted = ? 
-                    WHERE docuRoute2 = ?");
+                    WHERE finaldocu = ?");
                 $updatePanelStmt->bind_param("iiiisss", $panel1, $panel2, $panel3, $panel4, $selectedAdviser, $dateNow, $fileName);
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
@@ -241,7 +241,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
 
         .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             border: 1px outset #ccc;
             border-radius: 6px;
             overflow: hidden;
@@ -394,7 +394,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             </div>
             <button id="external-submit-button">Submit</button>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
+            <div class="routeNo" style="margin-right: 20px;">Final - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name">
@@ -439,7 +439,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             </nav>
 
             <div class="content" id="content-area" style="display: flex; justify-content: center; padding: 20px; justify-items: center; width: 90%;">
-    <form id="submission-form" action="route2.php" method="POST" style="width: 100%; max-width: 1200px;">
+    <form id="submission-form" action="finaldocu.php" method="POST" style="width: 100%; max-width: 1200px;">
         <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: #f1f1f1; text-align: left;">
             <thead>
                 <tr style="background-color: #ccc; text-align: center;">
@@ -461,7 +461,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             $controlNo = htmlspecialchars($file['controlNo'] ?? '', ENT_QUOTES);
                             $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
                             $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
-                            $route2_id = htmlspecialchars($file['route2_id'] ?? '', ENT_QUOTES);
+                            $finaldocu_id = htmlspecialchars($file['finaldocu_id'] ?? '', ENT_QUOTES);
                             $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
                             // Check if file is assigned to a panelist and adviser
                             $assigned = '';
@@ -483,7 +483,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             <td><?= $filename ?></td>
                             <td style="text-align: center;"><?= $assigned ?></td>
                             <td style="text-align: center;">
-                            <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $route2_id ?>')">View</button>
+                            <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $finaldocu_id ?>')">View</button>
 
                             </td>
                         </tr>
@@ -574,7 +574,7 @@ document.getElementById("external-submit-button").addEventListener("click", func
 });
 
 
-function viewFile(filePath, student_id, route1_id, route2_id) {
+function viewFile(filePath, student_id, route1_id, route2_id, route3_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
@@ -605,7 +605,6 @@ function viewFile(filePath, student_id, route1_id, route2_id) {
         <div><strong>Page No</strong></div>
         <div><strong>Submitted By</strong></div>
         <div><strong>Date Released</strong></div>
-        <div><strong>Status</strong></div>
     </div>
 
     <!-- Container for submitted form data -->
@@ -616,7 +615,7 @@ function viewFile(filePath, student_id, route1_id, route2_id) {
 
             // Load form data dynamically
             // Load form data dynamically using route2_id
-            fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
+            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(route3_id)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Fetched forms:", data);
@@ -642,7 +641,6 @@ function viewFile(filePath, student_id, route1_id, route2_id) {
         <div>${row.page_number}</div>
         <div>${submittedBy}</div>
         <div>${row.date_released}</div>
-        <div>${row.status}</div>
     `;
 });
 

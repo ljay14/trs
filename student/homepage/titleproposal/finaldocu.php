@@ -20,7 +20,6 @@ if ($conn->connect_error) {
 
 $alertMessage = "";
 
-// HANDLE DELETE REQUEST
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     $student_id = $_SESSION['student_id'];
     $fileToDelete = $_POST['delete_file'];
@@ -31,14 +30,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     $stmt->store_result();
 
     if ($stmt->num_rows > 0) {
-        if (file_exists($fileToDelete)) {
-            unlink($fileToDelete); // Delete the file from folder
+        $filePath = realpath($fileToDelete);
+
+        if ($filePath && file_exists($filePath)) {
+            if (unlink($filePath)) { // Check if file was deleted
+                $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
+                $deleteStmt->bind_param("ss", $student_id, $fileToDelete);
+                $deleteStmt->execute();
+                $deleteStmt->close();
+                $alertMessage = "File deleted successfully.";
+            } else {
+                $alertMessage = "Failed to delete file from server.";
+            }
+        } else {
+            $alertMessage = "File does not exist.";
         }
-        $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
-        $deleteStmt->bind_param("ss", $student_id, $fileToDelete);
-        $deleteStmt->execute();
-        $deleteStmt->close();
-        $alertMessage = "File deleted successfully.";
     } else {
         $alertMessage = "File not found or you don't have permission.";
     }
@@ -48,6 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     header("Location: finaldocu.php");
     exit;
 }
+
 // HANDLE UPLOAD
 // HANDLE UPLOAD
 
@@ -216,7 +223,6 @@ $allStudents = implode(', ', $allStudentsArray);
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-/* Modal background */
 /* Modal overlay */
 .modal {
     position: fixed;
@@ -242,23 +248,49 @@ $allStudents = implode(', ', $allStudentsArray);
     flex-direction: column;
     overflow: hidden;
 }
-
-/* File display area */
-#fileModalContent {
-    flex: 1;
+.modal-layout {
+    display: flex;
     width: 100%;
     height: 100%;
+}
+
+.file-preview-section {
+    flex: 2; /* Make preview section wider */
+    background: #f9f9f9;
+    padding: 10px;
+    overflow: auto;
+}
+
+.routing-form-section {
+    flex: 1; /* Form section smaller */
+    background: #ffffff;
+    border-left: 1px solid #ccc;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+
+/* Fix: make file area flexible */
+#fileModalContent {
+    flex: 1 1 auto; /* <--- IMPORTANT! */
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    display: flex; /* so iframe and docx div can stretch */
 }
 
 /* Embedded PDF/DOCX content */
 #fileModalContent iframe {
+    flex: 1; /* <--- IMPORTANT! */
     width: 100%;
     height: 100%;
     border: none;
+    display: block;
 }
 
 /* DOCX content styling */
 #fileModalContent .file-content {
+    flex: 1; /* <--- IMPORTANT! */
     width: 100%;
     height: 100%;
     overflow-y: auto;
@@ -281,11 +313,31 @@ $allStudents = implode(', ', $allStudentsArray);
     z-index: 1000;
 }
 
-    </style>
-    <script>
-    const panelName = <?= json_encode($fullname) ?>;
+/* Add styles for .file-content to make it look like a real document */
+.file-content {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 40px;
+    box-sizing: border-box;
+    font-size: 16px; /* Bigger font */
+    line-height: 1.6; /* Better line spacing */
+    color: #333; /* Softer text color */
+}
 
-    function viewFile(filePath, finaldocu, student_id) {
+/* Optional: Center content like A4 paper */
+.file-content > * {
+    max-width: 800px; /* mimic A4 paper */
+    margin: 0 auto;
+}
+
+</style>
+
+
+<script>
+const panelName = <?= json_encode($fullname) ?>;
+
+function viewFile(filePath, student_id) {
     const modal = document.getElementById("fileModal");
     const contentArea = document.getElementById("fileModalContent");
     const extension = filePath.split('.').pop().toLowerCase();
@@ -295,7 +347,7 @@ $allStudents = implode(', ', $allStudentsArray);
 
     if (extension === "pdf") {
         contentArea.innerHTML = `
-            <iframe src="${filePath}" allowfullscreen></iframe>
+            <iframe src="${filePath}" allowfullscreen style="width: 100%; height: 100%;"></iframe>
         `;
     } else if (extension === "docx") {
         fetch(filePath)
@@ -304,17 +356,36 @@ $allStudents = implode(', ', $allStudentsArray);
             .then(result => {
                 contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
             })
-            .catch(() => contentArea.innerHTML = "Error loading file.");
+            .catch(() => {
+                contentArea.innerHTML = "Error loading file.";
+            });
     } else {
         contentArea.innerHTML = "Unsupported file type.";
     }
 }
 
+function closeModal() {
+    document.getElementById("fileModal").style.display = "none";
+}
 
-    function closeModal() {
-        document.getElementById("fileModal").style.display = "none";
-    }
+function confirmDelete(filePath) {
+            if (confirm("Are you sure you want to delete this file?")) {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = "finaldocu.php";
+
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "delete_file";
+                input.value = filePath;
+                form.appendChild(input);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
 </script>
+
 </head>
 
 <body>

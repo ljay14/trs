@@ -10,7 +10,7 @@ $student_id = $_GET['student_id'] ?? '';
 
 if ($student_id) {
     $stmt = $conn->prepare("
-        SELECT * FROM proposal_monitoring_form 
+        SELECT * FROM final_monitoring_form 
         WHERE student_id = ?
         AND route1_id IS NOT NULL
         ORDER BY date_submitted ASC

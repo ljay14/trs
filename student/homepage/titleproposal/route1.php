@@ -458,7 +458,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
         <thead>
             <tr style='text-align: center;'>
                 <th>Control No.</th>
-                <th>Group Leader</th>
+                <th>Leader</th>
                 <th>Group No.</th>
                 <th>File Name</th>
                 <th>Action</th>

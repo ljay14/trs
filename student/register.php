@@ -200,7 +200,14 @@ form button:hover {
         <input type="text" name="member_fullname[]" placeholder="Name of Member">
     </div>
     <button type="button" onclick="addMemberField()">Add Member</button>
-                <input type="text" name="school_year" placeholder="School Year" required>
+    <select name="school_year" required>
+    <option value="">Select School Year</option>
+    <option value="2024-2025">2024-2025</option>
+    <option value="2025-2026">2025-2026</option>
+    <option value="2026-2027">2026-2027</option>
+    <option value="2027-2028">2027-2028</option>
+</select>
+
 
                 <!-- Department Dropdown Menu -->
                 <select name="department" required>

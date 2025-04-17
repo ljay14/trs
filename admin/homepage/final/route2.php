@@ -70,12 +70,20 @@ if (isset($_SESSION['selected_department'])) {
     $adviserStmt->close();
 
     // Fetch files
-    $fileStmt = $conn->prepare(
-        "SELECT sd.docuRoute1 AS filepath, docuRoute1 AS filename, sd.date_submitted 
-         FROM route1proposal_files sd 
-         INNER JOIN student s ON sd.student_id = s.student_id 
-         WHERE s.department = ?"
-    );
+// Fetch files
+$fileStmt = $conn->prepare(
+    "SELECT 
+        docuRoute2 AS filepath, 
+        docuRoute2 AS filename, 
+        date_submitted,
+        controlNo,
+        group_number,
+        fullname,
+        student_id, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id
+     FROM route2final_files 
+     WHERE department = ?"
+);
+
     
     $fileStmt->bind_param("s", $selectedDepartment);
     $fileStmt->execute();
@@ -83,9 +91,19 @@ if (isset($_SESSION['selected_department'])) {
     while ($row = $fileResult->fetch_assoc()) {
         $files[] = [
             'filepath' => $row['filepath'],
-            'filename' => $row['filename']
+            'filename' => $row['filename'],
+            'controlNo' => $row['controlNo'],
+            'group_number' => $row['group_number'],
+            'fullname' => $row['fullname'],
+            'student_id' => $row['student_id'],
+            'panel1_id' => $row['panel1_id'],
+            'panel2_id' => $row['panel2_id'],
+            'panel3_id' => $row['panel3_id'],
+            'panel4_id' => $row['panel4_id'],
+            'adviser_id' => $row['adviser_id']
         ];
     }
+    
     $fileStmt->close();
 }
 
@@ -109,7 +127,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             $fileName = $filePath; // Use the full path stored in the DB
 
             // Check if the file exists in DB
-            $checkStmt = $conn->prepare("SELECT * FROM route1proposal_files WHERE docuRoute1 = ?");
+            $checkStmt = $conn->prepare("SELECT * FROM route2final_files WHERE docuRoute2 = ?");
             $checkStmt->bind_param("s", $fileName);
             $checkStmt->execute();
             $result = $checkStmt->get_result();
@@ -119,9 +137,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             if ($fileExists) {
                 // Update panel and adviser and set date_submitted
                 $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
-                $updatePanelStmt = $conn->prepare("UPDATE route1proposal_files 
+                $updatePanelStmt = $conn->prepare("UPDATE route2final_files 
                     SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, adviser_id = ?, date_submitted = ? 
-                    WHERE docuRoute1 = ?");
+                    WHERE docuRoute2 = ?");
                 $updatePanelStmt->bind_param("iiiisss", $panel1, $panel2, $panel3, $panel4, $selectedAdviser, $dateNow, $fileName);
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
@@ -145,6 +163,125 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     <title>Route 1 - Thesis Routing System</title>
     <link rel="stylesheet" href="stylesadmin.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <style>
+        .view-button {
+            align-items: center;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 98%;
+        }
+
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
+
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .form-input-row input,
+        .form-input-row textarea {
+            text-align: center;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            border: 1px outset #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .form-grid-container>div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            resize: none;
+        }
+
+
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
+
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -264,26 +401,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     <?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?>
                 </span>
             </div>
-
         </div>
         <!-- Main Content -->
         <div class="main-content">
             <nav class="sidebar">
-                <div class="menu">
+            <div class="menu">
                     <div class="menu-section">
-                        <div class="menu-title">Title Proposal</div>
+                        <div class="menu-title">Research Proposal</div>
                         <ul>
                             <li><a href="../titleproposal/route1.php">Route 1</a></li>
                             <li><a href="../titleproposal/route2.php">Route 2</a></li>
                             <li><a href="../titleproposal/route3.php">Route 3</a></li>
+                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
-                        <div class="menu-title">Final</div>
+                        <div class="menu-title">Final Defense</div>
                         <ul>
-                            <li><a href="../final/route1.php">Route 1</a></li>
+                        <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -300,35 +438,94 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </nav>
 
-            <div class="content" id="content-area">
-            <form id="submission-form" action="route1.php" method="POST">
-    <ul id="file-list">
-        <?php if (!empty($files)): ?>
-            <?php foreach ($files as $file): ?>
-                <li class="file-preview" onclick="toggleFileSelection(this, '<?= htmlspecialchars($file['filepath']) ?>')">
-                    
-                    <input type="checkbox" name="selected_files[]" value="<?= htmlspecialchars($file['filepath']) ?>" style="display: none;">
-                    <span class="file-name"><?= htmlspecialchars(basename($file['filename'])) ?></span>
-                    <a href="<?= htmlspecialchars($file['filepath']) ?>" target="_blank" class="view-button">View</a>
-                </li>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </ul>
+            <div class="content" id="content-area" style="display: flex; justify-content: center; padding: 20px; justify-items: center; width: 90%;">
+    <form id="submission-form" action="route2.php" method="POST" style="width: 100%; max-width: 1200px;">
+        <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: #f1f1f1; text-align: left;">
+            <thead>
+                <tr style="background-color: #ccc; text-align: center;">
+                    <th>Select</th>
+                    <th>Control No.</th>
+                    <th>Leader</th>
+                    <th>Group No.</th>
+                    <th>File Name</th>
+                    <th>Assigned</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="file-list">
+                <?php if (!empty($files)): ?>
+                    <?php foreach ($files as $file): ?>
+                        <?php
+                            $filepath = htmlspecialchars($file['filepath'], ENT_QUOTES);
+                            $filename = htmlspecialchars(basename($file['filename']), ENT_QUOTES);
+                            $controlNo = htmlspecialchars($file['controlNo'] ?? '', ENT_QUOTES);
+                            $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
+                            $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
+                            $route2_id = htmlspecialchars($file['route2_id'] ?? '', ENT_QUOTES);
+                            $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
+                            // Check if file is assigned to a panelist and adviser
+                            $assigned = '';
+                            if ($file['panel1_id'] || $file['panel2_id'] || $file['panel3_id'] || $file['panel4_id']) {
+                                $assigned = 'Panelists Assigned';
+                            }
+                            if ($file['adviser_id']) {
+                                $assigned .= $assigned ? ' & Adviser Assigned' : 'Adviser Assigned';
+                            }
+                            $assigned = $assigned ?: 'Not Assigned';
+                        ?>
+                        <tr>
+                            <td style="text-align: center;">
+                                <input type="checkbox" name="selected_files[]" value="<?= $filepath ?>">
+                            </td>
+                            <td><?= $controlNo ?></td>
+                            <td><?= $fullname ?></td>
+                            <td><?= $group_number ?></td>
+                            <td><?= $filename ?></td>
+                            <td style="text-align: center;"><?= $assigned ?></td>
+                            <td style="text-align: center;">
+                            <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $route2_id ?>')">View</button>
 
-    <!-- Hidden Inputs -->
-    <input type="hidden" name="panel1" id="hidden-panel1">
-    <input type="hidden" name="panel2" id="hidden-panel2">
-    <input type="hidden" name="panel3" id="hidden-panel3">
-    <input type="hidden" name="panel4" id="hidden-panel4">
-    <input type="hidden" name="selected_adviser" id="hidden-adviser">
-</form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No files found.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
 
-<!-- Button Outside the Form -->
+        <!-- Hidden Inputs -->
+        <input type="hidden" name="panel1" id="hidden-panel1">
+        <input type="hidden" name="panel2" id="hidden-panel2">
+        <input type="hidden" name="panel3" id="hidden-panel3">
+        <input type="hidden" name="panel4" id="hidden-panel4">
+        <input type="hidden" name="selected_adviser" id="hidden-adviser">
+    </form>
+</div>
 
-
+<!-- Modal for Viewing Files -->
+<div id="fileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="fileModalContent" class="file-preview-section"></div>
+                <div id="routingForm" class="routing-form-section"></div>
             </div>
+        </div>
+    </div>
 
-            <script>
+
+
+
+
+        </div>
+    </div>
+</body>
+
+</html>
+<script>
     // Handles file selection toggle
     function toggleFileSelection(fileElement) {
         const checkbox = fileElement.querySelector("input[type='checkbox']");
@@ -375,10 +572,115 @@ document.getElementById("external-submit-button").addEventListener("click", func
     // Submit the form
     document.getElementById("submission-form").submit();
 });
+
+
+function viewFile(filePath, student_id, route1_id, route2_id) {
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingFormArea = document.getElementById("routingForm");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "Loading file...";
+            routingFormArea.innerHTML = `
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+        <div style="text-align: center;">
+            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+        </div>
+        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+    </div>
+    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+    </div>
+
+    <!-- Header row for submitted forms -->
+    <div class="form-grid-container" style="margin-top: 20px;">
+        <div><strong>Date Submitted</strong></div>
+        <div><strong>Chapter</strong></div>
+        <div><strong>Feedback</strong></div>
+        <div><strong>Paragraph No</strong></div>
+        <div><strong>Page No</strong></div>
+        <div><strong>Submitted By</strong></div>
+        <div><strong>Date Released</strong></div>
+        <div><strong>Status</strong></div>
+    </div>
+
+    <!-- Container for submitted form data -->
+    <div id="submittedFormsContainer" class="form-grid-container"></div>
+    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+`;
+
+
+            // Load form data dynamically
+            // Load form data dynamically using route2_id
+            fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Fetched forms:", data);
+                    const rowsContainer = document.getElementById("submittedFormsContainer");
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+                        return;
+                    }
+                    data.forEach(row => {
+    let submittedBy = "N/A";
+    if (row.adviser_name) {
+        submittedBy = `${row.adviser_name} - Adviser`;
+    } else if (row.panel_name) {
+        submittedBy = `${row.panel_name} - Panel`;
+    }
+
+    rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+        <div>${row.status}</div>
+    `;
+});
+
+
+                })
+                .catch(err => {
+                    console.error("Error loading form data:", err);
+                });
+
+
+
+            // Load file
+            const extension = filePath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then((response) => response.arrayBuffer())
+                    .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                    .then((result) => {
+                        contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
+                    })
+                    .catch((err) => {
+                        console.error("Error viewing file:", err);
+                        alert("Failed to display the file.");
+                    });
+            } else {
+                contentArea.innerHTML = "Unsupported file type.";
+            }
+        }
+
+function closeModal() {
+    const modal = document.getElementById("fileModal");
+    modal.style.display = "none";
+    document.getElementById("fileModalContent").innerHTML = '';
+    document.getElementById("routingForm").innerHTML = '';
+}
+
+
 </script>
 
-        </div>
-    </div>
-</body>
-
-</html>

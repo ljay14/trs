@@ -176,7 +176,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
 <head>
     <meta charset="UTF-8">
     <title>Route 1 - Thesis Routing System</title>
-    <link rel="stylesheet" href="studstyles.css">
+    <link rel="stylesheet" href="studstyle.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
 .modal {
@@ -252,7 +252,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
 
 .form-grid-container {
     display: grid;
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     border: 1px outset #ccc;
     border-radius: 6px;
     overflow: hidden;
@@ -359,6 +359,8 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         <div>${row.page_number}</div>
         <div>${submittedBy}</div>
         <div>${row.date_released}</div>
+        <div>${row.status}</div>
+
     `;
 });
                 })

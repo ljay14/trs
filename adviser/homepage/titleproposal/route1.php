@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 
     .form-grid-container {
         display: grid;
-        grid-template-columns: repeat(8, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         border: 1px solid #ccc;
         border-radius: 6px;
         overflow: hidden;
@@ -295,8 +295,7 @@ function viewFile(filePath, student_id, route1_id) {
     <div><strong>Feedback</strong></div>
     <div><strong>Paragraph No</strong></div>
     <div><strong>Page No</strong></div>
-    <div><strong>adviser Name</strong></div>
-    <div><strong>panel Name</strong></div>
+    <div><strong>Submitted By</strong></div>
     <div><strong>Date Released</strong></div>
 </div>
 
@@ -312,7 +311,6 @@ function viewFile(filePath, student_id, route1_id) {
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
-                <div><input type="text"></div>
                 <div><input type="date" name="dateReleased[]" value="<?= date('Y-m-d'); ?>" required></div>
             </div>
         </div>
@@ -364,17 +362,23 @@ function showAllForms(route1_id) {
 
             noFormsMessage.innerText = ""; // Clear message
 
-            data.forEach(form => {
-                formDataContainer.innerHTML += `
-                    <div>${form.date_submitted}</div>
-                    <div>${form.chapter}</div>
-                    <div>${form.feedback}</div>
-                    <div>${form.paragraph_number}</div>
-                    <div>${form.page_number}</div>
-                    <div>${form.adviser_name}</div>
-                    <div>${form.panel_name}</div>
-                    <div>${form.date_released}</div>
-                `;
+            data.forEach(row => {
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
+
+                        formDataContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+    `;
             });
 
             showButton.textContent = "Show less";

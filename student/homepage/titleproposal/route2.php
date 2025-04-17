@@ -377,25 +377,27 @@ if ($total_submitted < $total_required) {
 
             // Load form data dynamically
             // Load form data dynamically using route2_id
-            fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
-                .then(res => res.json())
-                .then(data => {
-                    console.log("Fetched forms:", data);
-                    const rowsContainer = document.getElementById("submittedFormsContainer");
+            fetch(`route2get_all_forms.php?route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
+    .then(res => res.json())
+    .then(data => {
+        console.log("Fetched forms:", data);
+        const rowsContainer = document.getElementById("submittedFormsContainer");
+        rowsContainer.innerHTML = ""; // Important: Clear previous data
 
-                    if (!Array.isArray(data) || data.length === 0) {
-                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
-                        return;
-                    }
-                    data.forEach(row => {
-    let submittedBy = "N/A";
-    if (row.adviser_name) {
-        submittedBy = `${row.adviser_name} - Adviser`;
-    } else if (row.panel_name) {
-        submittedBy = `${row.panel_name} - Panel`;
-    }
+        if (!Array.isArray(data) || data.length === 0) {
+            rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+            return;
+        }
 
-    rowsContainer.innerHTML += `
+        data.forEach(row => {
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
+
+                        rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
         <div>${row.feedback}</div>
@@ -405,13 +407,12 @@ if ($total_submitted < $total_required) {
         <div>${row.date_released}</div>
         <div>${row.status}</div>
     `;
-});
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching forms:', error);
+    });
 
-
-                })
-                .catch(err => {
-                    console.error("Error loading form data:", err);
-                });
 
 
 

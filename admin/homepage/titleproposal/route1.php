@@ -412,6 +412,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             <li><a href="../titleproposal/route1.php">Route 1</a></li>
                             <li><a href="../titleproposal/route2.php">Route 2</a></li>
                             <li><a href="../titleproposal/route3.php">Route 3</a></li>
+                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -420,6 +421,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                         <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -573,13 +575,13 @@ document.getElementById("external-submit-button").addEventListener("click", func
 
 
 function viewFile(filePath, student_id, route1_id) {
-    const modal = document.getElementById("fileModal");
-    const contentArea = document.getElementById("fileModalContent");
-    const routingFormArea = document.getElementById("routingForm");
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingFormArea = document.getElementById("routingForm");
 
-    modal.style.display = "flex";
-    contentArea.innerHTML = "Loading file...";
-    routingFormArea.innerHTML = `
+            modal.style.display = "flex";
+            contentArea.innerHTML = "Loading file...";
+            routingFormArea.innerHTML = `
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
         <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
         <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
@@ -593,6 +595,7 @@ function viewFile(filePath, student_id, route1_id) {
     <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
         <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
     </div>
+
     <!-- Header row for submitted forms -->
     <div class="form-grid-container" style="margin-top: 20px;">
         <div><strong>Date Submitted</strong></div>
@@ -603,73 +606,71 @@ function viewFile(filePath, student_id, route1_id) {
         <div><strong>Submitted By</strong></div>
         <div><strong>Date Released</strong></div>
     </div>
+
     <!-- Container for submitted form data -->
     <div id="submittedFormsContainer" class="form-grid-container"></div>
     <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+`;
+
+
+            // Load form data dynamically
+            // Load form data dynamically using route2_id
+            fetch(`get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Fetched forms:", data);
+                    const rowsContainer = document.getElementById("submittedFormsContainer");
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+                        return;
+                    }
+                    data.forEach(row => {
+    let submittedBy = "N/A";
+    if (row.adviser_name) {
+        submittedBy = `${row.adviser_name} - Adviser`;
+    } else if (row.panel_name) {
+        submittedBy = `${row.panel_name} - Panel`;
+    }
+
+    rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
     `;
+});
 
-    // Load form data dynamically
-    fetch(`get_all_forms.php?route1_id=${encodeURIComponent(route1_id)}`)
-        .then(res => res.json())
-        .then(data => {
-            console.log("Fetched forms:", data); // Log data for debugging
-            const rowsContainer = document.getElementById("submittedFormsContainer");
 
-            if (!Array.isArray(data) || data.length === 0) {
-                rowsContainer.innerHTML = `<div style="grid-column: span 7; text-align: center;">No routing form data available.</div>`;
-                return;
-            }
+                })
+                .catch(err => {
+                    console.error("Error loading form data:", err);
+                });
 
-            // Loop through the form data and display it
-            data.forEach(row => {
-                let submittedBy = "N/A";
-                if (row.adviser_name) {
-                    submittedBy = `${row.adviser_name} - Adviser`;
-                } else if (row.panel_name) {
-                    submittedBy = `${row.panel_name} - Panel`;
-                }
 
-                rowsContainer.innerHTML += `
-                    <div>${row.date_submitted}</div>
-                    <div>${row.chapter}</div>
-                    <div>${row.feedback}</div>
-                    <div>${row.paragraph_number}</div>
-                    <div>${row.page_number}</div>
-                    <div>${submittedBy}</div>
-                    <div>${row.date_released}</div>
-                `;
-            });
-        })
-        .catch(err => {
-            console.error("Error loading form data:", err);
-            document.getElementById("noFormsMessage").innerText = "An error occurred while loading the form data.";
-        });
 
-    // Load the file
-    const extension = filePath.split('.').pop().toLowerCase();
-    if (extension === "pdf") {
-        contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
-    } else if (extension === "docx") {
-        fetch(filePath)
-            .then(response => response.arrayBuffer())
-            .then(arrayBuffer => {
-                mammoth.convertToHtml({ arrayBuffer })
-                    .then(result => {
+            // Load file
+            const extension = filePath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then((response) => response.arrayBuffer())
+                    .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                    .then((result) => {
                         contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
                     })
-                    .catch(err => {
-                        console.error("Error converting DOCX file:", err);
-                        contentArea.innerHTML = "Failed to display DOCX file.";
+                    .catch((err) => {
+                        console.error("Error viewing file:", err);
+                        alert("Failed to display the file.");
                     });
-            })
-            .catch(err => {
-                console.error("Error viewing file:", err);
-                contentArea.innerHTML = "Failed to load DOCX file.";
-            });
-    } else {
-        contentArea.innerHTML = "Unsupported file type.";
-    }
-}
+            } else {
+                contentArea.innerHTML = "Unsupported file type.";
+            }
+        }
 
 function closeModal() {
     const modal = document.getElementById("fileModal");

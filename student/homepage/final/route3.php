@@ -175,7 +175,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
 <head>
     <meta charset="UTF-8">
     <title>Route 3 - Thesis Routing System</title>
-    <link rel="stylesheet" href="studstyles.css">
+    <link rel="stylesheet" href="studstyle.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>.modal {
     position: fixed;
@@ -250,7 +250,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
 
 .form-grid-container {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     border: 1px outset #ccc;
     border-radius: 6px;
     overflow: hidden;
@@ -342,14 +342,14 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
             return;
         }
         data.forEach(row => {
-    let submittedBy = "N/A";
-    if (row.adviser_name) {
-        submittedBy = `${row.adviser_name} - Adviser`;
-    } else if (row.panel_name) {
-        submittedBy = `${row.panel_name} - Panel`;
-    }
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
 
-    rowsContainer.innerHTML += `
+                        rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
         <div>${row.feedback}</div>
@@ -357,6 +357,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         <div>${row.page_number}</div>
         <div>${submittedBy}</div>
         <div>${row.date_released}</div>
+        <div>${row.status}</div>
     `;
 });
     })
