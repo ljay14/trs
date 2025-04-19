@@ -307,7 +307,7 @@ function viewFile(filePath, student_id, route1_id) {
             <div class="form-grid-container">
                 <div><input type="text" name="dateSubmitted[]" value="<?= date('Y-m-d'); ?>" readonly></div>
                 <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required></textarea></div>
+                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
@@ -326,7 +326,7 @@ function viewFile(filePath, student_id, route1_id) {
 <div class="form-grid-container">
     <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
     <div><input type="text" name="chapter[]" required></div>
-    <div><textarea name="feedback[]" required></textarea></div>
+    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
     <div><input type="number" name="paragraphNumber[]" required></div>
     <div><input type="number" name="pageNumber[]" required></div>
     <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
@@ -390,6 +390,10 @@ function showAllForms(route1_id) {
 }
 
 
+function autoGrow(textarea) {
+        textarea.style.height = 'auto'; // Reset height
+        textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+    }
 
         <?php if ($showModal): ?>
             window.addEventListener('load', () => {

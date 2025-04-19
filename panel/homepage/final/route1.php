@@ -312,7 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
                     <div class="form-grid-container">
                         <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
                         <div><input type="text" name="chapter[]" required></div>
-                        <div><textarea name="feedback[]" required></textarea></div>
+                        <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
                         <div><input type="number" name="paragraphNumber[]" required></div>
                         <div><input type="number" name="pageNumber[]" required></div>
                         <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
@@ -333,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             <div class="form-grid-container">
                 <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
                 <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required></textarea></div>
+                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
                 <div><input type="number" name="paragraphNumber[]" required></div>
                 <div><input type="number" name="pageNumber[]" required></div>
                 <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
@@ -394,6 +394,11 @@ function showAllForms(route1_id) {
         });
 }
 
+
+function autoGrow(textarea) {
+        textarea.style.height = 'auto'; // Reset height
+        textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+    }
 </script>
 
 </head>
