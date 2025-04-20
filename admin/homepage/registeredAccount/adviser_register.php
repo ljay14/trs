@@ -20,7 +20,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT fullname, department, school_id FROM student ORDER BY fullname ASC";
+$sql = "SELECT fullname, department, school_id FROM adviser ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -31,7 +31,7 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="adminstyle.css">
+    <link rel="stylesheet" href="style.css">
     <style>
         .success-alert {
             display: none;
@@ -148,25 +148,6 @@ $result = $conn->query($sql);
                 saveButton.disabled = true;  // Disable the save button when no password is entered
             }
         }
-        function checkPasswordMatch(school_id) {
-        var password = document.getElementById('password_' + school_id).value.trim();
-        var confirmPassword = document.getElementById('confirm_password_' + school_id).value.trim();
-        var saveButton = document.getElementById('save_' + school_id);
-        var mismatchMsg = document.getElementById('mismatch_' + school_id);
-
-        if (password !== "" && confirmPassword !== "") {
-            if (password === confirmPassword) {
-                saveButton.disabled = false;
-                mismatchMsg.style.display = 'none';
-            } else {
-                saveButton.disabled = true;
-                mismatchMsg.style.display = 'inline';
-            }
-        } else {
-            saveButton.disabled = true;
-            mismatchMsg.style.display = 'none';
-        }
-    }
 
     </script>
 </head>
@@ -191,7 +172,7 @@ $result = $conn->query($sql);
             </div>
         </div>
         <div class="main-content">
-            <nav class="sidebar">
+        <nav class="sidebar">
                 <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
@@ -199,14 +180,16 @@ $result = $conn->query($sql);
                             <li><a href="../titleproposal/route1.php">Route 1</a></li>
                             <li><a href="../titleproposal/route2.php">Route 2</a></li>
                             <li><a href="../titleproposal/route3.php">Route 3</a></li>
+                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                            <li><a href="../final/route1.php">Route 1</a></li>
+                        <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -214,20 +197,28 @@ $result = $conn->query($sql);
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
-                            <li><a href="../registeraccount/student_register.php">Student</a></li>
+                        </ul>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-title">Registered Account</div>
+                        <ul>
+                            <li><a href="../registeredaccount/panel_register.php">Panel</a></li>
+                            <li><a href="../registeredaccount/adviser_register.php">Adviser</a></li>
+                            <li><a href="../registeredaccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>
                 <div class="logout">
-                    <a href="../../../logout.php">Logout</a>
+                <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
             <div class="content">
                 <div class="form-container">
-                    <h1>List of Registered Student</h1>
+
+                    <h1>List of Registered Panel</h1>
 
                     <div id="success-alert" class="success-alert">
-                        Student updated successfully!
+                        Adviser updated successfully!
                     </div>
 
                     <?php if ($result->num_rows > 0): ?>
@@ -244,7 +235,7 @@ $result = $conn->query($sql);
                             <tbody>
                                 <?php while ($row = $result->fetch_assoc()): ?>
                                     <tr>
-                                        <form action="update_student_inline.php" method="POST">
+                                        <form action="update_adviser_inline.php" method="POST">
                                             <td>
                                                 <input type="text" name="fullname"
                                                     value="<?= htmlspecialchars($row['fullname']) ?>" required>
@@ -261,15 +252,7 @@ $result = $conn->query($sql);
                                             <td>
                                                 <input type="password" name="password" placeholder="New Password"
                                                     id="password_<?= $row['school_id'] ?>"
-                                                    oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
-                                                <br>
-                                                <input type="password" placeholder="Confirm Password"
-                                                    id="confirm_password_<?= $row['school_id'] ?>"
-                                                    oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
-                                                <br>
-                                                <small id="mismatch_<?= $row['school_id'] ?>"
-                                                    style="color: red; display: none;">Passwords do not match.</small>
-
+                                                    oninput="enableSave('<?= $row['school_id'] ?>')">
                                             </td>
                                             <td>
                                                 <button type="submit" id="save_<?= $row['school_id'] ?>" disabled>Save</button>
@@ -281,7 +264,7 @@ $result = $conn->query($sql);
                             </tbody>
                         </table>
                     <?php else: ?>
-                        <p>No student have been registered yet.</p>
+                        <p>No advisers have been registered yet.</p>
                     <?php endif; ?>
                 </div>
             </div>

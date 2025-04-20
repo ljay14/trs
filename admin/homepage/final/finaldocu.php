@@ -404,8 +404,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
         </div>
         <!-- Main Content -->
         <div class="main-content">
-            <nav class="sidebar">
-            <div class="menu">
+        <nav class="sidebar">
+                <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -429,12 +429,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
-                            <li><a href="../registeraccount/student_register.php">Student</a></li>
+                        </ul>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-title">Registered Account</div>
+                        <ul>
+                            <li><a href="../registeredaccount/panel_register.php">Panel</a></li>
+                            <li><a href="../registeredaccount/adviser_register.php">Adviser</a></li>
+                            <li><a href="../registeredaccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>
                 <div class="logout">
-                    <a href="../../../logout.php">Logout</a>
+                <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
 

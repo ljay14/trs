@@ -183,14 +183,15 @@ $conn->close();
             </div>
         </div>
         <div class="main-content">
-            <nav class="sidebar">
+        <nav class="sidebar">
                 <div class="menu">
-                <div class="menu-section">
+                    <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
                             <li><a href="../titleproposal/route1.php">Route 1</a></li>
                             <li><a href="../titleproposal/route2.php">Route 2</a></li>
                             <li><a href="../titleproposal/route3.php">Route 3</a></li>
+                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -199,6 +200,7 @@ $conn->close();
                         <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
+                            <li><a href="../final/finaldocu.php">Final Document</a></li>
                         </ul>
                     </div>
                     <div class="menu-section">
@@ -206,12 +208,19 @@ $conn->close();
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
-                            <li><a href="../registeraccount/student_register.php">Student</a></li>
+                        </ul>
+                    </div>
+                    <div class="menu-section">
+                        <div class="menu-title">Registered Account</div>
+                        <ul>
+                            <li><a href="../registeredaccount/panel_register.php">Panel</a></li>
+                            <li><a href="../registeredaccount/adviser_register.php">Adviser</a></li>
+                            <li><a href="../registeredaccount/student_register.php">Student</a></li>
                         </ul>
                     </div>
                 </div>
                 <div class="logout">
-                    <a href="../../../logout.php">Logout</a>
+                <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
             <div class="content">
