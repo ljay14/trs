@@ -30,8 +30,9 @@ $selectedDepartment = $_POST['department'] ?? '';
 $panel_id = $_SESSION['panel_id'];
 $fullname = $_SESSION['fullname'] ?? 'Panelist';
 
-$stmt = $conn->prepare("SELECT student_id, finaldocu_id FROM finaldocuproposal_files 
+$stmt = $conn->prepare("SELECT student_id, finaldocu_id FROM finaldocufinal_files 
                         WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?");
+
 if ($stmt === false) {
     die("Error preparing the query: " . $conn->error);
 }
@@ -40,7 +41,70 @@ $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $student_id = $row['student_id'];
+    $finaldocu_id = $row['finaldocu_id'];
+} else {
+    $student_id = null;
+    $finaldocu_id = null;
+}
 
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
+    $dateSubmittedArr = $_POST['dateSubmitted'];
+    $chapterArr = $_POST['chapter'];
+    $feedbackArr = $_POST['feedback'];
+    $paragraphNumberArr = $_POST['paragraphNumber'];
+    $pageNumberArr = $_POST['pageNumber'];
+    $panelNameArr = $_POST['panelName'];
+    $dateReleasedArr = $_POST['dateReleased'];
+    $finaldocu = $_POST['finaldocu'];
+    $finaldocu_id = $_POST['finaldocu_id'];
+    $student_id = $_POST['student_id'];
+
+    // Prepare the query
+    $stmt = $conn->prepare("INSERT INTO final_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, finaldocu, finaldocu_id, student_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    if ($stmt === false) {
+        die("Prepare failed: " . $conn->error);
+    }
+
+    // Loop over the arrays and insert data
+    for ($i = 0; $i < count($chapterArr); $i++) {
+        $dateSubmitted = $dateSubmittedArr[$i];
+        $chapter = $chapterArr[$i];
+        $feedback = $feedbackArr[$i];
+        $paragraphNumber = $paragraphNumberArr[$i];
+        $pageNumber = $pageNumberArr[$i];
+        $panelName = $panelNameArr[$i];
+        $dateReleased = $dateReleasedArr[$i];
+
+        $stmt->bind_param(
+            "ssssssisssi",
+            $panel_id,
+            $panelName,
+            $dateSubmitted,
+            $chapter,
+            $feedback,
+            $paragraphNumber,
+            $pageNumber,
+            $dateReleased,
+            $finaldocu,
+            $finaldocu_id,
+            $student_id
+        );
+
+        if (!$stmt->execute()) {
+            echo "<script>alert('Error on row $i: " . addslashes($stmt->error) . "');</script>";
+            break;
+        }
+    }
+
+    echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
+    exit;
+}
 $currentPanelPosition = '';
 if (isset($_SESSION['panel_id'])) {
     $stmt = $conn->prepare("SELECT position FROM panel WHERE panel_id = ?");
@@ -50,6 +114,7 @@ if (isset($_SESSION['panel_id'])) {
     $stmt->fetch();
     $stmt->close();
 }
+
 ?>
 
 
@@ -62,71 +127,144 @@ if (isset($_SESSION['panel_id'])) {
     <link rel="stylesheet" href="s.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-/* Modal background */
-/* Modal overlay */
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
 
-/* Modal content container */
-.modal-content {
-    width: 90vw;
-    height: 90vh;
-    background-color: #fff;
-    border-radius: 8px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
 
-/* File display area */
-#fileModalContent {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-}
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
 
-/* Embedded PDF/DOCX content */
-#fileModalContent iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
+        .file-preview-section {
+            flex: 0 0 37%;
+            padding: 0.8rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 300px;
+        }
 
-/* DOCX content styling */
-#fileModalContent .file-content {
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    padding: 10px;
-    box-sizing: border-box;
-}
+        .routing-form-section {
+            flex: 0 0 63%;
+            padding: 2rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
 
-/* Close button */
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-    color: #fff;
-    background-color: rgba(0, 0, 0, 0.6);
-    border: none;
-    padding: 4px;
-    border-radius: 50%;
-    z-index: 1000;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
+        .form-row label {
+            font-size: 0.75rem;
+        }
+
+        .form-row input,
+        .form-row textarea {
+            padding: 4px;
+            font-size: 0.75rem;
+            min-height: 24px;
+        }
+
+        .form-input-row input,
+        .form-input-row textarea {
+            font-size: 0.75rem;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+
+
+        .form-input-row textarea {
+            resize: vertical;
+            min-height: 24px;
+        }
+
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px solid #ccc;
+            border-radius: 1px;
+            overflow: hidden;
+            text-align: center;
+
+        }
+
+        .form-grid-container>div {
+            border: 1px solid #ccc;
+            text-align: center;
+
+            /* Optional: left-align for readability */
+            font-size: 0.8rem;
+            background-color: white;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            vertical-align: center;
+            /* Ensures content starts from the top */
+        }
+        .feedback-cell {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
+
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
     </style>
 </head>
 
@@ -156,7 +294,7 @@ if (isset($_SESSION['panel_id'])) {
                 </form>
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Final - Final Document</div>
+            <div class="routeNo" style="margin-right: 20px;">Final - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -165,7 +303,7 @@ if (isset($_SESSION['panel_id'])) {
 
         <div class="main-content">
             <nav class="sidebar">
-                <div class="menu">
+            <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -269,49 +407,257 @@ $stmt->close();
 
     <!-- Modal Viewer -->
     <div id="fileModal" class="modal">
-    <div class="modal-content">
-        <span class="close-button" onclick="closeModal()">&times;</span>
-        <div id="fileModalContent"></div>
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">×</span>
+            <div class="modal-layout">
+                <div id="fileModalContent" class="file-preview-section"></div>
+                <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
     </div>
-</div>
+
 
 </body>
 
 </html>
+<?php
+$currentPanelPosition = '';
+if (isset($_SESSION['panel_id'])) {
+    $stmt = $conn->prepare("SELECT position FROM panel WHERE panel_id = ?");
+    $stmt->bind_param("i", $_SESSION['panel_id']);
+    $stmt->execute();
+    $stmt->bind_result($currentPanelPosition);
+    $stmt->fetch();
+    $stmt->close();
+}
 
+?>
+<script>
+    const currentPanelPosition = "<?php echo $currentPanelPosition; ?>"; // e.g., "panel1"
+</script>
 
 
 <script>
     const panelName = <?= json_encode($fullname) ?>;
 
-    function viewFile(filePath, finaldocu, student_id) {
-    const modal = document.getElementById("fileModal");
-    const contentArea = document.getElementById("fileModalContent");
-    const extension = filePath.split('.').pop().toLowerCase();
+    function viewFile(filePath, finaldocu_id, student_id) {
+        const modal = document.getElementById("fileModal");
+        const contentArea = document.getElementById("fileModalContent");
+        const routingForm = document.getElementById("routingForm");
+        const extension = filePath.split('.').pop().toLowerCase();
 
-    modal.style.display = "flex";
-    contentArea.innerHTML = "Loading file...";
+        modal.style.display = "flex";
+        contentArea.innerHTML = "Loading file...";
+        routingForm.innerHTML = "";
 
-    if (extension === "pdf") {
-        contentArea.innerHTML = `
-            <iframe src="${filePath}" allowfullscreen></iframe>
+        if (extension === "pdf") {
+            contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
+        } else if (extension === "docx") {
+            fetch(filePath)
+                .then(res => res.arrayBuffer())
+                .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+                .then(result => contentArea.innerHTML = `<div class="file-content">${result.value}</div>`)
+                .catch(() => contentArea.innerHTML = "Error loading file.");
+        } else {
+            contentArea.innerHTML = "Unsupported file type.";
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+
+        routingForm.innerHTML = `
+            <form method="POST">
+                <input type="hidden" name="finaldocu" value="${filePath}">
+                <input type="hidden" name="student_id" value="${student_id}">
+                <input type="hidden" name="finaldocu_id" value="${finaldocu_id}">
+
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                    <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                    <div style="text-align: center;">
+                        <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                        <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                    </div>
+                    <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+                </div>
+
+                <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                    <div>
+                        <button type="button" onclick="addFormRow()">Add Row</button>
+                        <button type="submit">Submit Routing Form</button>
+                        <button type="button" onclick="showAllForms('${student_id}')">Show all Forms</button>
+                    </div>
+                </div>
+
+                <!-- Header row for submitted forms -->
+                <div class="form-grid-container" style="margin-top: 20px;">
+                    <div><strong>Date Submitted</strong></div>
+                    <div><strong>Chapter</strong></div>
+                    <div><strong>Feedback</strong></div>
+                    <div><strong>Paragraph No</strong></div>
+                    <div><strong>Page No</strong></div>
+                    <div><strong>Submitted By</strong></div>
+                    <div><strong>Date Released</strong></div>
+                    <div><strong>Status</strong></div>
+                    <div><strong>Action</strong></div>
+                </div>
+
+                <!-- Container for submitted form data -->
+                <div id="submittedFormsContainer" class="form-grid-container"></div>
+                <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+                <div class="form-grid-container">
+                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                    <div><input type="text" name="chapter[]" required></div>
+                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                    <div><input type="number" name="paragraphNumber[]" required></div>
+                    <div><input type="number" name="pageNumber[]" required></div>
+                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                </div>
+
+            </form>
         `;
-    } else if (extension === "docx") {
-        fetch(filePath)
-            .then(res => res.arrayBuffer())
-            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-            .then(result => {
-                contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
-            })
-            .catch(() => contentArea.innerHTML = "Error loading file.");
-    } else {
-        contentArea.innerHTML = "Unsupported file type.";
     }
-}
-
 
     function closeModal() {
         document.getElementById("fileModal").style.display = "none";
     }
-</script>
 
+    function addFormRow() {
+        const row = `
+            <div class="form-grid-container">
+                <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
+                <div><input type="text" name="chapter[]" required></div>
+                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                <div><input type="number" name="paragraphNumber[]" required></div>
+                <div><input type="number" name="pageNumber[]" required></div>
+                <div></div>
+                <div><input type="text" name="panelName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
+                <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
+                <div></div>
+                <div></div>
+            </div>
+        `;
+        document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
+    }
+
+    let formsVisible = false;
+
+    function showAllForms(student_id) {
+        const formDataContainer = document.getElementById("submittedFormsContainer");
+        const noFormsMessage = document.getElementById("noFormsMessage");
+        const showButton = document.querySelector("button[onclick^='showAllForms']");
+
+        if (formsVisible) {
+            formDataContainer.innerHTML = "";
+            noFormsMessage.innerText = "";
+            showButton.textContent = "Show all Forms";
+            formsVisible = false;
+            return;
+        }
+
+        fetch('route3get_all_forms.php?student_id=' + student_id)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    noFormsMessage.innerText = "No routing forms submitted yet.";
+                    return;
+                }
+
+                noFormsMessage.innerText = ""; // Clear message
+
+                data.forEach(form => {
+    const formId = form.id;
+    const statusValue = (form.status || 'Pending').trim();
+
+    let submittedBy = 'N/A';
+    if (form.adviser_name) {
+        submittedBy = `${form.adviser_name} - Adviser`;
+    } else if (form.panel_name) {
+        submittedBy = `${form.panel_name} - Panel`;
+    }
+
+    formDataContainer.innerHTML += `
+        <div>${form.date_submitted}</div>
+        <div>${form.chapter}</div>
+        <div class="feedback-cell">${form.feedback}</div>
+        <div>${form.paragraph_number}</div>
+        <div>${form.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${form.date_released}</div>
+        <div>
+            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+            </select>
+        </div>
+        <div>
+            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+        </div>
+    `;
+                });
+
+                showButton.textContent = "Show less";
+                formsVisible = true;
+            })
+            .catch(error => {
+                console.error('Error fetching forms:', error);
+            });
+    }
+
+    function autoGrow(textarea) {
+        textarea.style.height = 'auto'; // Reset height
+        textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+    }
+
+    function saveStatus(formId, event) {
+    event.preventDefault();  // Prevent any form submission
+
+    const statusSelect = document.getElementById(`statusSelect_${formId}`);
+    const newStatus = statusSelect.value;
+
+    if (!newStatus) {
+        alert("Please select a status.");
+        return;
+    }
+
+    fetch('update_form_status.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            id: formId,
+            status: newStatus  // Update to status (changed from adviser_status)
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Response from update_form_status.php:", data);
+            if (data.success) {
+                const saveButton = document.getElementById(`saveButton_${formId}`);
+                saveButton.disabled = true;
+                saveButton.textContent = "Saved ✔";
+                saveButton.style.backgroundColor = "green";
+                saveButton.style.color = "white";
+            } else {
+                alert("Failed to save status: " + data.message);
+            }
+        })
+        .catch(error => {
+            alert("Error saving status.");
+            console.error(error);
+        });
+}
+
+
+    function enableSaveButton(formId) {
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    saveButton.disabled = false;  // Enable the save button
+}
+
+
+</script>

@@ -55,10 +55,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
     $stmt->fetch();
     $stmt->close();
 
@@ -112,9 +112,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 2 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted,controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,? ,? ,? , ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiissss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number);
+                        $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
                         } else {
@@ -335,7 +335,7 @@ if ($total_submitted < $total_required) {
         }
     </style>
     <script>
-        function viewFile(filePath, student_id, route2_id, route1_id) {
+        function viewFile(filePath, student_id, route1_id, route2_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
@@ -343,49 +343,53 @@ if ($total_submitted < $total_required) {
             modal.style.display = "flex";
             contentArea.innerHTML = "Loading file...";
             routingFormArea.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-            <div style="text-align: center;">
-                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-            </div>
-            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+        <div style="text-align: center;">
+            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
         </div>
-        <hr style="border: 1px solid black; margin: 0.2rem 0;">
-        <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
-            <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-        </div>
-<!-- Header row for submitted forms -->
-<div class="form-grid-container" style="margin-top: 20px;">
-    <div><strong>Date Submitted</strong></div>
-    <div><strong>Chapter</strong></div>
-    <div><strong>Feedback</strong></div>
-    <div><strong>Paragraph No</strong></div>
-    <div><strong>Page No</strong></div>
-    <div><strong>Submitted By</strong></div>
-    <div><strong>Date Released</strong></div>
-    <div><strong>Status</strong></div>
-</div>
-<!-- Container for submitted form data -->
-<div id="submittedFormsContainer" class="form-grid-container"></div>
-<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+    </div>
+    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+    </div>
 
-    `;
+    <!-- Header row for submitted forms -->
+    <div class="form-grid-container" style="margin-top: 20px;">
+        <div><strong>Date Submitted</strong></div>
+        <div><strong>Chapter</strong></div>
+        <div><strong>Feedback</strong></div>
+        <div><strong>Paragraph No</strong></div>
+        <div><strong>Page No</strong></div>
+        <div><strong>Submitted By</strong></div>
+        <div><strong>Date Released</strong></div>
+        <div><strong>Status</strong></div>
+    </div>
+
+    <!-- Container for submitted form data -->
+    <div id="submittedFormsContainer" class="form-grid-container"></div>
+    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+`;
+
 
             // Load form data dynamically
             // Load form data dynamically using route2_id
             fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
-                .then(res => res.json())
-                .then(data => {
-                    console.log("Fetched forms:", data);
-                    const rowsContainer = document.getElementById("submittedFormsContainer");
+    .then(res => res.json())
+    .then(data => {
+        console.log("Fetched forms:", data);
+        const rowsContainer = document.getElementById("submittedFormsContainer");
+        rowsContainer.innerHTML = ""; // Important: Clear previous data
 
-                    if (!Array.isArray(data) || data.length === 0) {
-                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
-                        return;
-                    }
-                    data.forEach(row => {
+        if (!Array.isArray(data) || data.length === 0) {
+            rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+            return;
+        }
+
+        data.forEach(row => {
                         let submittedBy = "N/A";
                         if (row.adviser_name) {
                             submittedBy = `${row.adviser_name} - Adviser`;
@@ -403,11 +407,14 @@ if ($total_submitted < $total_required) {
         <div>${row.date_released}</div>
         <div>${row.status}</div>
     `;
-});
-                })
-                .catch(err => {
-                    console.error("Error loading form data:", err);
-                });
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching forms:', error);
+    });
+
+
+
 
             // Load file
             const extension = filePath.split('.').pop().toLowerCase();
@@ -436,7 +443,6 @@ if ($total_submitted < $total_required) {
             document.getElementById("fileModalContent").innerHTML = '';
             document.getElementById("routingForm").innerHTML = '';
         }
-
 
         function confirmDelete(filePath) {
             if (confirm("Are you sure you want to delete this file?")) {
@@ -523,7 +529,8 @@ $stmt = $conn->prepare("
         route2_id, 
         controlNo, 
         fullname, 
-        group_number 
+        group_number,
+        title
     FROM 
         route2final_files 
     WHERE 
@@ -540,9 +547,9 @@ if ($result->num_rows > 0) {
         <thead>
             <tr style='text-align: center;'>
                 <th>Control No.</th>
-                <th>Full Name</th>
+                <th>Leader</th>
                 <th>Group No.</th>
-                <th>File Name</th>
+                <th>Title</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -551,20 +558,21 @@ if ($result->num_rows > 0) {
 
     while ($row = $result->fetch_assoc()) {
         $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
-        $route3_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
+        $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
+ 
         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
         echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullName</td>
                 <td>$groupNo</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
-                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
                     <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
                 </td>
             </tr>
@@ -581,6 +589,7 @@ if ($result->num_rows > 0) {
 
 $stmt->close();
 ?>
+
             </div>
 
         </div>

@@ -53,10 +53,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
     $stmt->fetch();
     $stmt->close();
 
@@ -112,9 +112,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 1 with panel and adviser IDs, and date_submitted
-                    $stmt = $conn->prepare("INSERT INTO route1final_files (student_id, docuRoute1, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route1final_files (student_id, docuRoute1, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiissss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number);
+                        $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
                         if ($stmt->execute()) {
                             // Alert on successful file upload
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
@@ -451,7 +451,8 @@ $stmt = $conn->prepare("
         route1_id, 
         controlNo, 
         fullname, 
-        group_number 
+        group_number,
+        title
     FROM 
         route1final_files 
     WHERE 
@@ -470,7 +471,7 @@ if ($result->num_rows > 0) {
                 <th>Control No.</th>
                 <th>Full Name</th>
                 <th>Group No.</th>
-                <th>File Name</th>
+                <th>Title</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -480,17 +481,17 @@ if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
         $route3_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
         echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullName</td>
                 <td>$groupNo</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
                     <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>

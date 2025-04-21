@@ -31,6 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
     $group_members_json = json_encode($members); // Now properly defined    
     $controlNo = mysqli_real_escape_string($conn, $_POST['controlNo']);
+    $title = mysqli_real_escape_string($conn, $_POST['title']);
 
     // Validate passwords match
     if ($password !== $confirm_password) {
@@ -39,8 +40,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Insert data into the database (no need for student_id since it's auto-incremented)
-    $sql = "INSERT INTO student (controlNo, school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number, group_members) 
-            VALUES ('$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members_json')";
+    $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number, group_members) 
+            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members_json')";
 
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id
@@ -189,7 +190,8 @@ form button:hover {
         <div class="form-container">
             <h2>Student Registration</h2>
             <form action="register.php" method="POST">
-            <input type="text" name="controlNo" placeholder="Control Number" required>
+                <input type="text" name="title" placeholder="Title" required>
+                <input type="text" name="controlNo" placeholder="Control Number" required>
 
                 <input type="text" name="school_id" placeholder="School ID" required>
                 <input type="password" name="password" placeholder="Password" required>

@@ -55,10 +55,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT  department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
     $stmt->fetch();
     $stmt->close();
 
@@ -97,9 +97,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     exit; // Exit to prevent further processing
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Insert file information in the database
-                    $stmt = $conn->prepare("INSERT INTO route1proposal_files (student_id, docuRoute1, department, controlNo, fullname, group_number) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route1proposal_files ( student_id, docuRoute1, department, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("ssssss", $student_id, $filePath, $department, $controlNo, $fullname, $group_number);
+                        $stmt->bind_param("sssssss",  $student_id, $filePath, $department, $controlNo, $fullname, $group_number, $title);
                         if ($stmt->execute()) {
                             // Alert on successful file upload
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
@@ -441,7 +441,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
         route1_id, 
         controlNo, 
         fullname, 
-        group_number
+        group_number,
+        title
     FROM 
         route1proposal_files
     WHERE 
@@ -460,7 +461,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 <th>Control No.</th>
                 <th>Leader</th>
                 <th>Group No.</th>
-                <th>File Name</th>
+                <th>Title</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -470,17 +471,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     while ($row = $result->fetch_assoc()) {
                         $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
                         $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
-                        $fileName = basename($filePath);
                         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
                         echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullName</td>
                 <td>$groupNo</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
                     <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
