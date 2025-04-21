@@ -20,6 +20,7 @@ if ($conn->connect_error) {
 
 $alertMessage = "";
 
+// HANDLE DELETE REQUEST
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     $student_id = $_SESSION['student_id'];
     $fileToDelete = $_POST['delete_file'];
@@ -30,21 +31,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     $stmt->store_result();
 
     if ($stmt->num_rows > 0) {
-        $filePath = realpath($fileToDelete);
-
-        if ($filePath && file_exists($filePath)) {
-            if (unlink($filePath)) { // Check if file was deleted
-                $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
-                $deleteStmt->bind_param("ss", $student_id, $fileToDelete);
-                $deleteStmt->execute();
-                $deleteStmt->close();
-                $alertMessage = "File deleted successfully.";
-            } else {
-                $alertMessage = "Failed to delete file from server.";
-            }
-        } else {
-            $alertMessage = "File does not exist.";
+        if (file_exists($fileToDelete)) {
+            unlink($fileToDelete); // Delete the file from folder
         }
+        $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu = ?");
+        $deleteStmt->bind_param("ss", $student_id, $fileToDelete);
+        $deleteStmt->execute();
+        $deleteStmt->close();
+        $alertMessage = "File deleted successfully.";
     } else {
         $alertMessage = "File not found or you don't have permission.";
     }
@@ -54,16 +48,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     header("Location: finaldocu.php");
     exit;
 }
-
 // HANDLE UPLOAD
 // HANDLE UPLOAD
 
-// HANDLE UPLOAD
 if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department,controlNo, fullname, group_number FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number FROM student WHERE student_id = ?");
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
     }
@@ -78,7 +70,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         exit;
     } else {
         // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
+        $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ?");
         if (!$stmt) {
             die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
         }
@@ -135,7 +127,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
                     if (!$panelStmt) {
                         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
                     }
@@ -175,42 +167,6 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         }
     }
 }
-$student_id = $_SESSION['student_id'];
-
-$sql = "SELECT fullname, adviser, group_members FROM student WHERE student_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    $student = $result->fetch_assoc();
-
-    $fullname = $student['fullname'];
-    $adviser = $student['adviser'];
-    $groupMembers = $student['group_members'];
-
-    $groupMembersRaw = $student['group_members'];
-
-// Convert JSON string to PHP array
-$groupMembersArray = json_decode($groupMembersRaw, true);
-
-// Check if decoding was successful
-if (json_last_error() === JSON_ERROR_NONE && is_array($groupMembersArray)) {
-    $allStudentsArray = array_merge([$fullname], $groupMembersArray); // Combine arrays
-} else {
-    // Fallback if decoding fails (treat as plain string)
-    $allStudentsArray = array_merge([$fullname], explode(',', $groupMembersRaw));
-}
-// Join names into one comma-separated string
-$allStudents = implode(', ', $allStudentsArray);
-
-    // Combine main student name + group members
-    // Example: Pass this to your PDF generator
-
-} else {
-    echo "No student found.";
-}
 
 ?>
 
@@ -223,152 +179,226 @@ $allStudents = implode(', ', $allStudentsArray);
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-/* Modal overlay */
 .modal {
     position: fixed;
     z-index: 999;
     left: 0;
     top: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
     display: none;
     align-items: center;
     justify-content: center;
 }
 
-/* Modal content container */
 .modal-content {
-    width: 90vw;
-    height: 90vh;
     background-color: #fff;
-    border-radius: 8px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-.modal-layout {
-    display: flex;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
 }
 
-.file-preview-section {
-    flex: 2; /* Make preview section wider */
-    background: #f9f9f9;
-    padding: 10px;
-    overflow: auto;
+.modal-layout {
+    display: flex;
+    height: 100%;
+    width: 98%;
+}
+
+.file-preview-section,
+.routing-form-section {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
 }
 
 .routing-form-section {
-    flex: 1; /* Form section smaller */
-    background: #ffffff;
-    border-left: 1px solid #ccc;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-
-/* Fix: make file area flexible */
-#fileModalContent {
-    flex: 1 1 auto; /* <--- IMPORTANT! */
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-    display: flex; /* so iframe and docx div can stretch */
-}
-
-/* Embedded PDF/DOCX content */
-#fileModalContent iframe {
-    flex: 1; /* <--- IMPORTANT! */
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: block;
-}
-
-/* DOCX content styling */
-#fileModalContent .file-content {
-    flex: 1; /* <--- IMPORTANT! */
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    padding: 10px;
+    flex: 1;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    font-size: 0.85rem;
     box-sizing: border-box;
+    overflow-y: auto;
+    min-width: 50%;
+    /* Ensure it's taking 50% of the available space */
 }
 
-/* Close button */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.form-input-row input,
+.form-input-row textarea {
+    text-align: center;
+}
+
 .close-button {
     position: absolute;
     top: 10px;
     right: 20px;
     font-size: 28px;
     cursor: pointer;
-    color: #fff;
-    background-color: rgba(0, 0, 0, 0.6);
-    border: none;
-    padding: 4px;
-    border-radius: 50%;
-    z-index: 1000;
 }
 
-/* Add styles for .file-content to make it look like a real document */
-.file-content {
+.form-grid-container {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    border: 1px outset #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.form-grid-container>div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    font-size: 0.8rem;
+    border: 1px solid #ccc;
+    background-color: white;
+    box-sizing: border-box;
+}
+
+.form-grid-container input,
+.form-grid-container textarea {
     width: 100%;
     height: 100%;
-    overflow-y: auto;
-    padding: 40px;
+    padding: 4px;
+    font-size: 0.75rem;
+    border: none;
+    outline: none;
     box-sizing: border-box;
-    font-size: 16px; /* Bigger font */
-    line-height: 1.6; /* Better line spacing */
-    color: #333; /* Softer text color */
+    resize: none;
 }
 
-/* Optional: Center content like A4 paper */
-.file-content > * {
-    max-width: 800px; /* mimic A4 paper */
-    margin: 0 auto;
-}
 
-</style>
+@media (max-width: 768px) {
+    .modal-layout {
+        flex-direction: column;
+    }
 
-
-<script>
-const panelName = <?= json_encode($fullname) ?>;
-
-function viewFile(filePath, student_id) {
-    const modal = document.getElementById("fileModal");
-    const contentArea = document.getElementById("fileModalContent");
-    const extension = filePath.split('.').pop().toLowerCase();
-
-    modal.style.display = "flex";
-    contentArea.innerHTML = "Loading file...";
-
-    if (extension === "pdf") {
-        contentArea.innerHTML = `
-            <iframe src="${filePath}" allowfullscreen style="width: 100%; height: 100%;"></iframe>
-        `;
-    } else if (extension === "docx") {
-        fetch(filePath)
-            .then(res => res.arrayBuffer())
-            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-            .then(result => {
-                contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
-            })
-            .catch(() => {
-                contentArea.innerHTML = "Error loading file.";
-            });
-    } else {
-        contentArea.innerHTML = "Unsupported file type.";
+    .file-preview-section {
+        border-right: none;
+        border-bottom: 1px solid #ccc;
     }
 }
+    </style>
+    <script>
+        function viewFile(filePath, student_id, route3_id, route1_id, route2_id) {
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingFormArea = document.getElementById("routingForm");
 
-function closeModal() {
-    document.getElementById("fileModal").style.display = "none";
-}
+            modal.style.display = "flex";
+            contentArea.innerHTML = "Loading file...";
+            routingFormArea.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+            <div style="text-align: center;">
+                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+            </div>
+            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+        </div>
+        <hr style="border: 1px solid black; margin: 0.2rem 0;">
+        <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+            <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+        </div>
+<!-- Header row for submitted forms -->
+<div class="form-grid-container" style="margin-top: 20px;">
+    <div><strong>Date Submitted</strong></div>
+    <div><strong>Chapter</strong></div>
+    <div><strong>Feedback</strong></div>
+    <div><strong>Paragraph No</strong></div>
+    <div><strong>Page No</strong></div>
+    <div><strong>Submitted By</strong></div>
+    <div><strong>Date Released</strong></div>
+    <div><strong>Status</strong></div>
+</div>
+<!-- Container for submitted form data -->
+<div id="submittedFormsContainer" class="form-grid-container"></div>
+<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
-function confirmDelete(filePath) {
+    `;
+
+            // Load form data dynamically
+            // Load form data dynamically using finaldocu_id
+            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(route3_id)}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Fetched forms:", data);
+                    const rowsContainer = document.getElementById("submittedFormsContainer");
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
+                        return;
+                    }
+                    data.forEach(row => {
+    let submittedBy = "N/A";
+    if (row.adviser_name) {
+        submittedBy = `${row.adviser_name} - Adviser`;
+    } else if (row.panel_name) {
+        submittedBy = `${row.panel_name} - Panel`;
+    }
+
+    rowsContainer.innerHTML += `
+        <div>${row.date_submitted}</div>
+        <div>${row.chapter}</div>
+        <div>${row.feedback}</div>
+        <div>${row.paragraph_number}</div>
+        <div>${row.page_number}</div>
+        <div>${submittedBy}</div>
+        <div>${row.date_released}</div>
+        <div>${row.status}</div>
+
+    `;
+});
+                })
+                .catch(err => {
+                    console.error("Error loading form data:", err);
+                });
+
+
+
+            // Load file
+            const extension = filePath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then((response) => response.arrayBuffer())
+                    .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                    .then((result) => {
+                        contentArea.innerHTML = `<div class="file-content">${result.value}</div>`;
+                    })
+                    .catch((err) => {
+                        console.error("Error viewing file:", err);
+                        alert("Failed to display the file.");
+                    });
+            } else {
+                contentArea.innerHTML = "Unsupported file type.";
+            }
+        }
+
+
+        function closeModal() {
+            const modal = document.getElementById("fileModal");
+            modal.style.display = "none";
+            document.getElementById("fileModalContent").innerHTML = '';
+            document.getElementById("routingForm").innerHTML = '';
+        }
+
+        function confirmDelete(filePath) {
             if (confirm("Are you sure you want to delete this file?")) {
                 const form = document.createElement("form");
                 form.method = "POST";
@@ -384,17 +414,16 @@ function confirmDelete(filePath) {
                 form.submit();
             }
         }
-</script>
-
+    </script>
 </head>
 
 <body>
-    <?php
-    if (isset($_SESSION['alert_message'])) {
-        echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
-        unset($_SESSION['alert_message']); // Clear it after showing
-    }
-    ?>
+<?php
+if (isset($_SESSION['alert_message'])) {
+    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+    unset($_SESSION['alert_message']); // Clear it after showing
+}
+?>
     <div class="container">
         <header class="header">
             <div class="logo-container">
@@ -410,10 +439,6 @@ function confirmDelete(filePath) {
 
             </div>
             <div class="user-info">
-            <div class="certif" style="margin-right: 20px;">
-  <button id='downloadButton'>Download Endorsement Certificate</button>
-</div>
-                <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -473,7 +498,7 @@ if ($result->num_rows > 0) {
         <thead>
             <tr style='text-align: center;'>
                 <th>Control No.</th>
-                <th>Leader</th>
+                <th>Full Name</th>
                 <th>Group No.</th>
                 <th>File Name</th>
                 <th>Action</th>
@@ -518,8 +543,7 @@ $stmt->close();
 
         </div>
     </div>
-    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form"
-        style="display: none;">
+    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form" style="display: none;">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); ?>">
         <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
         <input type="file" name="finaldocu" id="finaldocu" accept=".pdf" required>
@@ -546,16 +570,4 @@ $stmt->close();
         </div>
     </div>
 </body>
-
 </html>
-
-<script>
-document.getElementById('downloadButton').addEventListener('click', function () {
-    const adviserName = `<?= $adviser ?>`;
-    const studentNames = `<?= $allStudents ?>`;
-
-    const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${encodeURIComponent(adviserName)}&student=${encodeURIComponent(studentNames)}`;
-    window.location.href = url;
-});
-</script>
-
