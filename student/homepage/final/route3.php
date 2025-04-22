@@ -69,29 +69,31 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         exit;
     } else {
         // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ?");
-        if (!$stmt) {
-            die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
-        }
-
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $stmt->bind_result($status);
+                // Check Route 1 approval status by checking the status for the panels and adviser
+                $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL AND route2_id IS NULL");
+                if (!$stmt) {
+                    die("Error preparing statement: " . $conn->error);
+                }
         
-        // Check if all statuses are 'approved'
-        $allApproved = true;
-        while ($stmt->fetch()) {
-            if ($status != 'Approved') {
-                $allApproved = false;
-                break;
-            }
-        }
-        $stmt->close();
-
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and the adviser approve your Route 1 submission.'); window.history.back();</script>";
-            exit;
-        }
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $stmt->bind_result($status);
+        
+                // Check if all Route 1 statuses are 'Approved'
+                $allApproved = true;
+                while ($stmt->fetch()) {
+                    if ($status !== 'Approved') {
+                        $allApproved = false;
+                        break;
+                    }
+                }
+                $stmt->close();
+        
+                if (!$allApproved) {
+                    echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+                    exit;
+                }
+        
 
         if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];

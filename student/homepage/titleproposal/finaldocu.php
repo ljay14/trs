@@ -55,7 +55,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department,controlNo, fullname, group_number FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department,controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
     }
@@ -70,30 +70,31 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         exit;
     } else {
         // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ?");
+        $stmt = $conn->prepare("SELECT status, route3_id FROM proposal_monitoring_form WHERE student_id = ?");
         if (!$stmt) {
-            die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
+            die("Error preparing statement: " . $conn->error);
         }
-
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status);
+        $stmt->bind_result($status, $route3_id);
 
-        // Check if all statuses are 'approved'
-        $allApproved = true;
+        // Check
+        $allowUpload = true;
         while ($stmt->fetch()) {
             if ($status != 'Approved') {
-                $allApproved = false;
-                break;
+                if (empty($route3_id)) {
+                    // Meaning it's NOT Route 3, still pending => NOT allowed
+                    $allowUpload = false;
+                    break;
+                }
             }
         }
         $stmt->close();
 
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and the adviser approve your Route 1 submission.'); window.history.back();</script>";
+        if (!$allowUpload) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
             exit;
         }
-
         // Proceed with file upload if Route 1 is approved
         if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
@@ -127,7 +128,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
                     if (!$panelStmt) {
                         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
                     }
@@ -167,7 +168,42 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         }
     }
 }
+$student_id = $_SESSION['student_id'];
 
+$sql = "SELECT fullname, adviser, group_members FROM student WHERE student_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    $student = $result->fetch_assoc();
+
+    $fullname = $student['fullname'];
+    $adviser = $student['adviser'];
+    $groupMembers = $student['group_members'];
+
+    $groupMembersRaw = $student['group_members'];
+
+    // Convert JSON string to PHP array
+    $groupMembersArray = json_decode($groupMembersRaw, true);
+
+    // Check if decoding was successful
+    if (json_last_error() === JSON_ERROR_NONE && is_array($groupMembersArray)) {
+        $allStudentsArray = array_merge([$fullname], $groupMembersArray); // Combine arrays
+    } else {
+        // Fallback if decoding fails (treat as plain string)
+        $allStudentsArray = array_merge([$fullname], explode(',', $groupMembersRaw));
+    }
+    // Join names into one comma-separated string
+    $allStudents = implode(', ', $allStudentsArray);
+
+    // Combine main student name + group members
+    // Example: Pass this to your PDF generator
+
+} else {
+    echo "No student found.";
+}
 ?>
 
 <!DOCTYPE html>
@@ -179,118 +215,119 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
     <link rel="stylesheet" href="studstyles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-.modal {
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
 
-.modal-content {
-    background-color: #fff;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
 
-.modal-layout {
-    display: flex;
-    height: 100%;
-    width: 98%;
-}
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 98%;
+        }
 
-.file-preview-section,
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    border-right: 1px solid #ccc;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.routing-form-section {
-    flex: 1;
-    padding: 1rem;
-    background-color: #f9f9f9;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    overflow-y: auto;
-    min-width: 50%;
-    /* Ensure it's taking 50% of the available space */
-}
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            min-width: 50%;
+            /* Ensure it's taking 50% of the available space */
+        }
 
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 5px;
-    margin-bottom: 10px;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
 
-.form-input-row input,
-.form-input-row textarea {
-    text-align: center;
-}
+        .form-input-row input,
+        .form-input-row textarea {
+            text-align: center;
+        }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-}
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
 
-.form-grid-container {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    border: 1px outset #ccc;
-    border-radius: 6px;
-    overflow: hidden;
-}
-.form-grid-container>div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    font-size: 0.8rem;
-    border: 1px solid #ccc;
-    background-color: white;
-    box-sizing: border-box;
-}
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            border: 1px outset #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
 
-.form-grid-container input,
-.form-grid-container textarea {
-    width: 100%;
-    height: 100%;
-    padding: 4px;
-    font-size: 0.75rem;
-    border: none;
-    outline: none;
-    box-sizing: border-box;
-    resize: none;
-}
+        .form-grid-container>div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+            resize: none;
+        }
 
 
-@media (max-width: 768px) {
-    .modal-layout {
-        flex-direction: column;
-    }
+        @media (max-width: 768px) {
+            .modal-layout {
+                flex-direction: column;
+            }
 
-    .file-preview-section {
-        border-right: none;
-        border-bottom: 1px solid #ccc;
-    }
-}
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid #ccc;
+            }
+        }
     </style>
     <script>
         function viewFile(filePath, student_id, route3_id, route1_id, route2_id) {
@@ -344,14 +381,14 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                         return;
                     }
                     data.forEach(row => {
-    let submittedBy = "N/A";
-    if (row.adviser_name) {
-        submittedBy = `${row.adviser_name} - Adviser`;
-    } else if (row.panel_name) {
-        submittedBy = `${row.panel_name} - Panel`;
-    }
+                        let submittedBy = "N/A";
+                        if (row.adviser_name) {
+                            submittedBy = `${row.adviser_name} - Adviser`;
+                        } else if (row.panel_name) {
+                            submittedBy = `${row.panel_name} - Panel`;
+                        }
 
-    rowsContainer.innerHTML += `
+                        rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
         <div>${row.feedback}</div>
@@ -362,7 +399,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         <div>${row.status}</div>
 
     `;
-});
+                    });
                 })
                 .catch(err => {
                     console.error("Error loading form data:", err);
@@ -418,12 +455,12 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
 </head>
 
 <body>
-<?php
-if (isset($_SESSION['alert_message'])) {
-    echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
-    unset($_SESSION['alert_message']); // Clear it after showing
-}
-?>
+    <?php
+    if (isset($_SESSION['alert_message'])) {
+        echo "<script>alert('" . addslashes($_SESSION['alert_message']) . "');</script>";
+        unset($_SESSION['alert_message']); // Clear it after showing
+    }
+    ?>
     <div class="container">
         <header class="header">
             <div class="logo-container">
@@ -439,6 +476,10 @@ if (isset($_SESSION['alert_message'])) {
 
             </div>
             <div class="user-info">
+                <div class="certif" style="margin-right: 20px;">
+                    <button id='downloadButton'>Download Endorsement Certificate</button>
+                </div>
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -472,10 +513,10 @@ if (isset($_SESSION['alert_message'])) {
                 </div>
             </nav>
             <div class="content" id="content-area">
-            <?php
-$student_id = $_SESSION['student_id'];
+                <?php
+                $student_id = $_SESSION['student_id'];
 
-$stmt = $conn->prepare("
+                $stmt = $conn->prepare("
     SELECT 
         finaldocu, 
         finaldocu_id, 
@@ -489,12 +530,12 @@ $stmt = $conn->prepare("
         student_id = ?
 ");
 
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    echo "
+                if ($result->num_rows > 0) {
+                    echo "
     <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(202, 200, 200);'>
         <thead>
             <tr style='text-align: center;'>
@@ -508,43 +549,45 @@ if ($result->num_rows > 0) {
         <tbody>
     ";
 
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
-        $route3_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
-        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
-        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-        $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['finaldocu'], ENT_QUOTES);
+                        $finaldocu_id = htmlspecialchars($row['finaldocu_id'], ENT_QUOTES);
+                        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
-        echo "
+                        echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullName</td>
                 <td>$groupNo</td>
                 <td>$title</td>
                 <td style='text-align: center;'>
-                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
+                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
                     <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
+                    
                 </td>
             </tr>
         ";
-    }
+                    }
 
-    echo "
+                    echo "
         </tbody>
     </table>
     ";
-} else {
-    echo "<p>No files uploaded yet.</p>";
-}
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
 
-$stmt->close();
-?>
+                $stmt->close();
+                ?>
             </div>
 
         </div>
     </div>
-    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form" style="display: none;">
+    <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form"
+        style="display: none;">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); ?>">
         <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
         <input type="file" name="finaldocu" id="finaldocu" accept=".pdf" required>
@@ -571,4 +614,17 @@ $stmt->close();
         </div>
     </div>
 </body>
+
 </html>
+
+
+
+<script>
+    document.getElementById('downloadButton').addEventListener('click', function () {
+        const adviserName = `<?= $adviser ?>`;
+        const studentNames = `<?= $allStudents ?>`;
+
+        const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${encodeURIComponent(adviserName)}&student=${encodeURIComponent(studentNames)}`;
+        window.location.href = url;
+    });
+</script>

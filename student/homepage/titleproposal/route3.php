@@ -71,19 +71,19 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         exit;
     } else {
         // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
+        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL AND route2_id IS NULL");
         if (!$stmt) {
-            die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
+            die("Error preparing statement: " . $conn->error);
         }
 
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
         $stmt->bind_result($status);
 
-        // Check if all statuses are 'approved'
+        // Check if all Route 1 statuses are 'Approved'
         $allApproved = true;
         while ($stmt->fetch()) {
-            if ($status != 'Approved') {
+            if ($status !== 'Approved') {
                 $allApproved = false;
                 break;
             }
@@ -91,9 +91,10 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         $stmt->close();
 
         if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and the adviser approve your Route 1 submission.'); window.history.back();</script>";
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
             exit;
         }
+
 
         // Proceed with file upload if Route 1 is approved
         if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR_OK) {
@@ -365,7 +366,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         <div>${row.date_released}</div>
         <div>${row.status}</div>
     `;
-        });
+                    });
                 })
                 .catch(err => {
                     console.error("Error loading form data:", err);
@@ -446,7 +447,7 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
 
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Student:</span>
                 <span class="user-name"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Guest'); ?></span>
@@ -480,10 +481,10 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                 </div>
             </nav>
             <div class="content" id="content-area">
-            <?php
-$student_id = $_SESSION['student_id'];
+                <?php
+                $student_id = $_SESSION['student_id'];
 
-$stmt = $conn->prepare("
+                $stmt = $conn->prepare("
     SELECT 
         docuRoute3, 
         route3_id, 
@@ -497,12 +498,12 @@ $stmt = $conn->prepare("
         student_id = ?
 ");
 
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
+                $stmt->bind_param("s", $student_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    echo "
+                if ($result->num_rows > 0) {
+                    echo "
     <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(202, 200, 200);'>
         <thead>
             <tr style='text-align: center;'>
@@ -516,15 +517,15 @@ if ($result->num_rows > 0) {
         <tbody>
     ";
 
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
-        $route3_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
-        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
-        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-        $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
+                        $route3_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
+                        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
-        echo "
+                        echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullName</td>
@@ -536,18 +537,18 @@ if ($result->num_rows > 0) {
                 </td>
             </tr>
         ";
-    }
+                    }
 
-    echo "
+                    echo "
         </tbody>
     </table>
     ";
-} else {
-    echo "<p>No files uploaded yet.</p>";
-}
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
 
-$stmt->close();
-?>
+                $stmt->close();
+                ?>
 
             </div>
 

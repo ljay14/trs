@@ -486,7 +486,6 @@ if (isset($_SESSION['panel_id'])) {
                 <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
                     <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
                     <div>
-                        <button type="button" onclick="addFormRow()">Add Row</button>
                         <button type="submit">Submit Routing Form</button>
                         <button type="button" onclick="showAllForms('${student_id}')">Show all Forms</button>
                     </div>
@@ -509,15 +508,7 @@ if (isset($_SESSION['panel_id'])) {
                 <div id="submittedFormsContainer" class="form-grid-container"></div>
                 <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
-                <div class="form-grid-container">
-                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                    <div><input type="text" name="chapter[]" required></div>
-                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                    <div><input type="number" name="paragraphNumber[]" required></div>
-                    <div><input type="number" name="pageNumber[]" required></div>
-                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                </div>
+  
 
             </form>
         `;
@@ -527,23 +518,7 @@ if (isset($_SESSION['panel_id'])) {
         document.getElementById("fileModal").style.display = "none";
     }
 
-    function addFormRow() {
-        const row = `
-            <div class="form-grid-container">
-                <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
-                <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                <div><input type="number" name="paragraphNumber[]" required></div>
-                <div><input type="number" name="pageNumber[]" required></div>
-                <div></div>
-                <div><input type="text" name="panelName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
-                <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-                <div></div>
-                <div></div>
-            </div>
-        `;
-        document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
-    }
+
 
     let formsVisible = false;
 

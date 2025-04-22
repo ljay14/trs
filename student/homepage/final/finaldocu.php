@@ -70,30 +70,31 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         exit;
     } else {
         // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ?");
+        $stmt = $conn->prepare("SELECT status, route3_id FROM final_monitoring_form WHERE student_id = ?");
         if (!$stmt) {
-            die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
+            die("Error preparing statement: " . $conn->error);
         }
-
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status);
+        $stmt->bind_result($status, $route3_id);
 
-        // Check if all statuses are 'approved'
-        $allApproved = true;
+        // Check
+        $allowUpload = true;
         while ($stmt->fetch()) {
             if ($status != 'Approved') {
-                $allApproved = false;
-                break;
+                if (empty($route3_id)) {
+                    // Meaning it's NOT Route 3, still pending => NOT allowed
+                    $allowUpload = false;
+                    break;
+                }
             }
         }
         $stmt->close();
 
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and the adviser approve your Route 1 submission.'); window.history.back();</script>";
+        if (!$allowUpload) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
             exit;
         }
-
         // Proceed with file upload if Route 1 is approved
         if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
