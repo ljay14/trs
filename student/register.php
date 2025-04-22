@@ -25,7 +25,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
     $school_year = mysqli_real_escape_string($conn, $_POST['school_year']);
     $department = mysqli_real_escape_string($conn, $_POST['department']);
-    $course = mysqli_real_escape_string($conn, $_POST['course']);
+    $course = isset($_POST['other_course']) && !empty($_POST['other_course'])
+        ? mysqli_real_escape_string($conn, $_POST['other_course'])
+        : mysqli_real_escape_string($conn, $_POST['course']);
+
     $adviser = mysqli_real_escape_string($conn, $_POST['adviser']);
     $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
     $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
@@ -216,10 +219,11 @@ $conn->close();
                 <!-- Department Dropdown Menu -->
                 <select id="department" name="department" required onchange="filterCourses()">
                     <option value="">Select Department</option>
-                    <option value="CTHM">College of Tourism Hospitality Business and Management</option>
+                    <option value="CBM">College of Business and Management</option>
                     <option value="CTE">College of Teacher Education</option>
                     <option value="CAS">College of Arts and Sciences</option>
-                    <option value="CCIS">College of Computing and Information Sciences</option>
+                    <option value="CCIS">College of Computing and Information Science</option>
+                    <option value="CTHM">College of Tourism and Hospitality Management</option>
                     <option value="CCJE">College of Criminal Justice Education</option>
                 </select>
 
@@ -227,6 +231,14 @@ $conn->close();
                 <select id="course" name="course" required>
                     <option value="">Select Course</option>
                 </select>
+                <div id="otherCourseDiv" style="margin-top: 10px; display: none;">
+                    <input type="text" id="otherCourseInput" name="other_course" placeholder="Enter your course"
+                        oninput="toggleCourseRequirement()" />
+                </div>
+
+                <!-- Button to add Other Course -->
+                <button type="button" onclick="showOtherCourseInput()" style="margin-left: 10px;">Other Course</button>
+
 
                 <input type="text" name="adviser" placeholder="Adviser" required>
                 <input type="text" name="group_number" placeholder="Group Number" required>
@@ -243,23 +255,29 @@ $conn->close();
                     input.placeholder = 'Name of Member';
                     container.appendChild(input);
                 }
-
-
                 const courseOptions = {
-                    "CTHM": [
-                        { value: "HRM", text: "BS in Hotel and Restaurant Management" },
-                        { value: "TM", text: "BS in Tourism Management" }
+                    "CBM": [
+                        { value: "BSBA-FM", text: "BSBA - Financial Management" },
+                        { value: "BSBA-HRM", text: "BSBA - Human Resource Management" },
+                        { value: "BSBA-MM", text: "BSBA - Marketing Management" },
+                        { value: "BPA", text: "Bachelor of Public Administration" },
+                        { value: "BSE", text: "Bachelor of Science in Entrepreneurship" }
                     ],
                     "CTE": [
                         { value: "ElemEd", text: "Bachelor of Elementary Education" },
                         { value: "SecEd", text: "Bachelor of Secondary Education" }
                     ],
                     "CAS": [
-                        // No courses listed for CAS yet, you can add if needed
+                        { value: "AB-English", text: "Bachelor of Arts major in English Language" }
                     ],
                     "CCIS": [
-                        { value: "CS", text: "BS in Computer Science" },
-                        { value: "IT", text: "BS in Information Technology" }
+                        { value: "BSIT", text: "Bachelor of Science in Information Technology" },
+                        { value: "BSCS", text: "Bachelor of Science in Computer Science" },
+                        { value: "BSIS", text: "Bachelor of Science in Information System" }
+                    ],
+                    "CTHM": [
+                        { value: "BSTM", text: "Bachelor of Science in Tourism Management" },
+                        { value: "BSHM", text: "Bachelor of Science in Hospitality Management" }
                     ],
                     "CCJE": [
                         { value: "Crim", text: "Criminology" }
@@ -269,11 +287,17 @@ $conn->close();
                 function filterCourses() {
                     const department = document.getElementById('department').value;
                     const courseSelect = document.getElementById('course');
+                    const otherCourseDiv = document.getElementById('otherCourseDiv');
+                    const otherCourseInput = document.getElementById('otherCourseInput');
 
-                    // Clear current course options
+                    // Reset
                     courseSelect.innerHTML = '<option value="">Select Course</option>';
+                    otherCourseDiv.style.display = 'none';
+                    otherCourseInput.value = '';
 
-                    // If a department is selected, add related courses
+                    courseSelect.required = true;
+                    otherCourseInput.required = false;
+
                     if (courseOptions[department]) {
                         courseOptions[department].forEach(course => {
                             const option = document.createElement('option');
@@ -283,6 +307,40 @@ $conn->close();
                         });
                     }
                 }
+
+                function showOtherCourseInput() {
+                    document.getElementById('otherCourseDiv').style.display = 'block';
+                    document.getElementById('course').value = '';
+                    document.getElementById('course').required = false;
+                    document.getElementById('otherCourseInput').required = true;
+                    document.getElementById('otherCourseInput').focus();
+                }
+
+                function toggleCourseRequirement() {
+                    const otherCourseInput = document.getElementById('otherCourseInput');
+                    const courseSelect = document.getElementById('course');
+
+                    if (otherCourseInput.value.trim() !== '') {
+                        courseSelect.required = false;
+                        otherCourseInput.required = true;
+                    } else {
+                        courseSelect.required = true;
+                        otherCourseInput.required = false;
+                    }
+                }
+
+                // Also when selecting from course dropdown, hide otherCourseDiv if not using "Other Course"
+                document.getElementById('course').addEventListener('change', function () {
+                    const otherCourseDiv = document.getElementById('otherCourseDiv');
+                    const otherCourseInput = document.getElementById('otherCourseInput');
+
+                    if (this.value !== '') {
+                        otherCourseDiv.style.display = 'none';
+                        otherCourseInput.value = '';
+                        otherCourseInput.required = false;
+                        this.required = true;
+                    }
+                });
 
             </script>
         </div>
