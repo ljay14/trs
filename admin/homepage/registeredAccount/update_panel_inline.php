@@ -27,11 +27,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
     $password = mysqli_real_escape_string($conn, $_POST['password']);
+    $position = mysqli_real_escape_string($conn, $_POST['position']);
 
     // Update adviser in the database
-    $sql = "UPDATE panel SET fullname = ?, department = ?, password = ? WHERE school_id = ?";
+    $sql = "UPDATE panel SET fullname = ?, department = ?, password = ?, position = ? WHERE school_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $fullname, $department, $password, $school_id);
+    $stmt->bind_param("sssss", $fullname, $department, $password, $school_id, $position);
 
     if ($stmt->execute()) {
         // Redirect with success message

@@ -20,7 +20,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT fullname, department, school_id FROM adviser ORDER BY fullname ASC";
+$sql = "SELECT fullname, department, school_id, password FROM adviser ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -31,7 +31,7 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="adminstyle.css">
     <style>
         .success-alert {
             display: none;
@@ -213,61 +213,93 @@ $result = $conn->query($sql);
                 </div>
             </nav>
             <div class="content">
-                <div class="form-container">
+    <div class="form-container">
 
-                    <h1>List of Registered Panel</h1>
+        <h1>List of Registered Adviser</h1>
 
-                    <div id="success-alert" class="success-alert">
-                        Adviser updated successfully!
-                    </div>
+        <div id="success-alert" class="success-alert">
+            Adviser updated successfully!
+        </div>
 
-                    <?php if ($result->num_rows > 0): ?>
-                        <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr>
-                                    <th>Full Name</th>
-                                    <th>Department</th>
-                                    <th>School ID</th>
-                                    <th>Password</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($row = $result->fetch_assoc()): ?>
-                                    <tr>
-                                        <form action="update_adviser_inline.php" method="POST">
-                                            <td>
-                                                <input type="text" name="fullname"
-                                                    value="<?= htmlspecialchars($row['fullname']) ?>" required>
-                                            </td>
-                                            <td>
-                                                <input type="text" name="department"
-                                                    value="<?= htmlspecialchars($row['department']) ?>" required>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($row['school_id']) ?>
-                                                <input type="hidden" name="school_id"
-                                                    value="<?= htmlspecialchars($row['school_id']) ?>">
-                                            </td>
-                                            <td>
-                                                <input type="password" name="password" placeholder="New Password"
-                                                    id="password_<?= $row['school_id'] ?>"
-                                                    oninput="enableSave('<?= $row['school_id'] ?>')">
-                                            </td>
-                                            <td>
-                                                <button type="submit" id="save_<?= $row['school_id'] ?>" disabled>Save</button>
-                                            </td>
-                                        </form>
+        <?php if ($result->num_rows > 0): ?>
+            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Department</th>
+                        <th>School ID</th>
+                        <th>Password</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                        <tr id="row_<?= $row['school_id'] ?>">
+                            <form action="update_adviser_inline.php" method="POST" id="form_<?= $row['school_id'] ?>">
+                                <td>
+                                    <span id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
+                                    <input type="text" name="fullname" value="<?= htmlspecialchars($row['fullname']) ?>" id="fullname_input_<?= $row['school_id'] ?>" style="display:none;" required>
+                                </td>
+                                <td>
+                                    <span id="department_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['department']) ?></span>
+                                    <input type="text" name="department" value="<?= htmlspecialchars($row['department']) ?>" id="department_input_<?= $row['school_id'] ?>" style="display:none;" required>
+                                </td>
+                                <td>
+                                    <?= htmlspecialchars($row['school_id']) ?>
+                                    <input type="hidden" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
+                                </td>
+                                <td>
+                                <span id="password_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['password']) ?></span>
+                                    <input type="password" name="password" id="password_input_<?= $row['school_id'] ?>" style="display:none;" placeholder="Enter New Password">
+                                </td>
+                                <td>
+                                    <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')" id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
+                                    <button type="submit" style="display:none;" id="save_btn_<?= $row['school_id'] ?>">Save</button>
+                                    <button type="button" style="display:none;" onclick="cancelEdit('<?= $row['school_id'] ?>')" id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
+                                </td>
+                            </form>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p>No advisers have been registered yet.</p>
+        <?php endif; ?>
+    </div>
+</div>
 
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    <?php else: ?>
-                        <p>No advisers have been registered yet.</p>
-                    <?php endif; ?>
-                </div>
-            </div>
+<script>
+function enableEdit(school_id) {
+    document.getElementById('fullname_text_' + school_id).style.display = 'none';
+    document.getElementById('department_text_' + school_id).style.display = 'none';
+    document.getElementById('password_text_' + school_id).style.display = 'none';
+
+    document.getElementById('fullname_input_' + school_id).style.display = 'inline';
+    document.getElementById('department_input_' + school_id).style.display = 'inline';
+    document.getElementById('password_input_' + school_id).style.display = 'inline';
+
+    document.getElementById('edit_btn_' + school_id).style.display = 'none';
+    document.getElementById('save_btn_' + school_id).style.display = 'inline';
+    document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+}
+
+function cancelEdit(school_id) {
+    document.getElementById('fullname_text_' + school_id).style.display = 'inline';
+    document.getElementById('department_text_' + school_id).style.display = 'inline';
+    document.getElementById('password_text_' + school_id).style.display = 'inline';
+
+    document.getElementById('fullname_input_' + school_id).style.display = 'none';
+    document.getElementById('department_input_' + school_id).style.display = 'none';
+    document.getElementById('password_input_' + school_id).style.display = 'none';
+
+    document.getElementById('edit_btn_' + school_id).style.display = 'inline';
+    document.getElementById('save_btn_' + school_id).style.display = 'none';
+    document.getElementById('cancel_btn_' + school_id).style.display = 'none';
+
+    // Optional: Reset input values to original if you want
+}
+</script>
+
         </div>
     </div>
 </body>

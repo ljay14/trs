@@ -20,7 +20,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT fullname, department, school_id FROM student ORDER BY fullname ASC";
+$sql = "SELECT fullname, department, school_id, password, confirm_password FROM student ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -31,7 +31,7 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="adminstyle.css">
     <style>
         .success-alert {
             display: none;
@@ -129,7 +129,7 @@ $result = $conn->query($sql);
             font-weight: bold;
         }
     </style>
-        <script>
+    <script>
         window.onload = function () {
             // Show success message if status is success
             var status = new URLSearchParams(window.location.search).get('status');
@@ -139,34 +139,6 @@ $result = $conn->query($sql);
         }
 
         // Function to enable the save button when a password is entered
-        function enableSave(school_id) {
-            var passwordField = document.getElementById('password_' + school_id);
-            var saveButton = document.getElementById('save_' + school_id);
-            if (passwordField.value.trim() !== "") {
-                saveButton.disabled = false;  // Enable the save button
-            } else {
-                saveButton.disabled = true;  // Disable the save button when no password is entered
-            }
-        }
-        function checkPasswordMatch(school_id) {
-        var password = document.getElementById('password_' + school_id).value.trim();
-        var confirmPassword = document.getElementById('confirm_password_' + school_id).value.trim();
-        var saveButton = document.getElementById('save_' + school_id);
-        var mismatchMsg = document.getElementById('mismatch_' + school_id);
-
-        if (password !== "" && confirmPassword !== "") {
-            if (password === confirmPassword) {
-                saveButton.disabled = false;
-                mismatchMsg.style.display = 'none';
-            } else {
-                saveButton.disabled = true;
-                mismatchMsg.style.display = 'inline';
-            }
-        } else {
-            saveButton.disabled = true;
-            mismatchMsg.style.display = 'none';
-        }
-    }
 
     </script>
 </head>
@@ -191,7 +163,7 @@ $result = $conn->query($sql);
             </div>
         </div>
         <div class="main-content">
-        <nav class="sidebar">
+            <nav class="sidebar">
                 <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
@@ -205,7 +177,7 @@ $result = $conn->query($sql);
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -228,12 +200,12 @@ $result = $conn->query($sql);
                     </div>
                 </div>
                 <div class="logout">
-                <a href="../../../logout.php">Logout</a>
+                    <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
             <div class="content">
                 <div class="form-container">
-                    <h1>List of Registered Student</h1>
+                    <h1>List of Registered Students</h1>
 
                     <div id="success-alert" class="success-alert">
                         Student updated successfully!
@@ -252,15 +224,23 @@ $result = $conn->query($sql);
                             </thead>
                             <tbody>
                                 <?php while ($row = $result->fetch_assoc()): ?>
-                                    <tr>
-                                        <form action="update_student_inline.php" method="POST">
+                                    <tr id="row_<?= $row['school_id'] ?>">
+                                        <form action="update_student_inline.php" method="POST"
+                                            id="form_<?= $row['school_id'] ?>">
                                             <td>
+                                                <span
+                                                    id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
                                                 <input type="text" name="fullname"
-                                                    value="<?= htmlspecialchars($row['fullname']) ?>" required>
+                                                    value="<?= htmlspecialchars($row['fullname']) ?>"
+                                                    id="fullname_input_<?= $row['school_id'] ?>" style="display:none;" required>
                                             </td>
                                             <td>
+                                                <span
+                                                    id="department_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['department']) ?></span>
                                                 <input type="text" name="department"
-                                                    value="<?= htmlspecialchars($row['department']) ?>" required>
+                                                    value="<?= htmlspecialchars($row['department']) ?>"
+                                                    id="department_input_<?= $row['school_id'] ?>" style="display:none;"
+                                                    required>
                                             </td>
                                             <td>
                                                 <?= htmlspecialchars($row['school_id']) ?>
@@ -268,32 +248,93 @@ $result = $conn->query($sql);
                                                     value="<?= htmlspecialchars($row['school_id']) ?>">
                                             </td>
                                             <td>
-                                                <input type="password" name="password" placeholder="New Password"
-                                                    id="password_<?= $row['school_id'] ?>"
-                                                    oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
-                                                <br>
-                                                <input type="password" placeholder="Confirm Password"
-                                                    id="confirm_password_<?= $row['school_id'] ?>"
-                                                    oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
-                                                <br>
-                                                <small id="mismatch_<?= $row['school_id'] ?>"
-                                                    style="color: red; display: none;">Passwords do not match.</small>
-
+                                                <span
+                                                    id="password_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['password']) ?></span>
+                                                <div id="password_inputs_<?= $row['school_id'] ?>" style="display:none;">
+                                                    <input type="text" name="password"
+                                                        value="<?= htmlspecialchars($row['password']) ?>"
+                                                        id="password_input_<?= $row['school_id'] ?>" placeholder="New Password"
+                                                        required oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
+                                                    <br>
+                                                    <input type="text" name="confirm_password"
+                                                        id="confirm_password_input_<?= $row['school_id'] ?>"
+                                                        placeholder="Confirm Password" required
+                                                        oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
+                                                    <br>
+                                                    <small id="mismatch_<?= $row['school_id'] ?>"
+                                                        style="color:red; display:none;">Passwords do not match!</small>
+                                                </div>
                                             </td>
+
                                             <td>
-                                                <button type="submit" id="save_<?= $row['school_id'] ?>" disabled>Save</button>
+                                                <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')"
+                                                    id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
+                                                <button type="submit" style="display:none;"
+                                                    id="save_btn_<?= $row['school_id'] ?>" disabled>Save</button>
+                                                <button type="button" style="display:none;"
+                                                    onclick="cancelEdit('<?= $row['school_id'] ?>')"
+                                                    id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
                                             </td>
                                         </form>
-
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
                     <?php else: ?>
-                        <p>No student have been registered yet.</p>
+                        <p>No students have been registered yet.</p>
                     <?php endif; ?>
                 </div>
             </div>
+
+            <script>
+                function enableEdit(school_id) {
+                    document.getElementById('fullname_text_' + school_id).style.display = 'none';
+                    document.getElementById('department_text_' + school_id).style.display = 'none';
+                    document.getElementById('password_text_' + school_id).style.display = 'none';
+
+                    document.getElementById('fullname_input_' + school_id).style.display = 'inline';
+                    document.getElementById('department_input_' + school_id).style.display = 'inline';
+                    document.getElementById('password_inputs_' + school_id).style.display = 'block';
+
+                    document.getElementById('edit_btn_' + school_id).style.display = 'none';
+                    document.getElementById('save_btn_' + school_id).style.display = 'inline';
+                    document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+                }
+
+                function cancelEdit(school_id) {
+                    document.getElementById('fullname_text_' + school_id).style.display = 'inline';
+                    document.getElementById('department_text_' + school_id).style.display = 'inline';
+                    document.getElementById('password_text_' + school_id).style.display = 'inline';
+
+                    document.getElementById('fullname_input_' + school_id).style.display = 'none';
+                    document.getElementById('department_input_' + school_id).style.display = 'none';
+                    document.getElementById('password_inputs_' + school_id).style.display = 'none';
+
+                    document.getElementById('edit_btn_' + school_id).style.display = 'inline';
+                    document.getElementById('save_btn_' + school_id).style.display = 'none';
+                    document.getElementById('cancel_btn_' + school_id).style.display = 'none';
+
+                    document.getElementById('mismatch_' + school_id).style.display = 'none';
+                }
+
+                function checkPasswordMatch(school_id) {
+                    var password = document.getElementById('password_input_' + school_id).value;
+                    var confirm_password = document.getElementById('confirm_password_input_' + school_id).value;
+                    var mismatchText = document.getElementById('mismatch_' + school_id);
+                    var saveBtn = document.getElementById('save_btn_' + school_id);
+
+                    if (password !== confirm_password) {
+                        mismatchText.style.display = 'block';
+                        saveBtn.disabled = true;
+                    } else {
+                        mismatchText.style.display = 'none';
+                        saveBtn.disabled = false;
+                    }
+                }
+            </script>
+
+
+
         </div>
     </div>
 </body>
