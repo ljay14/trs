@@ -67,115 +67,117 @@ $conn->close();
     <link rel="stylesheet" href="styleregister.css">
     <style>
         * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    height: auto;
-}
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: auto;
+        }
 
-/* Left panel */
-.left-panel {
-    background-color: #002366;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    width: 40%;
-}
+        /* Left panel */
+        .left-panel {
+            background-color: #002366;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            width: 40%;
+        }
 
-.left-panel img {
-    max-width: 80px;
-    margin-bottom: 20px;
-}
+        .left-panel img {
+            max-width: 80px;
+            margin-bottom: 20px;
+        }
 
-.left-panel h1 {
-    margin: 0;
-    font-size: 30px;
-    text-align: center;
-}
+        .left-panel h1 {
+            margin: 0;
+            font-size: 30px;
+            text-align: center;
+        }
 
-.left-panel p {
-    margin: 5px 0;
-    text-align: center;
-    font-size: 20px;
-}
+        .left-panel p {
+            margin: 5px 0;
+            text-align: center;
+            font-size: 20px;
+        }
 
-/* Right panel for the form */
-.right-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: #f9f9f9;
-    width: 70%;
-    height: 100%;
-    padding: 20px;
-}
+        /* Right panel for the form */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            width: 70%;
+            height: 100%;
+            padding: 20px;
+        }
 
-.form-container {
-    background-color: #e0e0e0;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
-}
+        .form-container {
+            background-color: #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
 
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
-}
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-form input,
-form select {
-    padding: 10px;
-    width: 100%;
-    margin: 8px 0;
-    border: none; /* No borders */
-    border-radius: 5px;
-}
+        form input,
+        form select {
+            padding: 10px;
+            width: 100%;
+            margin: 8px 0;
+            border: none;
+            /* No borders */
+            border-radius: 5px;
+        }
 
-form button {
-    background-color: #4caf50;
-    color: white;
-    padding: 10px;
-    border: none; /* No borders */
-    border-radius: 5px;
-    width: 100%;
-    margin: 10px 0;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-}
+        form button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px;
+            border: none;
+            /* No borders */
+            border-radius: 5px;
+            width: 100%;
+            margin: 10px 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
 
-form button:hover {
-    background-color: #45a049;
-}
+        form button:hover {
+            background-color: #45a049;
+        }
 
-.researchers-section {
-    margin: 10px 0;
-    text-align: center;
-    font-weight: bold;
-}
+        .researchers-section {
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    body {
-        flex-direction: column;
-    }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
 
-    .left-panel,
-    .right-panel {
-        width: 100%;
-    }
-}
+            .left-panel,
+            .right-panel {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -199,20 +201,20 @@ form button:hover {
                 <div class="researchers-section">Researchers</div>
                 <input type="text" name="fullname" placeholder="Complete Name" required>
                 <div id="members-container">
-        <input type="text" name="member_fullname[]" placeholder="Name of Member">
-    </div>
-    <button type="button" onclick="addMemberField()">Add Member</button>
-    <select name="school_year" required>
-    <option value="">Select School Year</option>
-    <option value="2024-2025">2024-2025</option>
-    <option value="2025-2026">2025-2026</option>
-    <option value="2026-2027">2026-2027</option>
-    <option value="2027-2028">2027-2028</option>
-</select>
+                    <input type="text" name="member_fullname[]" placeholder="Name of Member">
+                </div>
+                <button type="button" onclick="addMemberField()">Add Member</button>
+                <select name="school_year" required>
+                    <option value="">Select School Year</option>
+                    <option value="2024-2025">2024-2025</option>
+                    <option value="2025-2026">2025-2026</option>
+                    <option value="2026-2027">2026-2027</option>
+                    <option value="2027-2028">2027-2028</option>
+                </select>
 
 
                 <!-- Department Dropdown Menu -->
-                <select name="department" required>
+                <select id="department" name="department" required onchange="filterCourses()">
                     <option value="">Select Department</option>
                     <option value="CTHM">College of Tourism Hospitality Business and Management</option>
                     <option value="CTE">College of Teacher Education</option>
@@ -221,16 +223,9 @@ form button:hover {
                     <option value="CCJE">College of Criminal Justice Education</option>
                 </select>
 
-                <!-- Course Dropdown Menu -->
-                <select name="course" required>
+                <!-- Course Dropdown -->
+                <select id="course" name="course" required>
                     <option value="">Select Course</option>
-                    <option value="HRM">BS in Hotel and Restaurant Management</option>
-                    <option value="TM">BS in Tourism Management</option>
-                    <option value="ElemEd">Bachelor of Elementary Education</option>
-                    <option value="SecEd">Bachelor of Secondary Education</option>
-                    <option value="CS">BS in Computer Science</option>
-                    <option value="IT">BS in Information Technology</option>
-                    <option value="Crim">Criminology</option>
                 </select>
 
                 <input type="text" name="adviser" placeholder="Adviser" required>
@@ -240,15 +235,56 @@ form button:hover {
                 <button type="button" onclick="window.location.href='login.php'">Back</button>
             </form>
             <script>
-function addMemberField() {
-    const container = document.getElementById('members-container');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.name = 'member_fullname[]';
-    input.placeholder = 'Name of Member';
-    container.appendChild(input);
-}
-</script>
+                function addMemberField() {
+                    const container = document.getElementById('members-container');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = 'member_fullname[]';
+                    input.placeholder = 'Name of Member';
+                    container.appendChild(input);
+                }
+
+
+                const courseOptions = {
+                    "CTHM": [
+                        { value: "HRM", text: "BS in Hotel and Restaurant Management" },
+                        { value: "TM", text: "BS in Tourism Management" }
+                    ],
+                    "CTE": [
+                        { value: "ElemEd", text: "Bachelor of Elementary Education" },
+                        { value: "SecEd", text: "Bachelor of Secondary Education" }
+                    ],
+                    "CAS": [
+                        // No courses listed for CAS yet, you can add if needed
+                    ],
+                    "CCIS": [
+                        { value: "CS", text: "BS in Computer Science" },
+                        { value: "IT", text: "BS in Information Technology" }
+                    ],
+                    "CCJE": [
+                        { value: "Crim", text: "Criminology" }
+                    ]
+                };
+
+                function filterCourses() {
+                    const department = document.getElementById('department').value;
+                    const courseSelect = document.getElementById('course');
+
+                    // Clear current course options
+                    courseSelect.innerHTML = '<option value="">Select Course</option>';
+
+                    // If a department is selected, add related courses
+                    if (courseOptions[department]) {
+                        courseOptions[department].forEach(course => {
+                            const option = document.createElement('option');
+                            option.value = course.value;
+                            option.textContent = course.text;
+                            courseSelect.appendChild(option);
+                        });
+                    }
+                }
+
+            </script>
         </div>
     </div>
 </body>
