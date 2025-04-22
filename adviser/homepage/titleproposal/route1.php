@@ -453,7 +453,7 @@ function autoGrow(textarea) {
 
             <div class="content" id="content-area">
 <?php
-$stmt = $conn->prepare("SELECT docuRoute1, student_id, route1_id, group_number, controlNo, fullname FROM route1proposal_files WHERE adviser_id = ?");
+$stmt = $conn->prepare("SELECT docuRoute1, student_id, route1_id, group_number, controlNo, fullname, title FROM route1proposal_files WHERE adviser_id = ?");
 $stmt->bind_param("s", $adviser_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -467,7 +467,7 @@ if ($result->num_rows > 0) {
                 <th>Leader</th>
                 <th>Group No.</th>
                 <th>Student ID</th>
-                <th>File Name</th>
+                <th>Title</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -482,6 +482,7 @@ if ($result->num_rows > 0) {
         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
         echo "
             <tr>
@@ -489,7 +490,7 @@ if ($result->num_rows > 0) {
                 <td>$fullName</td>
                 <td>$groupNo</td>
                 <td>$student_id</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
                 </td>

@@ -473,7 +473,8 @@ $query = "
         route1_id, 
         controlNo, 
         fullname, 
-        group_number 
+        group_number,
+        title
     FROM route1final_files 
     WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
     " . ($selectedDepartment ? " AND department = ?" : "");
@@ -497,7 +498,7 @@ if ($result->num_rows > 0) {
                 <th>Control No.</th>
                 <th>Leader</th>
                 <th>Group No.</th>
-                <th>File Name</th>
+                <th>Title</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -512,13 +513,14 @@ if ($result->num_rows > 0) {
         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
         $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
         echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullname</td>
                 <td>$groupNo</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
                 </td>

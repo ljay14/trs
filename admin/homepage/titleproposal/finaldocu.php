@@ -79,6 +79,7 @@ $fileStmt = $conn->prepare(
         controlNo,
         group_number,
         fullname,
+        title,
         student_id, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id
      FROM finaldocuproposal_files 
      WHERE department = ?"
@@ -100,7 +101,8 @@ $fileStmt = $conn->prepare(
             'panel2_id' => $row['panel2_id'],
             'panel3_id' => $row['panel3_id'],
             'panel4_id' => $row['panel4_id'],
-            'adviser_id' => $row['adviser_id']
+            'adviser_id' => $row['adviser_id'],
+            'title' => $row['title']
         ];
     }
     
@@ -111,7 +113,6 @@ $fileStmt = $conn->prepare(
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $selectedFiles = $_POST['selected_files'];
-    $selectedAdviser = $_POST['selected_adviser'];
     $panel1 = $_POST['panel1'] ?? null;
     $panel2 = $_POST['panel2'] ?? null;
     $panel3 = $_POST['panel3'] ?? null;
@@ -138,9 +139,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 // Update panel and adviser and set date_submitted
                 $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
                 $updatePanelStmt = $conn->prepare("UPDATE finaldocuproposal_files 
-                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, adviser_id = ?, date_submitted = ? 
+                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, date_submitted = ? 
                     WHERE finaldocu = ?");
-                $updatePanelStmt->bind_param("iiiisss", $panel1, $panel2, $panel3, $panel4, $selectedAdviser, $dateNow, $fileName);
+                $updatePanelStmt->bind_param("iiiiss", $panel1, $panel2, $panel3, $panel4, $dateNow, $fileName);
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
 
@@ -376,20 +377,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                         <?php $panelStmt->close(); ?>
                     </select>
 
-                    <select id="adviser-dropdown" name="selected_adviser">
-                        <option value="">Adviser</option>
-                        <?php
-                        $adviserStmt = $conn->prepare("SELECT adviser_id, fullname FROM adviser WHERE department = ?");
-                        $adviserStmt->bind_param("s", $selectedDepartment);
-                        $adviserStmt->execute();
-                        $adviserResult = $adviserStmt->get_result();
-                        while ($row = $adviserResult->fetch_assoc()):
-                        ?>
-                            <option value="<?= htmlspecialchars($row['adviser_id']) ?>">
-                                <?= htmlspecialchars($row['fullname']) ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
                 </div>
             </div>
             <button id="external-submit-button">Submit</button>
@@ -455,7 +442,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     <th>Control No.</th>
                     <th>Leader</th>
                     <th>Group No.</th>
-                    <th>File Name</th>
+                    <th>Title</th>
                     <th>Assigned</th>
                     <th>Action</th>
                 </tr>
@@ -471,6 +458,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
                             $finaldocu_id = htmlspecialchars($file['finaldocu_id'] ?? '', ENT_QUOTES);
                             $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
+                            $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
                             // Check if file is assigned to a panelist and adviser
                             $assigned = '';
                             if ($file['panel1_id'] || $file['panel2_id'] || $file['panel3_id'] || $file['panel4_id']) {
@@ -488,7 +476,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             <td><?= $controlNo ?></td>
                             <td><?= $fullname ?></td>
                             <td><?= $group_number ?></td>
-                            <td><?= $filename ?></td>
+                            <td><?= $title ?></td>
                             <td style="text-align: center;"><?= $assigned ?></td>
                             <td style="text-align: center;">
                             <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $finaldocu_id ?>')">View</button>
@@ -548,14 +536,14 @@ document.getElementById("external-submit-button").addEventListener("click", func
     const panel2 = document.getElementById("panel2-dropdown").value.trim();
     const panel3 = document.getElementById("panel3-dropdown").value.trim();
     const panel4 = document.getElementById("panel4-dropdown").value.trim();
-    const adviser = document.getElementById("adviser-dropdown").value.trim();
+  
 
     // Set hidden fields
     document.getElementById("hidden-panel1").value = panel1;
     document.getElementById("hidden-panel2").value = panel2;
     document.getElementById("hidden-panel3").value = panel3;
     document.getElementById("hidden-panel4").value = panel4;
-    document.getElementById("hidden-adviser").value = adviser;
+
 
     // Validate file selection
     const selectedFiles = document.querySelectorAll("input[name='selected_files[]']:checked");
@@ -564,11 +552,7 @@ document.getElementById("external-submit-button").addEventListener("click", func
         return;
     }
 
-    // Validate at least one panelist is selected and an adviser is selected
-    if (!adviser) {
-        alert("Please select an adviser.");
-        return;
-    }
+
 
     // If at least one panelist is selected, proceed
     const panelSelected = panel1 || panel2 || panel3 || panel4;

@@ -54,19 +54,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
     $student_id = $_POST["student_id"];
 
-    // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT  department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
+    // Fetch the department, controlNo, fullname, group_number, title, and adviser from the student's account
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name);
     $stmt->fetch();
     $stmt->close();
 
     if (!$department) {
-        // If no department is found for the student ID, show an alert and go back
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
-        exit; // Exit to prevent further processing
+        exit;
     } else {
+        // Find the adviser_id based on the adviser name from the adviser table
+        $adviser_id = null;
+        $stmt = $conn->prepare("SELECT adviser_id FROM adviser WHERE fullname = ?");
+        $stmt->bind_param("s", $adviser_name);
+        $stmt->execute();
+        $stmt->bind_result($adviser_id);
+        $stmt->fetch();
+        $stmt->close();
+
+        if (!$adviser_id) {
+            echo "<script>alert('Adviser not found. Please check the adviser\'s name.'); window.history.back();</script>";
+            exit;
+        }
+
         if (isset($_FILES["docuRoute1"]) && $_FILES["docuRoute1"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["docuRoute1"]["tmp_name"];
             $fileName = $_FILES["docuRoute1"]["name"];
@@ -83,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     mkdir($uploadDir, 0777, true);
                 }
 
-                // Check if the student already has an uploaded file
+                // Check if the student already uploaded a file
                 $stmt = $conn->prepare("SELECT COUNT(*) FROM route1proposal_files WHERE student_id = ? AND department = ?");
                 $stmt->bind_param("ss", $student_id, $department);
                 $stmt->execute();
@@ -92,37 +105,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 $stmt->close();
 
                 if ($count > 0) {
-                    // Alert if student has already uploaded a file
                     echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
-                    exit; // Exit to prevent further processing
+                    exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-                    // Insert file information in the database
-                    $stmt = $conn->prepare("INSERT INTO route1proposal_files ( student_id, docuRoute1, department, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    // Insert the new file info including adviser_id
+                    $stmt = $conn->prepare("INSERT INTO route1proposal_files (student_id, docuRoute1, department, controlNo, fullname, group_number, title, adviser_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssssss",  $student_id, $filePath, $department, $controlNo, $fullname, $group_number, $title);
+                        $stmt->bind_param("sssssssi", $student_id, $filePath, $department, $controlNo, $fullname, $group_number, $title, $adviser_id);
                         if ($stmt->execute()) {
-                            // Alert on successful file upload
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
                         } else {
-                            // Alert if there's an error saving the record
                             echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
                         }
                         $stmt->close();
                     }
                 } else {
-                    // Alert if there was an error moving the file
                     echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
             } else {
-                // Alert if the file type is not allowed
                 echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
             }
         } else {
-            // Alert if there was an error with the file upload
             echo "<script>alert('Error uploading file.'); window.history.back();</script>";
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>

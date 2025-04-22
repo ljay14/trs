@@ -337,7 +337,8 @@ if (isset($_SESSION['panel_id'])) {
         route2_id, 
         controlNo, 
         fullname, 
-        group_number 
+        group_number,
+        title
     FROM route2proposal_files 
     WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
     " . ($selectedDepartment ? " AND department = ?" : "");
@@ -376,13 +377,14 @@ if (isset($_SESSION['panel_id'])) {
                         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
                         $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
                         echo "
             <tr>
                 <td>$controlNo</td>
                 <td>$fullname</td>
                 <td>$groupNo</td>
-                <td>$fileName</td>
+                <td>$title</td>
                 <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
                 </td>
