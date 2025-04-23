@@ -44,8 +44,19 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// If all statuses are approved, proceed with PDF generation
-if ($allApproved) {
+// Check if student has routing form in route1_id
+// Check if student has a routing form in proposal_monitoring_form (route1_id is not NULL)
+$stmt = $conn->prepare("SELECT route1_id FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$stmt->store_result();
+
+$hasRoutingForm = $stmt->num_rows > 0;
+$stmt->close();
+
+
+// If all statuses are approved and routing form exists, proceed with PDF generation
+if ($allApproved && $hasRoutingForm) {
     $date = date('F j, Y'); // Current date
 
     // Create PDF
@@ -111,7 +122,7 @@ if ($allApproved) {
     // Output PDF for download
     $pdf->Output('D', 'Certificate_of_Endorsement.pdf'); // D = force download
 } else {
-    echo "<script>alert('You cannot download the endorsement until all statuses are approved.'); window.history.back();</script>";
+    echo "<script>alert('You cannot download the endorsement until all statuses are approved and routing form exists.'); window.history.back();</script>";
 }
 
 $conn->close();

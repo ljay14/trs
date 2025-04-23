@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
                 <a href="../homepage.php">Home Page</a>
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 1</div>
+            <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Adviser:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
