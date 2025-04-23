@@ -28,7 +28,9 @@ if (!isset($_SESSION['student_id'])) {
 
 $student_id = $_SESSION['student_id']; // Assuming student_id is stored in session
 
-// Check if all statuses are "Approved"
+// Check if all Route 1 to Route 3 statuses are approved
+$allApproved = true;
+
 $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
 $stmt->bind_param("s", $student_id);
 $stmt->execute();
@@ -44,19 +46,43 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Check if student has routing form in route1_id
-// Check if student has a routing form in proposal_monitoring_form (route1_id is not NULL)
-$stmt = $conn->prepare("SELECT route1_id FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL");
+// Check if necessary files have been uploaded (route1_id, route2_id, route3_id, finaldocu_id)
+$hasRequiredFiles = false;
+
+// Check if Route 1 file exists
+$stmt = $conn->prepare("SELECT COUNT(*) FROM route1proposal_files WHERE student_id = ? AND docuRoute1 IS NOT NULL");
 $stmt->bind_param("s", $student_id);
 $stmt->execute();
-$stmt->store_result();
-
-$hasRoutingForm = $stmt->num_rows > 0;
+$stmt->bind_result($docuRoute1);
+$stmt->fetch();
 $stmt->close();
 
+// Check if Route 2 file exists
+$stmt = $conn->prepare("SELECT COUNT(*) FROM route2proposal_files WHERE student_id = ? AND docuRoute2 IS NOT NULL");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$stmt->bind_result($docuRoute2);
+$stmt->fetch();
+$stmt->close();
 
-// If all statuses are approved and routing form exists, proceed with PDF generation
-if ($allApproved && $hasRoutingForm) {
+// Check if Route 3 file exists
+$stmt = $conn->prepare("SELECT COUNT(*) FROM route3proposal_files WHERE student_id = ? AND docuRoute3 IS NOT NULL");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$stmt->bind_result($docuRoute3);
+$stmt->fetch();
+$stmt->close();
+
+// Check if Final Document file exists
+$stmt = $conn->prepare("SELECT COUNT(*) FROM finaldocuproposal_files WHERE student_id = ? AND finaldocu IS NOT NULL");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$stmt->bind_result($finaldocu);
+$stmt->fetch();
+$stmt->close();
+
+// If all statuses are approved and all files are uploaded, proceed with PDF generation
+if ($allApproved && $docuRoute1 && $docuRoute2 && $docuRoute3 && $finaldocu) {
     $date = date('F j, Y'); // Current date
 
     // Create PDF
@@ -122,7 +148,7 @@ if ($allApproved && $hasRoutingForm) {
     // Output PDF for download
     $pdf->Output('D', 'Certificate_of_Endorsement.pdf'); // D = force download
 } else {
-    echo "<script>alert('You cannot download the endorsement until all statuses are approved and routing form exists.'); window.history.back();</script>";
+    echo "<script>alert('You cannot download the endorsement until all files are uploaded and approved for Route 1, Route 2, Route 3, and the Final Document.'); window.history.back();</script>";
 }
 
 $conn->close();

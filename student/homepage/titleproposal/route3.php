@@ -70,22 +70,19 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
         exit;
     } else {
-        // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL AND route2_id IS NULL");
-        if (!$stmt) {
-            die("Error preparing statement: " . $conn->error);
-        }
-
+        // Check Route 1 approval status
+        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL");
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
         $stmt->bind_result($status);
 
-        // Check if all Route 1 statuses are 'Approved'
-        $allApproved = true;
+        $allApproved = true;  // Flag to check if all approvals are "Approved"
+
+        // Check each route1 approval status
         while ($stmt->fetch()) {
             if ($status !== 'Approved') {
                 $allApproved = false;
-                break;
+                break; // No need to check further if one status is not "Approved"
             }
         }
         $stmt->close();
@@ -95,79 +92,69 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
             exit;
         }
 
-
         // Proceed with file upload if Route 1 is approved
-        if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
-            $fileName = $_FILES["docuRoute3"]["name"];
-            $uploadDir = "../../../uploads/";
-            $filePath = $uploadDir . basename($fileName);
+        $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
+        $fileName = $_FILES["docuRoute3"]["name"];
+        $uploadDir = "../../../uploads/";
+        $filePath = $uploadDir . basename($fileName);
 
-            $allowedTypes = [
-                "application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ];
+        $allowedTypes = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ];
 
-            if (in_array($_FILES["docuRoute3"]["type"], $allowedTypes)) {
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
+        if (in_array($_FILES["docuRoute3"]["type"], $allowedTypes)) {
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
 
-                // Check if the student already uploaded for Route 3
-                $stmt = $conn->prepare("SELECT COUNT(*) FROM route3proposal_files WHERE student_id = ? AND department = ?");
-                if (!$stmt) {
-                    die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
-                }
-                $stmt->bind_param("ss", $student_id, $department);
-                $stmt->execute();
-                $stmt->bind_result($count);
-                $stmt->fetch();
-                $stmt->close();
+            // Check if the student already uploaded for Route 3
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM route3proposal_files WHERE student_id = ? AND department = ?");
+            $stmt->bind_param("ss", $student_id, $department);
+            $stmt->execute();
+            $stmt->bind_result($count);
+            $stmt->fetch();
+            $stmt->close();
 
-                if ($count > 0) {
-                    echo "<script>alert('You can only upload one file for Route 3.'); window.history.back();</script>";
+            if ($count > 0) {
+                echo "<script>alert('You can only upload one file for Route 3.'); window.history.back();</script>";
+                exit;
+            } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
+                // Fetch panel and adviser IDs from Route 1
+                $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                $panelStmt->bind_param("s", $student_id);
+                $panelStmt->execute();
+                $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                $panelStmt->fetch();
+                $panelStmt->close();
+
+                if (!isset($panel1_id)) {
+                    echo "<script>alert('Route 1 and Route 2 information not found. Please complete Route 1 and Route 2 first.'); window.history.back();</script>";
                     exit;
-                } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-                    // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
-                    if (!$panelStmt) {
-                        die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
-                    }
-                    $panelStmt->bind_param("s", $student_id);
-                    $panelStmt->execute();
-                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
-                    $panelStmt->fetch();
-                    $panelStmt->close();
-
-                    if (!isset($panel1_id)) {
-                        echo "<script>alert('Route 1 and Route 2 information not found. Please complete Route 1 and Route 2 first.'); window.history.back();</script>";
-                        exit;
-                    }
-                    // Get current date/time
-                    $date_submitted = date("Y-m-d H:i:s");
-
-                    // Insert into Route 3 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO route3proposal_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    if ($stmt) {
-                        $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
-                        if ($stmt->execute()) {
-                            echo "<script>alert('File uploaded successfully.'); window.location.href = 'route3.php';</script>";
-                        } else {
-                            echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
-                        }
-                        $stmt->close();
-                    }
-                } else {
-                    echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
+
+                // Get current date/time
+                $date_submitted = date("Y-m-d H:i:s");
+
+                // Insert into Route 3 with date_submitted
+                $stmt = $conn->prepare("INSERT INTO route3proposal_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
+                
+                if ($stmt->execute()) {
+                    echo "<script>alert('File uploaded successfully.'); window.location.href = 'route3.php';</script>";
+                } else {
+                    echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
+                }
+                $stmt->close();
             } else {
-                echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
+                echo "<script>alert('Error moving the file.'); window.history.back();</script>";
             }
         } else {
-            echo "<script>alert('Error uploading file.'); window.history.back();</script>";
+            echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
         }
     }
 }
+
 
 
 ?>

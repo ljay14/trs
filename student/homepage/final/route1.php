@@ -61,14 +61,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $stmt->close();
 
     if (!$department) {
-        // If no department is found for the student ID, show an alert and go back
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
-        exit; // Exit to prevent further processing
+        exit;
     } else {
+
+        // ✅ NEW: Check if all panelists and adviser have approved
+        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $stmt->bind_result($status);
+
+        $allApproved = true;  // Flag to check if all approvals are "Approved"
+
+        // Check each route1 approval status
+        while ($stmt->fetch()) {
+            if ($status !== 'Approved') {
+                $allApproved = false;
+                break; // No need to check further if one status is not "Approved"
+            }
+        }
+        $stmt->close();
+
+        if (!$allApproved) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+            exit;
+        }
+
         if (isset($_FILES["docuRoute1"]) && $_FILES["docuRoute1"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["docuRoute1"]["tmp_name"];
             $fileName = $_FILES["docuRoute1"]["name"];
-            $uploadDir = "../../../uploads/";  // Ensure this directory exists
+            $uploadDir = "../../../uploads/";
             $filePath = $uploadDir . basename($fileName);
 
             $allowedTypes = [
@@ -78,10 +100,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
 
             if (in_array($_FILES["docuRoute1"]["type"], $allowedTypes)) {
                 if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);  // Create the upload directory if not exists
+                    mkdir($uploadDir, 0777, true);
                 }
 
-                // Check if the student already has an uploaded file for Route 1
                 $stmt = $conn->prepare("SELECT COUNT(*) FROM route1final_files WHERE student_id = ? AND department = ?");
                 $stmt->bind_param("ss", $student_id, $department);
                 $stmt->execute();
@@ -90,11 +111,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 $stmt->close();
 
                 if ($count > 0) {
-                    // Alert if student has already uploaded a file for Route 1
                     echo "<script>alert('You can only upload one file for Route 1.'); window.history.back();</script>";
-                    exit; // Exit to prevent further processing
+                    exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-                    // Fetch panel and adviser IDs from Route 1
                     $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
                     $panelStmt->bind_param("s", $student_id);
                     $panelStmt->execute();
@@ -103,41 +122,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $panelStmt->close();
 
                     if (!isset($panel1_id)) {
-                        // Alert if Route 1 information is not found
                         echo "<script>alert('Route 1 information not found. Please complete Route 1 first.'); window.history.back();</script>";
                         exit;
                     }
 
-                    // Get current date/time
                     $date_submitted = date("Y-m-d H:i:s");
 
-                    // Insert into Route 1 with panel and adviser IDs, and date_submitted
                     $stmt = $conn->prepare("INSERT INTO route1final_files (student_id, docuRoute1, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
                         $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
                         if ($stmt->execute()) {
-                            // Alert on successful file upload
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
                         } else {
-                            // Alert if there's an error saving the record
                             echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
                         }
                         $stmt->close();
                     }
                 } else {
-                    // Alert if there was an error moving the file
                     echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
             } else {
-                // Alert if the file type is not allowed
                 echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
             }
         } else {
-            // Alert if there was an error with the file upload
             echo "<script>alert('Error uploading file.'); window.history.back();</script>";
         }
     }
 }
+
 
 ?>
 
