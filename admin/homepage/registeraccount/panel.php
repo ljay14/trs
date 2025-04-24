@@ -21,7 +21,6 @@ if ($conn->connect_error) {
 }
 
 // Handle form submission
-// Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = $conn->real_escape_string($_POST['fullname']);
     $department = $conn->real_escape_string($_POST['department']);
@@ -54,103 +53,310 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-
 // Close the connection
 $conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="adminstyle.css">
+    <title>Panelist Registration - Thesis Routing System</title>
     <style>
+        :root {
+            --primary: #002366;
+            --primary-light: #0a3885;
+            --accent: #4a6fd1;
+            --light: #f5f7fd;
+            --dark: #333;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border: #e0e0e0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-container img {
+            height: 50px;
+            margin-right: 15px;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .homepage a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .homepage a:hover {
+            color: var(--primary);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info a {
+            color: white;
+            margin-right: 15px;
+            padding: 8px 15px;
+            background-color: var(--accent);
+            border-radius: 5px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .user-info a:hover {
+            background-color: var(--primary);
+        }
+        
+        .vl {
+            border-left: 2px solid var(--border);
+            height: 25px;
+            margin: 0 15px;
+        }
+        
+        .role {
+            font-weight: 600;
+            margin-right: 5px;
+            color: var(--primary);
+        }
+        
+        .user-name {
+            color: var(--dark);
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+        }
+        
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .menu-title {
+            font-weight: 600;
+            color: var(--primary);
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar ul {
+            list-style: none;
+        }
+        
+        .sidebar li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar a:hover {
+            background-color: var(--light);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .logout {
+            padding: 0 1.5rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+        
+        .logout a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .logout a:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: auto;
+        }
+        
         .form-container {
-    max-width: 700px;
-    background-color: #ccc;
-    margin: auto;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    text-align: left;
-}
-
-.form-container h1 {
-    text-align: center;
-    color: #003399;
-    margin-bottom: 20px;
-}
-
-.form-container label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #333;
-}
-
-.form-container input {
-    width: 97%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-/* Centering the button */
-.form-container .button-container {
-    display: flex;
-    justify-content: center;
-}
-
-.form-container button {
-    background-color: #003399;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    width: 100px;
-}
-
-.form-container button:hover {
-    background-color: #001a4d;
-}
-
-.alert {
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 5px;
-    font-size: 16px;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.vl {
-    border-left: 2px solid;
-    height: 50px;
-    margin-right: 20px;
-}
-
-.user-info a{
-    color: black;
-    margin-right: 20px;
-    padding: 10px;
-    background-color: #879ecc;
-    border-radius: 5px;
-    font-weight: bold;
-}
+            max-width: 700px;
+            background-color: white;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            text-align: left;
+        }
+        
+        .form-container h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+        }
+        
+        .form-container label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .form-container input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        .form-container input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
+        }
+        
+        .form-container .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        
+        .form-container button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .form-container button:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 0.5rem;
+            }
+            
+            .form-container {
+                padding: 1.5rem;
+            }
+        }
     </style>
     <script>
         // JavaScript to hide the alert initially and show it upon success
@@ -167,7 +373,7 @@ $conn->close();
     <div class="container">
         <header class="header">
             <div class="logo-container">
-                <img src="../../../assets/logo.png" alt="Logo">
+                <img src="../../../assets/logo.png" alt="SMCC Logo">
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
@@ -176,14 +382,14 @@ $conn->close();
                 <a href="../../homepage/homepage.php">Home Page</a>
             </div>
             <div class="user-info">
-            <a href="panel_register.php" ;">Registered Account</a>
+                <a href="../registeredaccount/panel_register.php">Registered Account</a>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>
             </div>
         </div>
         <div class="main-content">
-        <nav class="sidebar">
+            <nav class="sidebar">
                 <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
@@ -197,7 +403,7 @@ $conn->close();
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -220,44 +426,41 @@ $conn->close();
                     </div>
                 </div>
                 <div class="logout">
-                <a href="../../../logout.php">Logout</a>
+                    <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
             <div class="content">
                 <div class="form-container">
                     <h1>Panelist Registration</h1>
-                    
+
                     <!-- Success Message -->
                     <div id="success-alert" class="alert alert-success" style="display:none;">
                         <strong>Success!</strong> Panelist registered successfully.
                     </div>
-                    
-                    <hr>
+
                     <form action="panel.php" method="POST">
-    <label for="fullname">Complete Name</label>
-    <input type="text" id="fullname" name="fullname" placeholder="First name / Middle name / Last name" required>
+                        <label for="fullname">Complete Name</label>
+                        <input type="text" id="fullname" name="fullname" placeholder="First name / Middle name / Last name" required>
 
-    <label for="department">Department</label>
-    <input type="text" id="department" name="department" required>
+                        <label for="department">Department</label>
+                        <input type="text" id="department" name="department" required>
 
-    <label for="position">Position</label>
-    <input type="text" id="position" name="position" placeholder="Panel1, Panel2, Panel3, Panel4" required>
+                        <label for="position">Position</label>
+                        <input type="text" id="position" name="position" placeholder="Panel1, Panel2, Panel3, Panel4" required>
 
-    <label for="school_id">School ID</label>
-    <input type="text" id="school_id" name="school_id" required>
+                        <label for="school_id">School ID</label>
+                        <input type="text" id="school_id" name="school_id" required>
 
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password" required>
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
 
-    <div class="button-container">
-        <button type="submit">Register</button>
-    </div>
-</form>
-
+                        <div class="button-container">
+                            <button type="submit">Register</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </body>
-
 </html>
