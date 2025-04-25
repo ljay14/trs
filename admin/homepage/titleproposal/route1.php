@@ -771,7 +771,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                         <ul>
                             <li><a href="../registeraccount/panel.php">Panel</a></li>
                             <li><a href="../registeraccount/adviser.php">Adviser</a></li>
-                            <li><a href="../registeraccount/student_register.php">Student</a></li>
+                            
                         </ul>
                     </div>
                     <div class="menu-section">
