@@ -413,8 +413,8 @@ button {
 
 .modal-content {
     background-color: #fff;
-    width: 95%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     border-radius: 8px;
@@ -453,24 +453,41 @@ button {
 }
 
 .form-grid-container {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
 
-.form-grid-container > div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    border: 1px solid var(--border);
-    background-color: white;
-    text-align: center;
-}
+        .form-grid-container > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background-color: white;
+            text-align: center;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+
+        .form-input-row textarea {
+            resize: vertical;
+            min-height: 24px;
+        }
 
 .close-button {
     position: absolute;

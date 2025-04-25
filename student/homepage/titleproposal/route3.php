@@ -452,8 +452,8 @@ button {
 
 .modal-content {
     background-color: #fff;
-    width: 95%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     border-radius: 8px;

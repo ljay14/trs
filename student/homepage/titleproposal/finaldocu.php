@@ -502,8 +502,8 @@ button {
 
 .modal-content {
     background-color: #fff;
-    width: 95%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     border-radius: 8px;
@@ -926,7 +926,7 @@ input[type="checkbox"] {
             document.querySelector("#file-upload-form").submit();
         });
 
-        function viewFile(filePath, student_id, finaldocu_id) {
+        function viewFile(filePath, student_id,finaldocu_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
@@ -966,8 +966,8 @@ input[type="checkbox"] {
                 <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
             `;
 
-            // Load form data dynamically using finaldocu_id
-            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}&route3_id=${encodeURIComponent(finaldocu_id)}`)
+            // Load form data dynamically using route3_id
+            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Fetched forms:", data);
@@ -1035,7 +1035,7 @@ input[type="checkbox"] {
             if (confirm("Are you sure you want to delete this file?")) {
                 const form = document.createElement("form");
                 form.method = "POST";
-                form.action = "finaldocu.php";
+                form.action = "route2.php";
 
                 const input = document.createElement("input");
                 input.type = "hidden";
@@ -1053,15 +1053,6 @@ input[type="checkbox"] {
             if (event.key === 'Escape') {
                 closeModal();
             }
-        });
-
-        // Download endorsement certificate
-        document.getElementById('downloadButton').addEventListener('click', function() {
-            const adviserName = `<?= $adviser ?>`;
-            const studentNames = `<?= $allStudents ?>`;
-
-            const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${encodeURIComponent(adviserName)}&student=${encodeURIComponent(studentNames)}`;
-            window.location.href = url;
         });
         
         // Style the spinner animation
