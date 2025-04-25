@@ -165,15 +165,20 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
-        :root {
-    --primary: #002366;
-    --primary-light: #0a3885;
-    --accent: #4a6fd1;
-    --light: #f5f7fd;
-    --dark: #333;
-    --success: #28a745;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --border: #e0e0e0;
+:root {
+--primary: #4366b3;
+--primary-light: #0a3885;
+--accent: #4a6fd1;
+--light: #f5f7fd;
+--dark: #333;
+--success: #28a745;
+--shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+--border: #e0e0e0;
+--white: #ffffff;
+--hover: #f5f7fd;
+--active: #e5ebf8;
+--text-light: #777777;
+--radius: 8px;
 }
 
 * {
@@ -227,16 +232,51 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
-.navigation a {
+.navigation {
+    display: flex;
+    align-items: center;
+}
+
+.homepage a {
     color: var(--accent);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.3s;
-    margin-right: 1rem;
 }
 
-.navigation a:hover {
+.homepage a:hover {
     color: var(--primary);
+}
+
+.dropdown-container {
+    display: flex;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.dropdown-container select {
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background-color: white;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+#external-submit-button {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+#external-submit-button:hover {
+    background-color: var(--primary);
+    transform: translateY(-2px);
 }
 
 .user-info {
@@ -396,15 +436,6 @@ button {
     background-color: var(--primary);
 }
 
-.delete-button {
-    background-color: #dc3545;
-    color: white;
-}
-
-.delete-button:hover {
-    background-color: #c82333;
-}
-
 /* Modal Styling */
 .modal {
     position: fixed;
@@ -453,19 +484,11 @@ button {
     font-size: 0.85rem;
 }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-    color: var(--dark);
-    transition: all 0.3s;
-    z-index: 1000;
-}
-
-.close-button:hover {
-    color: var(--accent);
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
 }
 
 .form-grid-container {
@@ -488,38 +511,22 @@ button {
     text-align: center;
 }
 
-.form-grid-container > div:first-child(1),
-.form-grid-container > div:nth-child(2),
-.form-grid-container > div:nth-child(3),
-.form-grid-container > div:nth-child(4),
-.form-grid-container > div:nth-child(5),
-.form-grid-container > div:nth-child(6),
-.form-grid-container > div:nth-child(7),
-.form-grid-container > div:nth-child(8) {
-    background-color: var(--primary-light);
-    color: white;
-    font-weight: 600;
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--dark);
+    transition: all 0.3s;
+    z-index: 1000;
 }
 
-.welcome-card {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: var(--shadow);
-    padding: 2rem;
-    text-align: center;
+.close-button:hover {
+    color: var(--accent);
 }
 
-.welcome-card h1 {
-    color: var(--primary);
-    margin-bottom: 1rem;
-}
-
-.welcome-card p {
-    color: #666;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-}
-
+/* Responsive styles */
 @media (max-width: 768px) {
     .main-content {
         flex-direction: column;
@@ -549,19 +556,123 @@ button {
     }
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+/* Dropdown menu styling */
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    gap: 4px;
 }
 
-.spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border-left-color: var(--accent);
-    animation: spin 1s linear infinite;
-    margin: 0 auto;
+.menu-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    gap: 12px;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+}
+
+.icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--primary);
+}
+
+.menu-header span {
+    flex: 1;
+    font-size: 14px;
+    color: var(--dark);
+}
+
+.dropdown-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.dropdown-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: #777777;
+}
+
+.expanded .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.menu-header:hover {
+    background-color: var(--light);
+}
+
+.dropdown-content {
+    display: none;
+    flex-direction: column;
+    padding-left: 2.5rem;
+}
+
+.dropdown-content.show {
+    display: flex;
+}
+
+.submenu-item {
+    padding: 0.6rem 1rem;
+    font-size: 13px;
+    color: #777777;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.submenu-item:hover {
+    background-color: var(--light);
+    color: var(--primary);
+}
+
+/* Additional utilities */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.selected {
+    background-color: var(--light);
+}
+
+.submit-button a {
+    margin-left: 50px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.navigation a{
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.submit-button a{
+    margin-left: 50px;
 }
     </style>
 </head>
@@ -582,7 +693,9 @@ button {
         <div class="top-bar">
             <div class="navigation">
                 <a href="../homepage.php">Home Page</a>
+                <div class="submit-button">
                 <a href="#" id="submit-file-button">Submit File</a>
+                </div>
             </div>
             <div class="user-info">
                 <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
@@ -592,27 +705,67 @@ button {
             </div>
         </div>
         <div class="main-content">
-            <nav class="sidebar">
-                <div class="menu">
-                    <div class="menu-section">
-                        <div class="menu-title">Research Proposal</div>
-                        <ul>
-                            <li><a href="../titleproposal/route1.php">Route 1</a></li>
-                            <li><a href="../titleproposal/route2.php">Route 2</a></li>
-                            <li><a href="../titleproposal/route3.php">Route 3</a></li>
-                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
-                        </ul>
+        <nav class="sidebar">
+                <nav class="nav-menu">
+                    <!-- Title Proposal Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <span>Title Proposal</span>
+                            <div class="dropdown-icon expanded">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content show">
+                            <a href="../titleproposal/route1.php" class="submenu-item">Route 1</a>
+                            <a href="../titleproposal/route2.php" class="submenu-item">Route 2</a>
+                            <a href="../titleproposal/route3.php" class="submenu-item">Route 3</a>
+                            <a href="../titleproposal/finaldocu.php" class="submenu-item">Final Document</a>
+                        </div>
                     </div>
-                    <div class="menu-section">
-                        <div class="menu-title">Final Defense</div>
-                        <ul>
-                            <li><a href="../final/route1.php">Route 1</a></li>
-                            <li><a href="../final/route2.php">Route 2</a></li>
-                            <li><a href="../final/route3.php">Route 3</a></li>
-                            <li><a href="../final/finaldocu.php">Final Document</a></li>
-                        </ul>
+
+                    <!-- Final Defense Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                </svg>
+                            </div>
+                            <span>Final</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content">
+                            <a href="../final/route1.php" class="submenu-item">Route 1</a>
+                            <a href="../final/route2.php" class="submenu-item">Route 2</a>
+                            <a href="../final/route3.php" class="submenu-item">Route 3</a>
+                            <a href="../final/finaldocu.php" class="submenu-item">Final Document</a>
+                        </div>
                     </div>
-                </div>
+                </nav>
                 <div class="logout">
                     <a href="../../../logout.php">Logout</a>
                 </div>
@@ -681,10 +834,10 @@ button {
                     </table>
                     ";
                 } else {
-                    echo "<div class='welcome-card'>
-                            <h1>No Files Uploaded Yet</h1>
-                            <p>Click on 'Submit File' to upload your thesis documents.</p>
-                          </div>";
+                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                    <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                    <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
+                  </div>";
                 }
 
                 $stmt->close();
@@ -860,3 +1013,45 @@ button {
     </script>
 </body>
 </html>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuHeaders = document.querySelectorAll('.menu-header');
+    const path = window.location.pathname;
+
+    menuHeaders.forEach(header => {
+        const dropdownContent = header.nextElementSibling;
+        const label = header.querySelector('span').textContent.trim().toLowerCase();
+
+        // Default: close all
+        header.querySelector('.dropdown-icon').classList.remove('expanded');
+        dropdownContent.classList.remove('show');
+
+        // Expand the right one based on URL
+        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        } else if (path.includes('/final/') && label === 'final') {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        }
+
+        // Accordion behavior
+        header.addEventListener('click', function() {
+            menuHeaders.forEach(h => {
+                const icon = h.querySelector('.dropdown-icon');
+                const content = h.nextElementSibling;
+                
+                if (h !== this) {
+                    icon.classList.remove('expanded');
+                    content.classList.remove('show');
+                }
+            });
+
+            // Toggle the clicked one
+            this.querySelector('.dropdown-icon').classList.toggle('expanded');
+            dropdownContent.classList.toggle('show');
+        });
+    });
+});
+</script>

@@ -1097,19 +1097,45 @@ $result = $conn->query($sql);
 </html>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const menuHeaders = document.querySelectorAll('.menu-header');
+    const path = window.location.pathname;
 
-document.addEventListener('DOMContentLoaded', function() {
-        const menuHeaders = document.querySelectorAll('.menu-header');
-        
-        menuHeaders.forEach(header => {
-            header.addEventListener('click', function() {
-                // Toggle the expanded class for the arrow icon
-                this.querySelector('.dropdown-icon').classList.toggle('expanded');
-                
-                // Toggle the dropdown content visibility
-                const dropdownContent = this.nextElementSibling;
-                dropdownContent.classList.toggle('show');
+    // Extract the top-level folder (like 'final', 'titleproposal', etc.)
+    const pathFolder = path.split('/').filter(Boolean)[0]; // removes empty parts
+
+    menuHeaders.forEach(header => {
+        const dropdownContent = header.nextElementSibling;
+        const sectionLabel = header.querySelector('span').textContent.trim().toLowerCase();
+
+        // Close everything by default
+        dropdownContent.classList.remove('show');
+        header.querySelector('.dropdown-icon').classList.remove('expanded');
+
+        // Expand correct section based on current folder in URL
+        if ((pathFolder === 'titleproposal' && sectionLabel.includes('title proposal')) ||
+            (pathFolder === 'final' && sectionLabel === 'final') ||
+            (pathFolder === 'registeraccount' && sectionLabel === 'register account') ||
+            (pathFolder === 'registeredaccount' && sectionLabel === 'registered account')) {
+            dropdownContent.classList.add('show');
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+        }
+
+        // Accordion-style toggle behavior
+        header.addEventListener('click', function () {
+            menuHeaders.forEach(h => {
+                const content = h.nextElementSibling;
+                const icon = h.querySelector('.dropdown-icon');
+
+                if (h !== this) {
+                    content.classList.remove('show');
+                    icon.classList.remove('expanded');
+                }
             });
+
+            dropdownContent.classList.toggle('show');
+            header.querySelector('.dropdown-icon').classList.toggle('expanded');
         });
     });
+});
 </script>

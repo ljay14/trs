@@ -602,29 +602,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         </div>
 
         <div class="main-content">
-            <nav class="sidebar">
-                <div class="menu">
-                    <div class="menu-section">
-                        <div class="menu-title">Research Proposal</div>
-                        <ul>
-                            <li><a href="../titleproposal/route1.php">Route 1</a></li>
-                            <li><a href="../titleproposal/route2.php">Route 2</a></li>
-                            <li><a href="../titleproposal/route3.php">Route 3</a></li>
-                            <li><a href="../titleproposal/finaldocu.php">Final Document</a></li>
-                        </ul>
+        <nav class="sidebar">
+                <nav class="nav-menu">
+                    <!-- Title Proposal Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <span>Title Proposal</span>
+                            <div class="dropdown-icon expanded">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content show">
+                            <a href="titleproposal/route1.php" class="submenu-item">Route 1</a>
+                            <a href="titleproposal/route2.php" class="submenu-item">Route 2</a>
+                            <a href="titleproposal/route3.php" class="submenu-item">Route 3</a>
+                            <a href="titleproposal/finaldocu.php" class="submenu-item">Final Document</a>
+                        </div>
                     </div>
-                    <div class="menu-section">
-                        <div class="menu-title">Final Defense</div>
-                        <ul>
-                            <li><a href="../final/route1.php">Route 1</a></li>
-                            <li><a href="../final/route2.php">Route 2</a></li>
-                            <li><a href="../final/route3.php">Route 3</a></li>
-                            <li><a href="../final/finaldocu.php">Final Document</a></li>
-                        </ul>
+
+                    <!-- Final Defense Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                </svg>
+                            </div>
+                            <span>Final</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content">
+                            <a href="final/route1.php" class="submenu-item">Route 1</a>
+                            <a href="final/route2.php" class="submenu-item">Route 2</a>
+                            <a href="final/route3.php" class="submenu-item">Route 3</a>
+                            <a href="final/finaldocu.php" class="submenu-item">Final Document</a>
+                        </div>
                     </div>
-                </div>
+                </nav>
                 <div class="logout">
-                    <a href="../../../logout.php">Logout</a>
+                    <a href="../../logout.php">Logout</a>
                 </div>
             </nav>
 
@@ -892,3 +932,45 @@ function autoGrow(textarea) {
         <?php endif; ?>
     </script>
 </html>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuHeaders = document.querySelectorAll('.menu-header');
+    const path = window.location.pathname;
+
+    menuHeaders.forEach(header => {
+        const dropdownContent = header.nextElementSibling;
+        const label = header.querySelector('span').textContent.trim().toLowerCase();
+
+        // Default: close all
+        header.querySelector('.dropdown-icon').classList.remove('expanded');
+        dropdownContent.classList.remove('show');
+
+        // Expand the right one based on URL
+        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        } else if (path.includes('/final/') && label === 'final') {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        }
+
+        // Accordion behavior
+        header.addEventListener('click', function() {
+            menuHeaders.forEach(h => {
+                const icon = h.querySelector('.dropdown-icon');
+                const content = h.nextElementSibling;
+                
+                if (h !== this) {
+                    icon.classList.remove('expanded');
+                    content.classList.remove('show');
+                }
+            });
+
+            // Toggle the clicked one
+            this.querySelector('.dropdown-icon').classList.toggle('expanded');
+            dropdownContent.classList.toggle('show');
+        });
+    });
+});
+</script>
