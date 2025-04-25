@@ -634,45 +634,58 @@ function closeModal() {
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const menuHeaders = document.querySelectorAll('.menu-header');
     const path = window.location.pathname;
 
-    // Extract the top-level folder (like 'final', 'titleproposal', etc.)
-    const pathFolder = path.split('/').filter(Boolean)[0]; // removes empty parts
-
     menuHeaders.forEach(header => {
         const dropdownContent = header.nextElementSibling;
-        const sectionLabel = header.querySelector('span').textContent.trim().toLowerCase();
+        const label = header.querySelector('span').textContent.trim().toLowerCase();
 
-        // Close everything by default
-        dropdownContent.classList.remove('show');
+        // Default: close all
         header.querySelector('.dropdown-icon').classList.remove('expanded');
+        dropdownContent.classList.remove('show');
 
-        // Expand correct section based on current folder in URL
-        if ((pathFolder === 'titleproposal' && sectionLabel.includes('title proposal')) ||
-            (pathFolder === 'final' && sectionLabel === 'final') ||
-            (pathFolder === 'registeraccount' && sectionLabel === 'register account') ||
-            (pathFolder === 'registeredaccount' && sectionLabel === 'registered account')) {
-            dropdownContent.classList.add('show');
+        // Expand the right one based on URL
+        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
             header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        } else if (path.includes('/final/') && label === 'final') {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        } else if (path.includes('/registeraccount/') && label === 'register account') {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
+        } else if (path.includes('/registeredaccount/') && label === 'registered account') {
+            header.querySelector('.dropdown-icon').classList.add('expanded');
+            dropdownContent.classList.add('show');
         }
 
-        // Accordion-style toggle behavior
-        header.addEventListener('click', function () {
-            menuHeaders.forEach(h => {
-                const content = h.nextElementSibling;
-                const icon = h.querySelector('.dropdown-icon');
+        // Accordion behavior
+        header.addEventListener('click', function() {
+            // Toggle the clicked one
+            const icon = this.querySelector('.dropdown-icon');
+            icon.classList.toggle('expanded');
+            dropdownContent.classList.toggle('show');
 
+            // Optional: Close others (accordion behavior)
+            menuHeaders.forEach(h => {
                 if (h !== this) {
-                    content.classList.remove('show');
-                    icon.classList.remove('expanded');
+                    const otherIcon = h.querySelector('.dropdown-icon');
+                    const otherContent = h.nextElementSibling;
+                    otherIcon.classList.remove('expanded');
+                    otherContent.classList.remove('show');
                 }
             });
-
-            dropdownContent.classList.toggle('show');
-            header.querySelector('.dropdown-icon').classList.toggle('expanded');
         });
+    });
+
+    // Highlight active submenu item
+    const submenuItems = document.querySelectorAll('.submenu-item');
+    submenuItems.forEach(item => {
+        if (path.includes(item.getAttribute('href'))) {
+            item.classList.add('active');
+        }
     });
 });
 </script>
