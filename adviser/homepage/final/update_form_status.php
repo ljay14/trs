@@ -1,11 +1,8 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
+include '../../../connection.php';
 
 header("Content-Type: application/json");
-$conn = new mysqli($servername, $username, $password, $dbname);
+
 
 // Read JSON from request body
 $data = json_decode(file_get_contents("php://input"), true);

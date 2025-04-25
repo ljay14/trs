@@ -1,10 +1,5 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
+include '../../../connection.php';
 
 $student_id = $_GET['student_id'] ?? '';
 

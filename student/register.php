@@ -6,16 +6,7 @@ ini_set('log_errors', 1);
 ini_set('error_log', 'php_error.log');
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include '../connection.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Retrieve and sanitize inputs

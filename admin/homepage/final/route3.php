@@ -9,13 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Database connection settings
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-
-// Create a connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+include '../../../connection.php';
 
 // Check connection
 if ($conn->connect_error) {

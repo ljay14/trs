@@ -3,12 +3,7 @@
 session_start();
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
+include '../connection.php';
 
 // Check connection
 if ($conn->connect_error) {

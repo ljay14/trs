@@ -1,7 +1,7 @@
 <?php
 // Start the session at the beginning of the script
 session_start();
-
+include '../../../connection.php';
 require '../../../vendor/autoload.php';
 use Fpdf\Fpdf;
 
@@ -11,15 +11,7 @@ $studentNames = isset($_GET['student']) ? explode(',', $_GET['student']) : [];
 $studentNames = array_map('trim', $studentNames); // Remove extra spaces
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
-}
 
 // Ensure session contains student_id
 if (!isset($_SESSION['student_id'])) {

@@ -1,10 +1,5 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
+include '../../../connection.php';
 
 $route1_id = $_GET['route1_id'] ?? '';
 

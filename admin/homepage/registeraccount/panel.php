@@ -8,17 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Database connection
-$host = "localhost";
-$username = "root"; // Replace with your database username
-$password = ""; // Replace with your database password
-$dbname = "trs"; // Replace with your database name
-
-$conn = new mysqli($host, $username, $password, $dbname);
-
-// Check the connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include '../../../connection.php';
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {

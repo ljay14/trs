@@ -9,16 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "trs";
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include '../../../connection.php';
 
 $sql = "SELECT fullname, department, school_id, password FROM adviser ORDER BY fullname ASC";
 $result = $conn->query($sql);
