@@ -105,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
     exit;
 }
+
 $currentPanelPosition = '';
 if (isset($_SESSION['panel_id'])) {
     $stmt = $conn->prepare("SELECT position FROM panel WHERE panel_id = ?");
@@ -114,9 +115,7 @@ if (isset($_SESSION['panel_id'])) {
     $stmt->fetch();
     $stmt->close();
 }
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -124,9 +123,249 @@ if (isset($_SESSION['panel_id'])) {
 <head>
     <meta charset="UTF-8">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="s.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    
     <style>
+        :root {
+            --primary: #002366;
+            --primary-light: #0a3885;
+            --accent: #4a6fd1;
+            --light: #f5f7fd;
+            --dark: #333;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container img {
+            height: 50px;
+            margin-right: 15px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .homepage a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .homepage a:hover {
+            color: var(--primary);
+        }
+
+        .dropdown-container select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background-color: white;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .vl {
+            border-left: 1px solid var(--border);
+            height: 20px;
+            margin: 0 10px;
+        }
+
+        .role {
+            font-weight: 600;
+            margin-right: 5px;
+            color: var(--primary);
+        }
+
+        .user-name {
+            color: var(--dark);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-title {
+            font-weight: 600;
+            color: var(--primary);
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--light);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+
+        .logout {
+            padding: 0 1.5rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .logout a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .logout a:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: auto;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Button Styling */
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .view-button {
+            background-color: var(--accent);
+            color: white;
+            margin-right: 0.5rem;
+        }
+
+        .view-button:hover {
+            background-color: var(--primary);
+        }
+
+        /* Modal Styling */
         .modal {
             position: fixed;
             z-index: 999;
@@ -142,13 +381,14 @@ if (isset($_SESSION['panel_id'])) {
 
         .modal-content {
             background-color: #fff;
-            width: 100%;
-            height: 100%;
+            width: 95%;
+            height: 90%;
             display: flex;
             flex-direction: column;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
 
         .modal-layout {
@@ -157,21 +397,20 @@ if (isset($_SESSION['panel_id'])) {
             width: 100%;
         }
 
-        .file-preview-section {
-            flex: 0 0 37%;
-            padding: 0.8rem;
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
             overflow-y: auto;
-            border-right: 1px solid #ccc;
-            min-width: 300px;
+        }
+
+        .file-preview-section {
+            border-right: 1px solid var(--border);
         }
 
         .routing-form-section {
-            flex: 0 0 63%;
-            padding: 2rem;
             background-color: #f9f9f9;
             font-size: 0.85rem;
-            box-sizing: border-box;
-            overflow-y: auto;
         }
 
         .form-row {
@@ -199,6 +438,40 @@ if (isset($_SESSION['panel_id'])) {
             text-align: center;
         }
 
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .form-grid-container > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background-color: white;
+            text-align: center;
+        }
+
+        .form-grid-container > div:first-child(1),
+        .form-grid-container > div:nth-child(2),
+        .form-grid-container > div:nth-child(3),
+        .form-grid-container > div:nth-child(4),
+        .form-grid-container > div:nth-child(5),
+        .form-grid-container > div:nth-child(6),
+        .form-grid-container > div:nth-child(7),
+        .form-grid-container > div:nth-child(8),
+        .form-grid-container > div:nth-child(9) {
+            background-color: var(--primary-light);
+            color: white;
+            font-weight: 600;
+        }
+
         .form-grid-container input,
         .form-grid-container textarea {
             width: 100%;
@@ -211,12 +484,10 @@ if (isset($_SESSION['panel_id'])) {
             resize: none;
         }
 
-
         .form-input-row textarea {
             resize: vertical;
             min-height: 24px;
         }
-
 
         .close-button {
             position: absolute;
@@ -224,45 +495,94 @@ if (isset($_SESSION['panel_id'])) {
             right: 20px;
             font-size: 28px;
             cursor: pointer;
+            color: var(--dark);
+            transition: all 0.3s;
+            z-index: 1000;
         }
 
-        .form-grid-container {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            border: 1px solid #ccc;
-            border-radius: 1px;
-            overflow: hidden;
-            text-align: center;
-
+        .close-button:hover {
+            color: var(--accent);
         }
 
-        .form-grid-container>div {
-            border: 1px solid #ccc;
-            text-align: center;
-
-            /* Optional: left-align for readability */
-            font-size: 0.8rem;
+        .welcome-card {
             background-color: white;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-            vertical-align: center;
-            /* Ensures content starts from the top */
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            text-align: center;
         }
+
+        .welcome-card h1 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .welcome-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
         .feedback-cell {
             max-height: 120px;
             overflow-y: auto;
         }
 
-
         @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 0.5rem;
+            }
+            
             .modal-layout {
                 flex-direction: column;
             }
-
+            
             .file-preview-section {
                 border-right: none;
-                border-bottom: 1px solid #ccc;
+                border-bottom: 1px solid var(--border);
             }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        /* Additional button styling */
+        .routing-form-section button {
+            background-color: var(--accent);
+            color: white;
+            margin-right: 0.5rem;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .routing-form-section button:hover {
+            background-color: var(--primary);
         }
     </style>
 </head>
@@ -271,7 +591,7 @@ if (isset($_SESSION['panel_id'])) {
     <div class="container">
         <header class="header">
             <div class="logo-container">
-                <img src="../../../assets/logo.png" alt="Logo">
+                <img src="../../../assets/logo.png" alt="SMCC Logo">
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
@@ -293,7 +613,7 @@ if (isset($_SESSION['panel_id'])) {
                 </form>
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Final - Route 3</div>
+                <div class="routeNo" style="margin-right: 20px;">Final - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -302,7 +622,7 @@ if (isset($_SESSION['panel_id'])) {
 
         <div class="main-content">
             <nav class="sidebar">
-            <div class="menu">
+                <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -328,80 +648,80 @@ if (isset($_SESSION['panel_id'])) {
             </nav>
 
             <div class="content" id="content-area">
-            <?php
-$query = "
-    SELECT 
-        docuRoute3, 
-        department, 
-        student_id, 
-        route3_id, 
-        controlNo, 
-        fullname, 
-        group_number,
-        title
-    FROM route3final_files 
-    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
-    " . ($selectedDepartment ? " AND department = ?" : "");
+                <?php
+                $query = "
+                    SELECT 
+                        docuRoute3, 
+                        department, 
+                        student_id, 
+                        route3_id, 
+                        controlNo, 
+                        fullname, 
+                        group_number,
+                        title
+                    FROM route3final_files 
+                    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+                    " . ($selectedDepartment ? " AND department = ?" : "");
 
-$stmt = $conn->prepare($query);
+                $stmt = $conn->prepare($query);
 
-if ($selectedDepartment) {
-    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
-} else {
-    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
-}
+                if ($selectedDepartment) {
+                    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
+                } else {
+                    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+                }
 
-$stmt->execute();
-$result = $stmt->get_result();
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    echo "
-    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(156, 153, 153);'>
-        <thead>
-            <tr style='text-align: center;'>
-                <th>Control No.</th>
-                <th>Leader</th>
-                <th>Group No.</th>
-                <th>Title</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-    ";
+                if ($result->num_rows > 0) {
+                    echo "
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Control No.</th>
+                                <th>Leader</th>
+                                <th>Group No.</th>
+                                <th>Title</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    ";
 
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
-        $route1_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
-        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
-        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
-        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-        $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                    while ($row = $result->fetch_assoc()) {
+                        $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
+                        $route3_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
+                        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+                        $fileName = basename($filePath);
+                        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
-        echo "
-            <tr>
-                <td>$controlNo</td>
-                <td>$fullname</td>
-                <td>$groupNo</td>
-                <td>$title</td>
-                <td style='text-align: center;'>
-                    <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
-                </td>
-            </tr>
-        ";
-    }
+                        echo "
+                            <tr>
+                                <td>$controlNo</td>
+                                <td>$fullname</td>
+                                <td>$groupNo</td>
+                                <td>$title</td>
+                                <td style='text-align: center;'>
+                                    <button class='view-button' onclick=\"viewFile('$filePath', '$route3_id', '$student_id')\">View</button>
+                                </td>
+                            </tr>
+                        ";
+                    }
 
-    echo "
-        </tbody>
-    </table>
-    ";
-} else {
-    echo "<p>No files uploaded yet.</p>";
-}
+                    echo "
+                        </tbody>
+                    </table>
+                    ";
+                } else {
+                    echo "<p>No files uploaded yet.</p>";
+                }
 
-$stmt->close();
-?>
+                $stmt->close();
+                ?>
             </div>
         </div>
     </div>
@@ -417,97 +737,99 @@ $stmt->close();
         </div>
     </div>
 
+    <script>
+        const panelName = <?= json_encode($fullname) ?>;
+        const currentPanelPosition = "<?php echo $currentPanelPosition; ?>";
 
-</body>
+        function viewFile(filePath, route3_id, student_id) {
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingForm = document.getElementById("routingForm");
+            const extension = filePath.split('.').pop().toLowerCase();
 
-</html>
-<?php
-$currentPanelPosition = '';
-if (isset($_SESSION['panel_id'])) {
-    $stmt = $conn->prepare("SELECT position FROM panel WHERE panel_id = ?");
-    $stmt->bind_param("i", $_SESSION['panel_id']);
-    $stmt->execute();
-    $stmt->bind_result($currentPanelPosition);
-    $stmt->fetch();
-    $stmt->close();
-}
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
+            routingForm.innerHTML = "";
 
-?>
-<script>
-    const currentPanelPosition = "<?php echo $currentPanelPosition; ?>"; // e.g., "panel1"
-</script>
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then(res => res.arrayBuffer())
+                    .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+                    .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
+                    .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
+            }
 
+            const today = new Date().toISOString().split('T')[0];
 
-<script>
-    const panelName = <?= json_encode($fullname) ?>;
+            routingForm.innerHTML = `
+                <form method="POST">
+                    <input type="hidden" name="docuRoute3" value="${filePath}">
+                    <input type="hidden" name="student_id" value="${student_id}">
+                    <input type="hidden" name="route3_id" value="${route3_id}">
 
-    function viewFile(filePath, route3_id, student_id) {
-        const modal = document.getElementById("fileModal");
-        const contentArea = document.getElementById("fileModalContent");
-        const routingForm = document.getElementById("routingForm");
-        const extension = filePath.split('.').pop().toLowerCase();
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                        <div style="text-align: center;">
+                            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                        </div>
+                        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+                    </div>
 
-        modal.style.display = "flex";
-        contentArea.innerHTML = "Loading file...";
-        routingForm.innerHTML = "";
+                    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                        <div>
+                            <button type="button" onclick="addFormRow()">Add Row</button>
+                            <button type="submit">Submit Routing Form</button>
+                            <button type="button" onclick="showAllForms('${student_id}')">Show all Forms</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Header row for submitted forms -->
+                    <div class="form-grid-container" style="margin-top: 20px;">
+                        <div><strong>Date Submitted</strong></div>
+                        <div><strong>Chapter</strong></div>
+                        <div><strong>Feedback</strong></div>
+                        <div><strong>Paragraph No</strong></div>
+                        <div><strong>Page No</strong></div>
+                        <div><strong>Submitted By</strong></div>
+                        <div><strong>Date Released</strong></div>
+                        <div><strong>Status</strong></div>
+                        <div><strong>Action</strong></div>
+                    </div>
 
-        if (extension === "pdf") {
-            contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
-        } else if (extension === "docx") {
-            fetch(filePath)
-                .then(res => res.arrayBuffer())
-                .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-                .then(result => contentArea.innerHTML = `<div class="file-content">${result.value}</div>`)
-                .catch(() => contentArea.innerHTML = "Error loading file.");
-        } else {
-            contentArea.innerHTML = "Unsupported file type.";
+                    <!-- Container for submitted form data -->
+                    <div id="submittedFormsContainer" class="form-grid-container"></div>
+                    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+                    <div id="routingRowsContainer">
+                        <div class="form-grid-container">
+                            <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                            <div><input type="text" name="chapter[]" required></div>
+                            <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                            <div><input type="number" name="paragraphNumber[]" required></div>
+                            <div><input type="number" name="pageNumber[]" required></div>
+                            <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                            <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                        </div>
+                    </div>
+                </form>
+            `;
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        function closeModal() {
+            document.getElementById("fileModal").style.display = "none";
+        }
 
-        routingForm.innerHTML = `
-            <form method="POST">
-                <input type="hidden" name="docuRoute3" value="${filePath}">
-                <input type="hidden" name="student_id" value="${student_id}">
-                <input type="hidden" name="route3_id" value="${route3_id}">
-
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-                    <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-                    <div style="text-align: center;">
-                        <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                        <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-                    </div>
-                    <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-                </div>
-
-                <hr style="border: 1px solid black; margin: 0.2rem 0;">
-                <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-                    <div>
-                        <button type="button" onclick="addFormRow()">Add Row</button>
-                        <button type="submit">Submit Routing Form</button>
-                        <button type="button" onclick="showAllForms('${student_id}')">Show all Forms</button>
-                    </div>
-                </div>
-
-                <!-- Header row for submitted forms -->
-                <div class="form-grid-container" style="margin-top: 20px;">
-                    <div><strong>Date Submitted</strong></div>
-                    <div><strong>Chapter</strong></div>
-                    <div><strong>Feedback</strong></div>
-                    <div><strong>Paragraph No</strong></div>
-                    <div><strong>Page No</strong></div>
-                    <div><strong>Submitted By</strong></div>
-                    <div><strong>Date Released</strong></div>
-                    <div><strong>Status</strong></div>
-                    <div><strong>Action</strong></div>
-                </div>
-
-                <!-- Container for submitted form data -->
-                <div id="submittedFormsContainer" class="form-grid-container"></div>
-                <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
-
+        function addFormRow() {
+            const today = new Date().toISOString().split('T')[0];
+            const row = `
                 <div class="form-grid-container">
                     <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
                     <div><input type="text" name="chapter[]" required></div>
@@ -516,48 +838,32 @@ if (isset($_SESSION['panel_id'])) {
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                    <!-- Fill the last 2 columns with empty cells -->
                 </div>
-
-            </form>
-        `;
-    }
-
-    function closeModal() {
-        document.getElementById("fileModal").style.display = "none";
-    }
-
-    function addFormRow() {
-        const row = `
-            <div class="form-grid-container">
-                <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
-                <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                <div><input type="number" name="paragraphNumber[]" required></div>
-                <div><input type="number" name="pageNumber[]" required></div>
-                <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
-                <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-            </div>
-        `;
-        document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
-    }
-
-    let formsVisible = false;
-
-    function showAllForms(student_id) {
-        const formDataContainer = document.getElementById("submittedFormsContainer");
-        const noFormsMessage = document.getElementById("noFormsMessage");
-        const showButton = document.querySelector("button[onclick^='showAllForms']");
-
-        if (formsVisible) {
-            formDataContainer.innerHTML = "";
-            noFormsMessage.innerText = "";
-            showButton.textContent = "Show all Forms";
-            formsVisible = false;
-            return;
+            `;
+            document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
         }
 
-        fetch('route3get_all_forms.php?student_id=' + student_id)
+        let formsVisible = false;
+
+        function showAllForms(student_id) {
+            const formDataContainer = document.getElementById("submittedFormsContainer");
+            const noFormsMessage = document.getElementById("noFormsMessage");
+            const showButton = document.querySelector("button[onclick^='showAllForms']");
+
+            if (formsVisible) {
+                // Clear content and toggle button
+                formDataContainer.innerHTML = "";
+                noFormsMessage.innerText = "";
+                showButton.textContent = "Show all Forms";
+                formsVisible = false;
+                return;
+            }
+
+            // Show loading spinner
+            formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
+
+            // Fetch data
+            fetch('route3get_all_forms.php?student_id=' + student_id)
             .then(response => response.json())
             .then(data => {
                 if (data.length === 0) {

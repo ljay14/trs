@@ -162,14 +162,276 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Route 1 - Thesis Routing System</title>
-    <link rel="stylesheet" href="stylesadmin.css">
+    <title>Route 2 - Thesis Routing System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
     <style>
-        .view-button {
+        :root {
+            --primary: #002366;
+            --primary-light: #0a3885;
+            --accent: #4a6fd1;
+            --light: #f5f7fd;
+            --dark: #333;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-container {
+            display: flex;
             align-items: center;
         }
 
+        .logo-container img {
+            height: 50px;
+            margin-right: 15px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .navigation {
+            display: flex;
+            align-items: center;
+        }
+
+        .homepage a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .homepage a:hover {
+            color: var(--primary);
+        }
+
+        .dropdown-container {
+            display: flex;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+        .dropdown-container select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background-color: white;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        #external-submit-button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        #external-submit-button:hover {
+            background-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .vl {
+            border-left: 1px solid var(--border);
+            height: 20px;
+            margin: 0 10px;
+        }
+
+        .role {
+            font-weight: 600;
+            margin-right: 5px;
+            color: var(--primary);
+        }
+
+        .user-name {
+            color: var(--dark);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-title {
+            font-weight: 600;
+            color: var(--primary);
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--light);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+
+        .logout {
+            padding: 0 1.5rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .logout a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .logout a:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: auto;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Button Styling */
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .view-button {
+            background-color: var(--accent);
+            color: white;
+            margin-right: 0.5rem;
+        }
+
+        .view-button:hover {
+            background-color: var(--primary);
+        }
+
+        /* Modal Styling */
         .modal {
             position: fixed;
             z-index: 999;
@@ -185,19 +447,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
 
         .modal-content {
             background-color: #fff;
-            width: 100%;
-            height: 100%;
+            width: 95%;
+            height: 90%;
             display: flex;
             flex-direction: column;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
 
         .modal-layout {
             display: flex;
             height: 100%;
-            width: 98%;
+            width: 100%;
         }
 
         .file-preview-section,
@@ -205,20 +468,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             flex: 1;
             padding: 1rem;
             overflow-y: auto;
-            border-right: 1px solid #ccc;
-            min-width: 50%;
-            /* Ensure it's taking 50% of the available space */
+        }
+
+        .file-preview-section {
+            border-right: 1px solid var(--border);
         }
 
         .routing-form-section {
-            flex: 1;
-            padding: 1rem;
             background-color: #f9f9f9;
             font-size: 0.85rem;
-            box-sizing: border-box;
-            overflow-y: auto;
-            min-width: 50%;
-            /* Ensure it's taking 50% of the available space */
         }
 
         .form-row {
@@ -228,36 +486,54 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             margin-bottom: 10px;
         }
 
-        .form-input-row input,
-        .form-input-row textarea {
-            text-align: center;
+        .form-row label {
+            font-size: 0.75rem;
         }
 
-        .close-button {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 28px;
-            cursor: pointer;
+        .form-row input,
+        .form-row textarea {
+            padding: 4px;
+            font-size: 0.75rem;
+            min-height: 24px;
+        }
+
+        .form-input-row input,
+        .form-input-row textarea {
+            font-size: 0.75rem;
+            min-height: 24px;
+            text-align: center;
         }
 
         .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            border: 1px outset #ccc;
+            grid-template-columns: repeat(7, 1fr);
+            border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
+            margin-bottom: 1rem;
         }
 
-        .form-grid-container>div {
+        .form-grid-container > div {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 6px;
+            padding: 0.5rem;
             font-size: 0.8rem;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border);
             background-color: white;
-            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .form-grid-container > div:first-child,
+        .form-grid-container > div:nth-child(2),
+        .form-grid-container > div:nth-child(3),
+        .form-grid-container > div:nth-child(4),
+        .form-grid-container > div:nth-child(5),
+        .form-grid-container > div:nth-child(6),
+        .form-grid-container > div:nth-child(7) {
+            background-color: var(--primary-light);
+            color: white;
+            font-weight: 600;
         }
 
         .form-grid-container input,
@@ -266,22 +542,90 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
             height: 100%;
             padding: 4px;
             font-size: 0.75rem;
+            box-sizing: border-box;
             border: none;
             outline: none;
-            box-sizing: border-box;
             resize: none;
         }
 
+        .form-input-row textarea {
+            resize: vertical;
+            min-height: 24px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--dark);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .close-button:hover {
+            color: var(--accent);
+        }
+
+        .feedback-cell {
+            max-height: 120px;
+            overflow-y: auto;
+        }
 
         @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 0.5rem;
+            }
+            
             .modal-layout {
                 flex-direction: column;
             }
-
+            
             .file-preview-section {
                 border-right: none;
-                border-bottom: 1px solid #ccc;
+                border-bottom: 1px solid var(--border);
             }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        /* Table with checkboxes */
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .selected {
+            background-color: var(--light);
         }
     </style>
 </head>
@@ -291,7 +635,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
         <!-- Header Section -->
         <header class="header">
             <div class="logo-container">
-                <img src="../../../assets/logo.png" alt="Logo">
+                <img src="../../../assets/logo.png" alt="SMCC Logo">
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
@@ -299,11 +643,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
         <!-- Top Navigation Bar -->
         <div class="top-bar">
             <div class="navigation">
-                <a id="homepage" href="../homepage.php">Home Page</a>
+            <div class="homepage">
+                <a href="../homepage.php">Home Page</a>
+            </div>
 
                 <!-- Department Dropdown -->
                 <div class="dropdown-container">
-                    <form action="" method="POST" style="display: inline;">
+                    <form method="POST" style="display: inline;">
                         <select name="department" onchange="this.form.submit()">
                             <option value="">Select Department</option>
                             <?php foreach ($departments as $department): ?>
@@ -319,71 +665,83 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     <select id="panel1-dropdown" name="panel1">
                         <option value="">Panel 1</option>
                         <?php
-                        $panelStmt = $conn->prepare("SELECT panel_id, fullname  FROM panel WHERE department = ? AND position = 'panel1'");
-                        $panelStmt->bind_param("s", $selectedDepartment);
-                        $panelStmt->execute();
-                        $panelResult = $panelStmt->get_result();
-                        while ($row = $panelResult->fetch_assoc()):
+                        if (isset($selectedDepartment)) {
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel1'");
+                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt->execute();
+                            $panelResult = $panelStmt->get_result();
+                            while ($row = $panelResult->fetch_assoc()):
+                            ?>
+                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                                    <?= htmlspecialchars($row['fullname']) ?>
+                                </option>
+                            <?php endwhile;
+                            $panelStmt->close();
+                        }
                         ?>
-                            <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                <?= htmlspecialchars($row['fullname']) ?>
-                            </option>
-                        <?php endwhile; ?>
-                        <?php $panelStmt->close(); ?>
                     </select>
 
                     <select id="panel2-dropdown" name="panel2">
                         <option value="">Panel 2</option>
                         <?php
-                        $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
-                        $panelStmt->bind_param("s", $selectedDepartment);
-                        $panelStmt->execute();
-                        $panelResult = $panelStmt->get_result();
-                        while ($row = $panelResult->fetch_assoc()):
+                        if (isset($selectedDepartment)) {
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
+                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt->execute();
+                            $panelResult = $panelStmt->get_result();
+                            while ($row = $panelResult->fetch_assoc()):
+                            ?>
+                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                                    <?= htmlspecialchars($row['fullname']) ?>
+                                </option>
+                            <?php endwhile;
+                            $panelStmt->close();
+                        }
                         ?>
-                            <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                <?= htmlspecialchars($row['fullname']) ?>
-                            </option>
-                        <?php endwhile; ?>
-                        <?php $panelStmt->close(); ?>
                     </select> 
+                    
                     <select id="panel3-dropdown" name="panel3">
                         <option value="">Panel 3</option>
                         <?php
-                        $panelStmt = $conn->prepare("SELECT panel_id, fullname  FROM panel WHERE department = ? AND position = 'panel3'");
-                        $panelStmt->bind_param("s", $selectedDepartment);
-                        $panelStmt->execute();
-                        $panelResult = $panelStmt->get_result();
-                        while ($row = $panelResult->fetch_assoc()):
+                        if (isset($selectedDepartment)) {
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel3'");
+                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt->execute();
+                            $panelResult = $panelStmt->get_result();
+                            while ($row = $panelResult->fetch_assoc()):
+                            ?>
+                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                                    <?= htmlspecialchars($row['fullname']) ?>
+                                </option>
+                            <?php endwhile;
+                            $panelStmt->close();
+                        }
                         ?>
-                            <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                <?= htmlspecialchars($row['fullname']) ?>
-                            </option>
-                        <?php endwhile; ?>
-                        <?php $panelStmt->close(); ?>
-                    </select> 
+                    </select>
+                    
                     <select id="panel4-dropdown" name="panel4">
                         <option value="">Panel 4</option>
                         <?php
-                        $panelStmt = $conn->prepare("SELECT panel_id, fullname  FROM panel WHERE department = ? AND position = 'panel4'");
-                        $panelStmt->bind_param("s", $selectedDepartment);
-                        $panelStmt->execute();
-                        $panelResult = $panelStmt->get_result();
-                        while ($row = $panelResult->fetch_assoc()):
+                        if (isset($selectedDepartment)) {
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel4'");
+                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt->execute();
+                            $panelResult = $panelStmt->get_result();
+                            while ($row = $panelResult->fetch_assoc()):
+                            ?>
+                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                                    <?= htmlspecialchars($row['fullname']) ?>
+                                </option>
+                            <?php endwhile;
+                            $panelStmt->close();
+                        }
                         ?>
-                            <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                <?= htmlspecialchars($row['fullname']) ?>
-                            </option>
-                        <?php endwhile; ?>
-                        <?php $panelStmt->close(); ?>
                     </select>
-
-
                 </div>
             </div>
             <button id="external-submit-button">Submit</button>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name">
@@ -391,10 +749,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </span>
             </div>
         </div>
+        
         <!-- Main Content -->
         <div class="main-content">
             <nav class="sidebar">
-            <div class="menu">
+                <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -407,7 +766,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -435,94 +794,87 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </nav>
 
-            <div class="content" id="content-area" style="display: flex; justify-content: center; padding: 20px; justify-items: center; width: 90%;">
-    <form id="submission-form" action="route2.php" method="POST" style="width: 100%; max-width: 1200px;">
-        <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: #f1f1f1; text-align: left;">
-            <thead>
-                <tr style="background-color: #ccc; text-align: center;">
-                    <th>Select</th>
-                    <th>Control No.</th>
-                    <th>Leader</th>
-                    <th>Group No.</th>
-                    <th>Title</th>
-                    <th>Assigned</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="file-list">
-                <?php if (!empty($files)): ?>
-                    <?php foreach ($files as $file): ?>
-                        <?php
-                            $filepath = htmlspecialchars($file['filepath'], ENT_QUOTES);
-                            $filename = htmlspecialchars(basename($file['filename']), ENT_QUOTES);
-                            $controlNo = htmlspecialchars($file['controlNo'] ?? '', ENT_QUOTES);
-                            $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
-                            $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
-                            $route2_id = htmlspecialchars($file['route2_id'] ?? '', ENT_QUOTES);
-                            $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
-                            $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
-                            // Check if file is assigned to a panelist and adviser
-                            $assigned = '';
-                            if ($file['panel1_id'] || $file['panel2_id'] || $file['panel3_id'] || $file['panel4_id']) {
-                                $assigned = 'Panelists Assigned';
-                            }
-                            if ($file['adviser_id']) {
-                                $assigned .= $assigned ? ' & Adviser Assigned' : 'Adviser Assigned';
-                            }
-                            $assigned = $assigned ?: 'Not Assigned';
-                        ?>
-                        <tr>
-                            <td style="text-align: center;">
-                                <input type="checkbox" name="selected_files[]" value="<?= $filepath ?>">
-                            </td>
-                            <td><?= $controlNo ?></td>
-                            <td><?= $fullname ?></td>
-                            <td><?= $group_number ?></td>
-                            <td><?= $title ?></td>
-                            <td style="text-align: center;"><?= $assigned ?></td>
-                            <td style="text-align: center;">
-                            <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $route2_id ?>')">View</button>
+            <div class="content" id="content-area">
+                <form id="submission-form" action="route2.php" method="POST">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Control No.</th>
+                                <th>Leader</th>
+                                <th>Group No.</th>
+                                <th>Title</th>
+                                <th>Assigned</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="file-list">
+                            <?php if (!empty($files)): ?>
+                                <?php foreach ($files as $file): ?>
+                                    <?php
+                                        $filepath = htmlspecialchars($file['filepath'], ENT_QUOTES);
+                                        $filename = htmlspecialchars(basename($file['filename']), ENT_QUOTES);
+                                        $controlNo = htmlspecialchars($file['controlNo'] ?? '', ENT_QUOTES);
+                                        $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
+                                        $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
+                                        $route2_id = htmlspecialchars($file['route2_id'] ?? '', ENT_QUOTES);
+                                        $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
+                                        $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
+                                        // Check if file is assigned to a panelist and adviser
+                                        $assigned = '';
+                                        if ($file['panel1_id'] || $file['panel2_id'] || $file['panel3_id'] || $file['panel4_id']) {
+                                            $assigned = 'Panelists Assigned';
+                                        }
+                                        if ($file['adviser_id']) {
+                                            $assigned .= $assigned ? ' & Adviser Assigned' : 'Adviser Assigned';
+                                        }
+                                        $assigned = $assigned ?: 'Not Assigned';
+                                    ?>
+                                    <tr>
+                                        <td style="text-align: center;">
+                                            <input type="checkbox" name="selected_files[]" value="<?= $filepath ?>">
+                                        </td>
+                                        <td><?= $controlNo ?></td>
+                                        <td><?= $fullname ?></td>
+                                        <td><?= $group_number ?></td>
+                                        <td><?= $title ?></td>
+                                        <td style="text-align: center;"><?= $assigned ?></td>
+                                        <td style="text-align: center;">
+                                            <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $route2_id ?>')">View</button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" style="text-align: center;">No files found.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
 
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="7" style="text-align: center;">No files found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    <!-- Hidden Inputs -->
+                    <input type="hidden" name="panel1" id="hidden-panel1">
+                    <input type="hidden" name="panel2" id="hidden-panel2">
+                    <input type="hidden" name="panel3" id="hidden-panel3">
+                    <input type="hidden" name="panel4" id="hidden-panel4">
+                    <input type="hidden" name="selected_adviser" id="hidden-adviser">
+                </form>
+            </div>
+        </div>
+    </div>
 
-        <!-- Hidden Inputs -->
-        <input type="hidden" name="panel1" id="hidden-panel1">
-        <input type="hidden" name="panel2" id="hidden-panel2">
-        <input type="hidden" name="panel3" id="hidden-panel3">
-        <input type="hidden" name="panel4" id="hidden-panel4">
-        <input type="hidden" name="selected_adviser" id="hidden-adviser">
-    </form>
-</div>
-
-<!-- Modal for Viewing Files -->
-<div id="fileModal" class="modal" style="display: none;">
+    <!-- Modal for Viewing Files -->
+    <div id="fileModal" class="modal">
         <div class="modal-content">
-            <span class="close-button" onclick="closeModal()">&times;</span>
+            <span class="close-button" onclick="closeModal()">×</span>
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
             </div>
         </div>
     </div>
-
-
-
-
-
-        </div>
-    </div>
-</body>
-
 </html>
+
 <script>
     // Handles file selection toggle
     function toggleFileSelection(fileElement) {

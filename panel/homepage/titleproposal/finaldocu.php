@@ -613,7 +613,7 @@ if (isset($_SESSION['panel_id'])) {
                 </form>
             </div>
             <div class="user-info">
-                <div class="routeNo" style="margin-right: 20px;">Proposal - Route 3</div>
+                <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>

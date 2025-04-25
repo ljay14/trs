@@ -26,107 +26,322 @@ $result = $conn->query($sql);
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="adminstyle.css">
+    <title>Adviser Registration - Thesis Routing System</title>
     <style>
+        :root {
+            --primary: #002366;
+            --primary-light: #0a3885;
+            --accent: #4a6fd1;
+            --light: #f5f7fd;
+            --dark: #333;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border: #e0e0e0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-container img {
+            height: 50px;
+            margin-right: 15px;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .homepage a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .homepage a:hover {
+            color: var(--primary);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info a {
+            color: white;
+            margin-right: 15px;
+            padding: 8px 15px;
+            background-color: var(--accent);
+            border-radius: 5px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .user-info a:hover {
+            background-color: var(--primary);
+        }
+        
+        .vl {
+            border-left: 2px solid var(--border);
+            height: 25px;
+            margin: 0 15px;
+        }
+        
+        .role {
+            font-weight: 600;
+            margin-right: 5px;
+            color: var(--primary);
+        }
+        
+        .user-name {
+            color: var(--dark);
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+        }
+        
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .menu-title {
+            font-weight: 600;
+            color: var(--primary);
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar ul {
+            list-style: none;
+        }
+        
+        .sidebar li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar a:hover {
+            background-color: var(--light);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .logout {
+            padding: 0 1.5rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+        
+        .logout a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .logout a:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: auto;
+        }
+        
+        .form-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .form-container h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+        }
+        
         .success-alert {
             display: none;
             background-color: #d4edda;
             color: #155724;
-            padding: 10px;
-            border-radius: 20px;
-            border-left: 5px solid #28a745;
-            border-radius: 4px;
-            margin-bottom: 20px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 5px;
+            border-left: 5px solid var(--success);
         }
-
-        .form-container {
-            max-width: 1200px;
-            background-color: #ccc;
-            margin: auto;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+        
+        table th, table td {
+            padding: 0.75rem;
             text-align: left;
+            border: 1px solid var(--border);
+        }
+        
+        table th {
+            background-color: var(--light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        button {
+            padding: 0.5rem 1rem;
             border: none;
-        }
-
-        .form-container h1 {
-            text-align: center;
-            color: #003399;
-            margin-bottom: 20px;
-        }
-
-        .form-container label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .form-container input {
-            width: 90%;
-            padding: 10px;
-            margin-bottom: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-
-        }
-
-        .form-container .button-container {
-            display: flex;
-            justify-content: center;
-        }
-
-        .form-container button {
-            background-color: #003399;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 1rem;
-            width: 100px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
-
-        .form-container button:hover {
-            background-color: #001a4d;
+        
+        button[type="button"] {
+            background-color: var(--accent);
+            color: white;
         }
-
-        .alert {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 5px;
-            font-size: 16px;
+        
+        button[type="submit"] {
+            background-color: var(--success);
+            color: white;
         }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
-
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
+        
+        input[type="text"], input[type="password"] {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 100%;
+            font-size: 0.9rem;
         }
-
-        .vl {
-            border-left: 2px solid;
-            height: 50px;
-            margin-right: 20px;
+        
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
         }
-
-        .user-info a {
-            color: black;
-            margin-right: 20px;
-            padding: 10px;
-            background-color: #879ecc;
-            border-radius: 5px;
-            font-weight: bold;
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 0.5rem;
+            }
+            
+            .form-container {
+                padding: 1.5rem;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
         }
     </style>
     <script>
@@ -135,20 +350,13 @@ $result = $conn->query($sql);
             var status = new URLSearchParams(window.location.search).get('status');
             if (status === 'success') {
                 document.getElementById('success-alert').style.display = 'block';
+                
+                // Auto-hide the success message after 5 seconds
+                setTimeout(function() {
+                    document.getElementById('success-alert').style.display = 'none';
+                }, 5000);
             }
         }
-
-        // Function to enable the save button when a password is entered
-        function enableSave(school_id) {
-            var passwordField = document.getElementById('password_' + school_id);
-            var saveButton = document.getElementById('save_' + school_id);
-            if (passwordField.value.trim() !== "") {
-                saveButton.disabled = false;  // Enable the save button
-            } else {
-                saveButton.disabled = true;  // Disable the save button when no password is entered
-            }
-        }
-
     </script>
 </head>
 
@@ -156,7 +364,7 @@ $result = $conn->query($sql);
     <div class="container">
         <header class="header">
             <div class="logo-container">
-                <img src="../../../assets/logo.png" alt="Logo">
+                <img src="../../../assets/logo.png" alt="SMCC Logo">
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
@@ -167,12 +375,11 @@ $result = $conn->query($sql);
             <div class="user-info">
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
-                <span
-                    class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>
+                <span class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>
             </div>
         </div>
         <div class="main-content">
-        <nav class="sidebar">
+            <nav class="sidebar">
                 <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
@@ -186,7 +393,7 @@ $result = $conn->query($sql);
                     <div class="menu-section">
                         <div class="menu-title">Final Defense</div>
                         <ul>
-                        <li><a href="../final/route1.php">Route 1</a></li>
+                            <li><a href="../final/route1.php">Route 1</a></li>
                             <li><a href="../final/route2.php">Route 2</a></li>
                             <li><a href="../final/route3.php">Route 3</a></li>
                             <li><a href="../final/finaldocu.php">Final Document</a></li>
@@ -209,99 +416,94 @@ $result = $conn->query($sql);
                     </div>
                 </div>
                 <div class="logout">
-                <a href="../../../logout.php">Logout</a>
+                    <a href="../../../logout.php">Logout</a>
                 </div>
             </nav>
             <div class="content">
-    <div class="form-container">
+                <div class="form-container">
+                    <h1>List of Registered Advisers</h1>
 
-        <h1>List of Registered Adviser</h1>
+                    <div id="success-alert" class="success-alert">
+                        <strong>Success!</strong> Adviser updated successfully!
+                    </div>
 
-        <div id="success-alert" class="success-alert">
-            Adviser updated successfully!
-        </div>
-
-        <?php if ($result->num_rows > 0): ?>
-            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th>Full Name</th>
-                        <th>Department</th>
-                        <th>School ID</th>
-                        <th>Password</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <tr id="row_<?= $row['school_id'] ?>">
-                            <form action="update_adviser_inline.php" method="POST" id="form_<?= $row['school_id'] ?>">
-                                <td>
-                                    <span id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
-                                    <input type="text" name="fullname" value="<?= htmlspecialchars($row['fullname']) ?>" id="fullname_input_<?= $row['school_id'] ?>" style="display:none;" required>
-                                </td>
-                                <td>
-                                    <span id="department_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['department']) ?></span>
-                                    <input type="text" name="department" value="<?= htmlspecialchars($row['department']) ?>" id="department_input_<?= $row['school_id'] ?>" style="display:none;" required>
-                                </td>
-                                <td>
-                                    <?= htmlspecialchars($row['school_id']) ?>
-                                    <input type="hidden" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
-                                </td>
-                                <td>
-                                <span id="password_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['password']) ?></span>
-                                    <input type="password" name="password" id="password_input_<?= $row['school_id'] ?>" style="display:none;" placeholder="Enter New Password">
-                                </td>
-                                <td>
-                                    <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')" id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
-                                    <button type="submit" style="display:none;" id="save_btn_<?= $row['school_id'] ?>">Save</button>
-                                    <button type="button" style="display:none;" onclick="cancelEdit('<?= $row['school_id'] ?>')" id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
-                                </td>
-                            </form>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
-        <?php else: ?>
-            <p>No advisers have been registered yet.</p>
-        <?php endif; ?>
-    </div>
-</div>
-
-<script>
-function enableEdit(school_id) {
-    document.getElementById('fullname_text_' + school_id).style.display = 'none';
-    document.getElementById('department_text_' + school_id).style.display = 'none';
-    document.getElementById('password_text_' + school_id).style.display = 'none';
-
-    document.getElementById('fullname_input_' + school_id).style.display = 'inline';
-    document.getElementById('department_input_' + school_id).style.display = 'inline';
-    document.getElementById('password_input_' + school_id).style.display = 'inline';
-
-    document.getElementById('edit_btn_' + school_id).style.display = 'none';
-    document.getElementById('save_btn_' + school_id).style.display = 'inline';
-    document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
-}
-
-function cancelEdit(school_id) {
-    document.getElementById('fullname_text_' + school_id).style.display = 'inline';
-    document.getElementById('department_text_' + school_id).style.display = 'inline';
-    document.getElementById('password_text_' + school_id).style.display = 'inline';
-
-    document.getElementById('fullname_input_' + school_id).style.display = 'none';
-    document.getElementById('department_input_' + school_id).style.display = 'none';
-    document.getElementById('password_input_' + school_id).style.display = 'none';
-
-    document.getElementById('edit_btn_' + school_id).style.display = 'inline';
-    document.getElementById('save_btn_' + school_id).style.display = 'none';
-    document.getElementById('cancel_btn_' + school_id).style.display = 'none';
-
-    // Optional: Reset input values to original if you want
-}
-</script>
-
+                    <?php if ($result->num_rows > 0): ?>
+                        <table border="1" cellpadding="10" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Department</th>
+                                    <th>School ID</th>
+                                    <th>Password</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while ($row = $result->fetch_assoc()): ?>
+                                    <tr id="row_<?= $row['school_id'] ?>">
+                                        <form action="update_adviser_inline.php" method="POST" id="form_<?= $row['school_id'] ?>">
+                                            <td>
+                                                <span id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
+                                                <input type="text" name="fullname" value="<?= htmlspecialchars($row['fullname']) ?>" id="fullname_input_<?= $row['school_id'] ?>" style="display:none;" required>
+                                            </td>
+                                            <td>
+                                                <span id="department_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['department']) ?></span>
+                                                <input type="text" name="department" value="<?= htmlspecialchars($row['department']) ?>" id="department_input_<?= $row['school_id'] ?>" style="display:none;" required>
+                                            </td>
+                                            <td>
+                                                <?= htmlspecialchars($row['school_id']) ?>
+                                                <input type="hidden" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
+                                            </td>
+                                            <td>
+                                                <span id="password_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['password']) ?></span>
+                                                <input type="text" name="password" value="<?= htmlspecialchars($row['password']) ?>" id="password_input_<?= $row['school_id'] ?>" style="display:none;" required>
+                                            </td>
+                                            <td>
+                                                <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')" id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
+                                                <button type="submit" style="display:none;" id="save_btn_<?= $row['school_id'] ?>">Save</button>
+                                                <button type="button" style="display:none;" onclick="cancelEdit('<?= $row['school_id'] ?>')" id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
+                                            </td>
+                                        </form>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <p>No advisers have been registered yet.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        function enableEdit(school_id) {
+            document.getElementById('fullname_text_' + school_id).style.display = 'none';
+            document.getElementById('department_text_' + school_id).style.display = 'none';
+            document.getElementById('password_text_' + school_id).style.display = 'none';
+
+            document.getElementById('fullname_input_' + school_id).style.display = 'inline';
+            document.getElementById('department_input_' + school_id).style.display = 'inline';
+            document.getElementById('password_input_' + school_id).style.display = 'inline';
+
+            document.getElementById('edit_btn_' + school_id).style.display = 'none';
+            document.getElementById('save_btn_' + school_id).style.display = 'inline';
+            document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+        }
+
+        function cancelEdit(school_id) {
+            document.getElementById('fullname_text_' + school_id).style.display = 'inline';
+            document.getElementById('department_text_' + school_id).style.display = 'inline';
+            document.getElementById('password_text_' + school_id).style.display = 'inline';
+
+            document.getElementById('fullname_input_' + school_id).style.display = 'none';
+            document.getElementById('department_input_' + school_id).style.display = 'none';
+            document.getElementById('password_input_' + school_id).style.display = 'none';
+
+            document.getElementById('edit_btn_' + school_id).style.display = 'inline';
+            document.getElementById('save_btn_' + school_id).style.display = 'none';
+            document.getElementById('cancel_btn_' + school_id).style.display = 'none';
+        }
+    </script>
 </body>
-
 </html>

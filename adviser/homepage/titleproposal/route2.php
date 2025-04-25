@@ -594,18 +594,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             <div class="homepage">
                 <a href="../homepage.php">Home Page</a>
             </div>
-            <div class="dropdown-container">
-                <form method="POST">
-                    <select name="department" onchange="this.form.submit()">
-                        <option value="">Select Department</option>
-                        <?php foreach ($departments as $department): ?>
-                            <option value="<?= htmlspecialchars($department) ?>" <?= $selectedDepartment == $department ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($department) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-            </div>
             <div class="user-info">
                 <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
                 <div class="vl"></div>

@@ -12,7 +12,7 @@ if ($student_id) {
     $stmt = $conn->prepare("
         SELECT * FROM final_monitoring_form 
         WHERE student_id = ?
-        AND (route1_id IS NOT NULL OR route2_id IS NOT NULL OR route3_id IS NOT NULL)
+        AND (route1_id IS NOT NULL OR route2_id IS NOT NULL)
         ORDER BY date_submitted ASC
     ");
     $stmt->bind_param("s", $student_id);

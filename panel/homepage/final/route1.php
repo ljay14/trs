@@ -114,132 +114,462 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 <head>
     <meta charset="UTF-8">
     <title>Thesis Routing System</title>
-    <link rel="stylesheet" href="s.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <style>.modal {
-        position: fixed;
-        z-index: 999;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.6);
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
+    
+    <style>
+        :root {
+            --primary: #002366;
+            --primary-light: #0a3885;
+            --accent: #4a6fd1;
+            --light: #f5f7fd;
+            --dark: #333;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border: #e0e0e0;
+        }
 
-    .modal-content {
-        background-color: #fff;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .modal-layout {
-        display: flex;
-        height: 100%;
-        width: 100%;
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
 
-    .file-preview-section {
-        flex: 1;
-        padding: 1rem;
-        overflow-y: auto;
-        border-right: 1px solid #ccc;
-        min-width: 300px;
-    }
-
-    .routing-form-section {
-        flex: 1;
-        padding: 1rem;
-        background-color: #f9f9f9;
-        font-size: 0.85rem;
-        box-sizing: border-box;
-        overflow-y: auto;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 5px;
-        margin-bottom: 10px;
-    }
-
-    .form-row label {
-        font-size: 0.75rem;
-    }
-
-    .form-row input,
-    .form-row textarea {
-        padding: 4px;
-        font-size: 0.75rem;
-        min-height: 24px;
-    }
-
-    .form-input-row input,
-    .form-input-row textarea {
-        font-size: 0.75rem;
-        min-height: 24px;
-        text-align: center;
-    }
-
-    .form-grid-container input,
-    .form-grid-container textarea {
-        width: 100%;
-        height: 100%;
-        padding: 4px;
-        font-size: 0.75rem;
-        box-sizing: border-box;
-        border: none;
-        outline: none;
-        resize: none;
-    }
-
-
-    .form-input-row textarea {
-        resize: vertical;
-        min-height: 24px;
-    }
-
-
-    .close-button {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 28px;
-        cursor: pointer;
-    }
-
-    .form-grid-container {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-    .form-grid-container>div {
-        border: 1px solid #ccc;
-        padding: 6px;
-        text-align: center;
-        font-size: 0.8rem;
-        background-color: white;
-    }
-
-    @media (max-width: 768px) {
-        .modal-layout {
+        .container {
+            display: flex;
             flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container img {
+            height: 50px;
+            margin-right: 15px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .homepage a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .homepage a:hover {
+            color: var(--primary);
+        }
+
+        .dropdown-container select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background-color: white;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .vl {
+            border-left: 1px solid var(--border);
+            height: 20px;
+            margin: 0 10px;
+        }
+
+        .role {
+            font-weight: 600;
+            margin-right: 5px;
+            color: var(--primary);
+        }
+
+        .user-name {
+            color: var(--dark);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+        }
+
+        .menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-title {
+            font-weight: 600;
+            color: var(--primary);
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--light);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+
+        .logout {
+            padding: 0 1.5rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .logout a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .logout a:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            overflow: auto;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Button Styling */
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .view-button {
+            background-color: var(--accent);
+            color: white;
+            margin-right: 0.5rem;
+        }
+
+        .view-button:hover {
+            background-color: var(--primary);
+        }
+
+        /* Modal Styling */
+        .modal {
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            width: 95%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-layout {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        .file-preview-section,
+        .routing-form-section {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
         }
 
         .file-preview-section {
-            border-right: none;
-            border-bottom: 1px solid #ccc;
+            border-right: 1px solid var(--border);
         }
-    }</style>
+
+        .routing-form-section {
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .form-row label {
+            font-size: 0.75rem;
+        }
+
+        .form-row input,
+        .form-row textarea {
+            padding: 4px;
+            font-size: 0.75rem;
+            min-height: 24px;
+        }
+
+        .form-input-row input,
+        .form-input-row textarea {
+            font-size: 0.75rem;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        .form-grid-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .form-grid-container > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background-color: white;
+            text-align: center;
+        }
+
+        .form-grid-container > div:first-child(1),
+        .form-grid-container > div:nth-child(2),
+        .form-grid-container > div:nth-child(3),
+        .form-grid-container > div:nth-child(4),
+        .form-grid-container > div:nth-child(5),
+        .form-grid-container > div:nth-child(6),
+        .form-grid-container > div:nth-child(7) {
+            background-color: var(--primary-light);
+            color: white;
+            font-weight: 600;
+        }
+
+        .form-grid-container input,
+        .form-grid-container textarea {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            font-size: 0.75rem;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+
+        .form-input-row textarea {
+            resize: vertical;
+            min-height: 24px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--dark);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .close-button:hover {
+            color: var(--accent);
+        }
+
+        .welcome-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .welcome-card h1 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .welcome-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-top: 0.5rem;
+            }
+            
+            .modal-layout {
+                flex-direction: column;
+            }
+            
+            .file-preview-section {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        /* Additional button styling */
+        .routing-form-section button {
+            background-color: var(--accent);
+            color: white;
+            margin-right: 0.5rem;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .routing-form-section button:hover {
+            background-color: var(--primary);
+        }
+    </style>
+    
     <script>
     const panelName = <?= json_encode($fullname) ?>;
 
@@ -250,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         const extension = filePath.split('.').pop().toLowerCase();
 
         modal.style.display = "flex";
-        contentArea.innerHTML = "Loading file...";
+        contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
         routingForm.innerHTML = "";
 
         if (extension === "pdf") {
@@ -259,10 +589,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             fetch(filePath)
                 .then(res => res.arrayBuffer())
                 .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-                .then(result => contentArea.innerHTML = `<div class="file-content">${result.value}</div>`)
-                .catch(() => contentArea.innerHTML = "Error loading file.");
+                .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
+                .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
         } else {
-            contentArea.innerHTML = "Unsupported file type.";
+            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
         }
 
         const today = new Date().toISOString().split('T')[0];
@@ -290,23 +620,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
                         <button type="button" onclick="addFormRow()">Add Row</button>
                         <button type="submit">Submit Routing Form</button>
                         <button type="button" onclick="showAllForms('${route1_id}')">Show all Forms</button>
-
                     </div>
                 </div>
-<!-- Header row for submitted forms -->
-<div class="form-grid-container" style="margin-top: 20px;">
-    <div><strong>Date Submitted</strong></div>
-    <div><strong>Chapter</strong></div>
-    <div><strong>Feedback</strong></div>
-    <div><strong>Paragraph No</strong></div>
-    <div><strong>Page No</strong></div>
-    <div><strong>Submitted By</strong></div>
-    <div><strong>Date Released</strong></div>
-</div>
+                <!-- Header row for submitted forms -->
+                <div class="form-grid-container" style="margin-top: 20px;">
+                    <div><strong>Date Submitted</strong></div>
+                    <div><strong>Chapter</strong></div>
+                    <div><strong>Feedback</strong></div>
+                    <div><strong>Paragraph No</strong></div>
+                    <div><strong>Page No</strong></div>
+                    <div><strong>Submitted By</strong></div>
+                    <div><strong>Date Released</strong></div>
+                </div>
 
-<!-- Container for submitted form data -->
-<div id="submittedFormsContainer" class="form-grid-container"></div>
-<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+                <!-- Container for submitted form data -->
+                <div id="submittedFormsContainer" class="form-grid-container"></div>
+                <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
                 <div id="routingRowsContainer">
                     <div class="form-grid-container">
@@ -345,69 +674,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 
     let formsVisible = false;
 
-function showAllForms(route1_id) {
-    const formDataContainer = document.getElementById("submittedFormsContainer");
-    const noFormsMessage = document.getElementById("noFormsMessage");
-    const showButton = document.querySelector("button[onclick^='showAllForms']");
+    function showAllForms(route1_id) {
+        const formDataContainer = document.getElementById("submittedFormsContainer");
+        const noFormsMessage = document.getElementById("noFormsMessage");
+        const showButton = document.querySelector("button[onclick^='showAllForms']");
 
-    if (formsVisible) {
-        formDataContainer.innerHTML = "";
-        noFormsMessage.innerText = "";
-        showButton.textContent = "Show all Forms";
-        formsVisible = false;
-        return;
+        if (formsVisible) {
+            // Clear content and toggle button
+            formDataContainer.innerHTML = "";
+            noFormsMessage.innerText = "";
+            showButton.textContent = "Show all Forms";
+            formsVisible = false;
+            return;
+        }
+
+        // Show loading spinner
+        formDataContainer.innerHTML = "<div style='grid-column: span 7; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
+
+        // Fetch data
+        fetch('get_all_forms.php?route1_id=' + route1_id)
+            .then(response => response.json())
+            .then(data => {
+                formDataContainer.innerHTML = ""; // Clear old content first
+
+                if (!data || data.length === 0) {
+                    noFormsMessage.innerText = "No routing forms submitted yet.";
+                    return;
+                }
+
+                noFormsMessage.innerText = ""; // Clear message if forms exist
+
+                data.forEach(row => {
+                    let submittedBy = "N/A";
+                    if (row.adviser_name) {
+                        submittedBy = `${row.adviser_name} - Adviser`;
+                    } else if (row.panel_name) {
+                        submittedBy = `${row.panel_name} - Panel`;
+                    }
+
+                    formDataContainer.innerHTML += `
+                        <div>${row.date_submitted}</div>
+                        <div>${row.chapter}</div>
+                        <div>${row.feedback}</div>
+                        <div>${row.paragraph_number}</div>
+                        <div>${row.page_number}</div>
+                        <div>${submittedBy}</div>
+                        <div>${row.date_released}</div>
+                    `;
+                });
+
+                showButton.textContent = "Hide Forms";
+                formsVisible = true;
+            })
+            .catch(error => {
+                console.error('Error fetching forms:', error);
+                noFormsMessage.innerText = "Failed to load forms.";
+                formDataContainer.innerHTML = "";
+            });
     }
 
-    fetch('get_all_forms.php?route1_id=' + route1_id)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length === 0) {
-                noFormsMessage.innerText = "No routing forms submitted yet.";
-                return;
-            }
-
-            noFormsMessage.innerText = ""; // Clear message
-
-            data.forEach(row => {
-                        let submittedBy = "N/A";
-                        if (row.adviser_name) {
-                            submittedBy = `${row.adviser_name} - Adviser`;
-                        } else if (row.panel_name) {
-                            submittedBy = `${row.panel_name} - Panel`;
-                        }
-
-                        formDataContainer.innerHTML += `
-        <div>${row.date_submitted}</div>
-        <div>${row.chapter}</div>
-        <div>${row.feedback}</div>
-        <div>${row.paragraph_number}</div>
-        <div>${row.page_number}</div>
-        <div>${submittedBy}</div>
-        <div>${row.date_released}</div>
-    `;
-            });
-            showButton.textContent = "Show less";
-            formsVisible = true;
-        })
-        .catch(error => {
-            console.error('Error fetching forms:', error);
-        });
-}
-
-
-function autoGrow(textarea) {
+    function autoGrow(textarea) {
         textarea.style.height = 'auto'; // Reset height
         textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
     }
-</script>
 
+    // For modal animation
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+    </script>
 </head>
 
 <body>
     <div class="container">
         <header class="header">
             <div class="logo-container">
-                <img src="../../../assets/logo.png" alt="Logo">
+                <img src="../../../assets/logo.png" alt="SMCC Logo">
                 <div class="logo">Thesis Routing System</div>
             </div>
         </header>
@@ -429,7 +773,7 @@ function autoGrow(textarea) {
                 </form>
             </div>
             <div class="user-info">
-            <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
+                <div class="routeNo" style="margin-right: 20px;">Final - Route 1</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
                 <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
@@ -438,7 +782,7 @@ function autoGrow(textarea) {
 
         <div class="main-content">
             <nav class="sidebar">
-            <div class="menu">
+                <div class="menu">
                     <div class="menu-section">
                         <div class="menu-title">Research Proposal</div>
                         <ul>
@@ -465,63 +809,63 @@ function autoGrow(textarea) {
 
             <div class="content" id="content-area">
             <?php
-$query = "
-    SELECT 
-        docuRoute1, 
-        department, 
-        student_id, 
-        route1_id, 
-        controlNo, 
-        fullname, 
-        group_number,
-        title
-    FROM route1final_files 
-    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
-    " . ($selectedDepartment ? " AND department = ?" : "");
+            $query = "
+                SELECT 
+                    docuRoute1, 
+                    department, 
+                    student_id, 
+                    route1_id, 
+                    controlNo, 
+                    fullname, 
+                    group_number,
+                    title
+                FROM route1final_files 
+                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+                " . ($selectedDepartment ? " AND department = ?" : "");
 
-$stmt = $conn->prepare($query);
+            $stmt = $conn->prepare($query);
 
-if ($selectedDepartment) {
-    $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
-} else {
-    $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
-}
+            if ($selectedDepartment) {
+                $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
+            } else {
+                $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+            }
 
-$stmt->execute();
-$result = $stmt->get_result();
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    echo "
-    <table border='1' cellpadding='10' cellspacing='0' style='width: 100%; border-collapse: collapse; text-align: left; background-color: rgb(156, 153, 153);'>
-        <thead>
-            <tr style='text-align: center;'>
-                <th>Control No.</th>
-                <th>Leader</th>
-                <th>Group No.</th>
-                <th>Title</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-    ";
+            if ($result->num_rows > 0) {
+                echo "
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Control No.</th>
+                            <th>Leader</th>
+                            <th>Group No.</th>
+                            <th>Title</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                ";
 
-    while ($row = $result->fetch_assoc()) {
-        $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
-        $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
-        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
-        $fileName = basename($filePath);
-        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
-        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-        $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                while ($row = $result->fetch_assoc()) {
+                    $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
+                    $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
+                    $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+                    $fileName = basename($filePath);
+                    $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                    $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                    $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                    $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
-        echo "
-            <tr>
-                <td>$controlNo</td>
-                <td>$fullname</td>
-                <td>$groupNo</td>
-                <td>$title</td>
-                <td style='text-align: center;'>
+                    echo "
+                        <tr>
+                            <td>$controlNo</td>
+                            <td>$fullname</td>
+                            <td>$groupNo</td>
+                            <td>$title</td>
+                            <td style='text-align: center;'>
                     <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>
                 </td>
             </tr>
@@ -538,6 +882,7 @@ if ($result->num_rows > 0) {
 
 $stmt->close();
 ?>
+
             </div>
         </div>
     </div>
