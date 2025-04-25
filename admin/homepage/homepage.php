@@ -17,14 +17,20 @@ if (!isset($_SESSION['admin_id'])) {
     <title>Admin Dashboard - Thesis Routing System</title>
     <style>
         :root {
-            --primary: #002366;
-            --primary-light: #0a3885;
-            --accent: #4a6fd1;
-            --light: #f5f7fd;
-            --dark: #333;
-            --success: #28a745;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --border: #e0e0e0;
+        --primary: #4366b3;
+        --primary-light: #e5ebf8;
+        --dark: #333333;
+        --text-light: #777777;
+        --border: #e0e0e0;
+        --white: #ffffff;
+        --hover: #f5f7fd;
+        --active: #e5ebf8;
+        --radius: 8px;
+        --shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            --white: #ffffff;
+            --hover: #f5f7fd;
+            --active: #e5ebf8;
+            --radius: 8px;
         }
         
         * {
@@ -120,42 +126,100 @@ if (!isset($_SESSION['admin_id'])) {
             border-right: 1px solid var(--border);
         }
         
-        .menu-section {
-            margin-bottom: 1.5rem;
+               /* Dropdown menu styling */
+               .nav-menu {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0;
+            gap: 4px;
         }
-        
-        .menu-title {
-            font-weight: 600;
+
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            gap: 12px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--primary);
-            padding: 0.5rem 1.5rem;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
         }
-        
-        .sidebar ul {
-            list-style: none;
+
+        .icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--primary);
         }
-        
-        .sidebar li {
-            margin-bottom: 0.25rem;
-        }
-        
-        .sidebar a {
-            display: block;
-            padding: 0.75rem 1.5rem;
+
+        .menu-header span {
+            flex: 1;
+            font-size: 14px;
             color: var(--dark);
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
         }
-        
-        .sidebar a:hover {
+
+        .dropdown-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+        .dropdown-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: #777777;
+        }
+
+        .expanded .dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .menu-header:hover {
             background-color: var(--light);
-            color: var(--accent);
-            border-left: 3px solid var(--accent);
         }
+
+        .dropdown-content {
+            display: none;
+            flex-direction: column;
+            padding-left: 2.5rem;
+        }
+
+        .dropdown-content.show {
+            display: flex;
+        }
+
+        .submenu-item {
+            padding: 0.6rem 1rem;
+            font-size: 13px;
+            color: #777777;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .submenu-item:hover {
+            background-color: var(--light);
+            color: var(--primary);
+        }
+
+        
+        /* Fixed styling for the active menu item */
+
         
         .logout {
             padding: 0 1.5rem;
@@ -249,41 +313,107 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
         <div class="main-content">
             <nav class="sidebar">
-                <div class="menu">
-                    <div class="menu-section">
-                        <div class="menu-title">Research Proposal</div>
-                        <ul>
-                            <li><a href="titleproposal/route1.php">Route 1</a></li>
-                            <li><a href="titleproposal/route2.php">Route 2</a></li>
-                            <li><a href="titleproposal/route3.php">Route 3</a></li>
-                            <li><a href="titleproposal/finaldocu.php">Final Document</a></li>
-                        </ul>
+                <nav class="nav-menu">
+                    <!-- Title Proposal Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <span>Title Proposal</span>
+                            <div class="dropdown-icon expanded">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content show">
+                            <a href="titleproposal/route1.php" class="submenu-item">Route 1</a>
+                            <a href="titleproposal/route2.php" class="submenu-item">Route 2</a>
+                            <a href="titleproposal/route3.php" class="submenu-item">Route 3</a>
+                            <a href="titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
+                        </div>
                     </div>
-                    <div class="menu-section">
-                        <div class="menu-title">Final Defense</div>
-                        <ul>
-                            <li><a href="final/route1.php">Route 1</a></li>
-                            <li><a href="final/route2.php">Route 2</a></li>
-                            <li><a href="final/route3.php">Route 3</a></li>
-                            <li><a href="final/finaldocu.php">Final Document</a></li>
-                        </ul>
+
+                    <!-- Final Defense Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                </svg>
+                            </div>
+                            <span>Final</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content">
+                            <a href="final/route1.php" class="submenu-item">Route 1</a>
+                            <a href="final/route2.php" class="submenu-item">Route 2</a>
+                            <a href="final/route3.php" class="submenu-item">Route 3</a>
+                            <a href="final/finaldocu.php" class="submenu-item">Final Document</a>
+                        </div>
                     </div>
-                    <div class="menu-section">
-                        <div class="menu-title">Register Account</div>
-                        <ul>
-                            <li><a href="registeraccount/panel.php">Panel</a></li>
-                            <li><a href="registeraccount/adviser.php">Adviser</a></li>
-                        </ul>
+
+                    <!-- Register Account Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="8.5" cy="7" r="4"></circle>
+                                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                </svg>
+                            </div>
+                            <span>Register Account</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content">
+                            <a href="registeraccount/panel.php" class="submenu-item">Panel</a>
+                            <a href="registeraccount/adviser.php" class="submenu-item">Adviser</a>
+                        </div>
                     </div>
-                    <div class="menu-section">
-                        <div class="menu-title">Registered Account</div>
-                        <ul>
-                            <li><a href="registeredaccount/panel_register.php">Panel</a></li>
-                            <li><a href="registeredaccount/adviser_register.php">Adviser</a></li>
-                            <li><a href="registeredaccount/student_register.php">Student</a></li>
-                        </ul>
+
+                    <!-- Registered Account Section -->
+                    <div class="menu-item dropdown">
+                        <div class="menu-header">
+                            <div class="icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <span>Registered Account</span>
+                            <div class="dropdown-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="dropdown-content">
+                            <a href="registeredaccount/panel_register.php" class="submenu-item">Panel</a>
+                            <a href="registeredaccount/adviser_register.php" class="submenu-item">Adviser</a>
+                            <a href="registeredaccount/student_register.php" class="submenu-item">Student</a>
+                        </div>
                     </div>
-                </div>
+                </nav>
                 <div class="logout">
                     <a href="../../logout.php">Logout</a>
                 </div>
@@ -297,5 +427,22 @@ if (!isset($_SESSION['admin_id'])) {
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuHeaders = document.querySelectorAll('.menu-header');
+            
+            menuHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    // Toggle the expanded class for the arrow icon
+                    this.querySelector('.dropdown-icon').classList.toggle('expanded');
+                    
+                    // Toggle the dropdown content visibility
+                    const dropdownContent = this.nextElementSibling;
+                    dropdownContent.classList.toggle('show');
+                });
+            });
+        });
+    </script>
 </body>
 </html>
