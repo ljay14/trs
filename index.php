@@ -243,12 +243,13 @@
             <a href="admin/login.php" class="role-button">
                 <div class="role-icon">⚙️</div> 
                 <div class="role-text">Admin</div>
-                <div>→</div>
+                <div>→</div>    
             </a>
         </div>
         
         <div class="footer">
-            <p>© 2025 Saint Michael College of Caraga | All Rights Reserved a</p>
+            <p>© 2025 Saint Michael College of Caraga | All Rights Reserved</p>
+            <p>Lacaran. E, Castillon. J, Ocay. J, Saladores. JL, Tiempo. RC</p>
         </div>
     </div>
 </body>
