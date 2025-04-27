@@ -248,7 +248,7 @@
         </div>
         
         <div class="footer">
-            <p>© 2025 Saint Michael College of Caraga | All Rights Reserved</p>
+            <p>© 2025 Saint Michael College of Caraga | All Rights Reserved a</p>
         </div>
     </div>
 </body>
