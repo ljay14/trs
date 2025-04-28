@@ -1,4 +1,6 @@
 <?php
+include '../../../connection.php';
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
@@ -8,7 +10,7 @@ if (!isset($_SESSION['student_id'])) {
     exit;
 }
 
-include '../../../connection.php';
+
 
 $alertMessage = "";
 
@@ -1027,7 +1029,7 @@ input[type="checkbox"] {
             if (confirm("Are you sure you want to delete this file?")) {
                 const form = document.createElement("form");
                 form.method = "POST";
-                form.action = "route2.php";
+                form.action = "finaldocu.php";
 
                 const input = document.createElement("input");
                 input.type = "hidden";
@@ -1045,6 +1047,15 @@ input[type="checkbox"] {
             if (event.key === 'Escape') {
                 closeModal();
             }
+        });
+
+        // Download Endorsement Certificate
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            const adviserName = `<?= $adviser ?>`;
+            const studentNames = `<?= $allStudents ?>`;
+
+            const url = `../titleproposal/generate_endorsement_pdf.php?adviserName=${encodeURIComponent(adviserName)}&student=${encodeURIComponent(studentNames)}`;
+            window.location.href = url;
         });
         
         // Style the spinner animation

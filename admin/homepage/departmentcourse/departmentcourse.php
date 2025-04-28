@@ -1,5 +1,6 @@
 <?php
-session_start(); // Start session to check admin login
+// Start the session
+session_start();
 
 // Check if the user is logged in as admin
 if (!isset($_SESSION['admin_id'])) {
@@ -10,49 +11,18 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $fullname = $conn->real_escape_string($_POST['fullname']);
-    $department = $conn->real_escape_string($_POST['department']);
-    
-    // Sanitize and normalize position input
-    $position = trim(strtolower($conn->real_escape_string($_POST['position'])));
-    $school_id = $conn->real_escape_string($_POST['school_id']); // Changed from username to school_id
-    $password = $_POST['password']; // Get password as plain text
-
-    // Generate a unique panel_id
-    $panel_id = uniqid("PANEL_");
-
-    // Ensure the position is valid
-    $valid_positions = ['panel1', 'panel2', 'panel3', 'panel4'];
-    if (!in_array($position, $valid_positions)) {
-        echo "<script>alert('Invalid position! Please select a valid position.');</script>";
-        exit;
-    }
-
-    // Insert data into the database
-    $sql = "INSERT INTO panel (panel_id, school_id, password, fullname, department, position) 
-            VALUES ('$panel_id', '$school_id', '$password', '$fullname', '$department', '$position')";
-
-    if ($conn->query($sql) === TRUE) {
-        // Redirect with success status
-        header("Location: panel.php?status=success");
-        exit;
-    } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
-    }
-}
-
-// Close the connection
-$conn->close();
+// Fetch all departments and courses
+$sql = "SELECT id, department, course FROM departmentcourse ORDER BY department ASC";
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panelist Registration - Thesis Routing System</title>
+    <title>Department and Course Management - Thesis Routing System</title>
     <style>
         :root {
             --primary: #002366;
@@ -64,48 +34,48 @@ $conn->close();
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --border: #e0e0e0;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--light);
             color: var(--dark);
             min-height: 100vh;
         }
-        
+
         .container {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
         }
-        
+
         .header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
             padding: 1rem 2rem;
             box-shadow: var(--shadow);
         }
-        
+
         .logo-container {
             display: flex;
             align-items: center;
         }
-        
+
         .logo-container img {
             height: 50px;
             margin-right: 15px;
         }
-        
+
         .logo {
             font-size: 1.5rem;
             font-weight: 600;
         }
-        
+
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -115,23 +85,23 @@ $conn->close();
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             border-bottom: 1px solid var(--border);
         }
-        
+
         .homepage a {
             color: var(--accent);
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s;
         }
-        
+
         .homepage a:hover {
             color: var(--primary);
         }
-        
+
         .user-info {
             display: flex;
             align-items: center;
         }
-        
+
         .user-info a {
             color: white;
             margin-right: 15px;
@@ -142,32 +112,32 @@ $conn->close();
             text-decoration: none;
             transition: all 0.3s;
         }
-        
+
         .user-info a:hover {
             background-color: var(--primary);
         }
-        
+
         .vl {
             border-left: 2px solid var(--border);
             height: 25px;
             margin: 0 15px;
         }
-        
+
         .role {
             font-weight: 600;
             margin-right: 5px;
             color: var(--primary);
         }
-        
+
         .user-name {
             color: var(--dark);
         }
-        
+
         .main-content {
             display: flex;
             flex: 1;
         }
-        
+
         .sidebar {
             width: 250px;
             background-color: white;
@@ -178,11 +148,11 @@ $conn->close();
             justify-content: space-between;
             border-right: 1px solid var(--border);
         }
-        
+
         .menu-section {
             margin-bottom: 1.5rem;
         }
-        
+
         .menu-title {
             font-weight: 600;
             color: var(--primary);
@@ -192,15 +162,15 @@ $conn->close();
             letter-spacing: 0.5px;
             margin-bottom: 0.5rem;
         }
-        
+
         .sidebar ul {
             list-style: none;
         }
-        
+
         .sidebar li {
             margin-bottom: 0.25rem;
         }
-        
+
         .sidebar a {
             display: block;
             padding: 0.75rem 1.5rem;
@@ -209,20 +179,20 @@ $conn->close();
             transition: all 0.3s;
             border-left: 3px solid transparent;
         }
-        
+
         .sidebar a:hover {
             background-color: var(--light);
             color: var(--accent);
             border-left: 3px solid var(--accent);
         }
-        
+
         .logout {
             padding: 0 1.5rem;
             margin-top: auto;
             border-top: 1px solid var(--border);
             padding-top: 1rem;
         }
-        
+
         .logout a {
             display: flex;
             align-items: center;
@@ -235,588 +205,361 @@ $conn->close();
             font-weight: 500;
             transition: all 0.3s;
         }
-        
+
         .logout a:hover {
             background-color: #e0e0e0;
             transform: translateY(-2px);
         }
-        
+
         .content {
             flex: 1;
             padding: 2rem;
             position: relative;
             overflow: auto;
         }
-        
-        .form-container {
-            max-width: 700px;
+
+        .content-container {
             background-color: white;
-            margin: auto;
-            padding: 2rem;
             border-radius: 10px;
             box-shadow: var(--shadow);
-            text-align: left;
+            padding: 2rem;
+            margin-bottom: 2rem;
         }
-        
-        .form-container h1 {
+
+        .content-container h1 {
             text-align: center;
             color: var(--primary);
-            margin-bottom: 1.5rem;
             font-size: 1.75rem;
         }
-        
-        .form-container label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--dark);
-        }
-        
-        .form-container input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1.25rem;
-            border: 1px solid var(--border);
+
+        .success-alert {
+            display: none;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             border-radius: 5px;
-            font-size: 1rem;
-            transition: border 0.3s;
+            border-left: 5px solid var(--success);
         }
-        
-        .form-container input:focus {
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Button Styling */
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .edit-button {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .edit-button:hover {
+            background-color: var(--primary);
+        }
+
+        .cancel-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-button:hover {
+            background-color: #c82333;
+        }
+
+        .add-new-btn {
+    display: block;
+    margin: 1.5rem 0 1.5rem auto; /* Changed margin to align right */
+    background-color: var(--accent);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    float: right; /* Added to ensure right alignment */
+    clear: both; /* Ensures proper flow with other elements */
+   
+}
+
+.add-new-btn:hover {
+    background-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+        input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
         }
-        
-        .form-container .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 1rem;
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
         }
-        
-        .form-container button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 5px;
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalFadeIn 0.3s;
+        }
+
+        @keyframes modalFadeIn {
+            from {opacity: 0; transform: translateY(-50px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
             cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: all 0.3s;
+            transition: 0.3s;
         }
-        
-        .form-container button:hover {
-            background-color: var(--primary-light);
-            transform: translateY(-2px);
+
+        .close:hover {
+            color: var(--primary);
         }
-        
-        .alert {
-            padding: 1rem;
+
+        .modal-header {
             margin-bottom: 1.5rem;
-            border-radius: 5px;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .modal-footer {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            padding: 0.75rem 1.5rem;
+        }
+
+        /* Form styling */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
             font-size: 1rem;
         }
-        
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
         }
-        
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
             }
-            
+
             .sidebar {
                 width: 100%;
                 padding: 1rem 0;
             }
-            
+
             .top-bar {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .user-info {
                 margin-top: 0.5rem;
             }
-            
-            .form-container {
+
+            .content-container {
                 padding: 1.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
             }
         }
 
-        :root {
---primary: #4366b3;
---primary-light: #0a3885;
---accent: #4a6fd1;
---light: #f5f7fd;
---dark: #333;
---success: #28a745;
---shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
---border: #e0e0e0;
---white: #ffffff;
---hover: #f5f7fd;
---active: #e5ebf8;
---text-light: #777777;
---radius: 8px;
-}
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: var(--light);
-        color: var(--dark);
-        min-height: 100vh;
-    }
-
-    .container {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-
-    .header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        color: white;
-        padding: 1rem 2rem;
-        box-shadow: var(--shadow);
-    }
-
-    .logo-container {
-        display: flex;
-        align-items: center;
-    }
-
-    .logo-container img {
-        height: 50px;
-        margin-right: 15px;
-    }
-
-    .logo {
-        font-size: 1.5rem;
-        font-weight: 600;
-    }
-
-    .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 2rem;
-        background-color: white;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        border-bottom: 1px solid var(--border);
-    }
-
-    .navigation {
-        display: flex;
-        align-items: center;
-    }
-
-    .homepage a {
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .homepage a:hover {
-        color: var(--primary);
-    }
-
-    .dropdown-container {
-        display: flex;
-        gap: 8px;
-        margin-left: 15px;
-    }
-
-    .dropdown-container select {
-        padding: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid var(--border);
-        background-color: white;
-        font-family: inherit;
-        cursor: pointer;
-    }
-
-    #external-submit-button {
-        background-color: var(--accent);
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    #external-submit-button:hover {
-        background-color: var(--primary);
-        transform: translateY(-2px);
-    }
-
-    .user-info {
-        display: flex;
-        align-items: center;
-    }
-
-    .vl {
-        border-left: 1px solid var(--border);
-        height: 20px;
-        margin: 0 10px;
-    }
-
-    .role {
-        font-weight: 600;
-        margin-right: 5px;
-        color: var(--primary);
-    }
-
-    .user-name {
-        color: var(--dark);
-    }
-
-    .main-content {
-        display: flex;
-        flex: 1;
-    }
-
-    .sidebar {
-        width: 250px;
-        background-color: white;
-        padding: 1.5rem 0;
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        border-right: 1px solid var(--border);
-    }
-
-    .menu-section {
-        margin-bottom: 1.5rem;
-    }
-
-    .menu-title {
-        font-weight: 600;
-        color: var(--primary);
-        padding: 0.5rem 1.5rem;
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-
-    .sidebar ul {
-        list-style: none;
-    }
-
-    .sidebar li {
-        margin-bottom: 0.25rem;
-    }
-
-    .sidebar a {
-        display: block;
-        padding: 0.75rem 1.5rem;
-        color: var(--dark);
-        text-decoration: none;
-        transition: all 0.3s;
-        border-left: 3px solid transparent;
-    }
-
-    .sidebar a:hover {
-        background-color: var(--light);
-        color: var(--accent);
-        border-left: 3px solid var(--accent);
-    }
-
-    .logout {
-        padding: 0 1.5rem;
-        margin-top: auto;
-        border-top: 1px solid var(--border);
-        padding-top: 1rem;
-    }
-
-    .logout a {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #f0f0f0;
-        color: #555;
-        padding: 0.75rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .logout a:hover {
-        background-color: #e0e0e0;
-        transform: translateY(-2px);
-    }
-
-    .content {
-        flex: 1;
-        padding: 2rem;
-        position: relative;
-        overflow: auto;
-    }
-
-    /* Table Styling */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1rem;
-        background-color: white;
-        box-shadow: var(--shadow);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    th, td {
-        padding: 1rem;
-        text-align: left;
-        border-bottom: 1px solid var(--border);
-    }
-
-    th {
-        background-color: var(--primary);
-        color: white;
-        font-weight: 600;
-    }
-
-    tr:nth-child(even) {
-        background-color: rgba(0, 0, 0, 0.02);
-    }
-
-    tr:hover {
-        background-color: rgba(0, 0, 0, 0.03);
-    }
-
-    /* Button Styling */
-    button {
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .view-button {
-        background-color: var(--accent);
-        color: white;
-        margin-right: 0.5rem;
-    }
-
-    .view-button:hover {
-        background-color: var(--primary);
-    }
-
-    /* Modal Styling */
-    .modal {
-        position: fixed;
-        z-index: 999;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.6);
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .modal-content {
-        background-color: #fff;
-        width: 95%;
-        height: 90%;
-        display: flex;
-        flex-direction: column;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .modal-layout {
-        display: flex;
-        height: 100%;
-        width: 100%;
-    }
-
-    .file-preview-section,
-    .routing-form-section {
-        flex: 1;
-        padding: 1rem;
-        overflow-y: auto;
-    }
-
-    .file-preview-section {
-        border-right: 1px solid var(--border);
-    }
-
-    .routing-form-section {
-        background-color: #f9f9f9;
-        font-size: 0.85rem;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 5px;
-        margin-bottom: 10px;
-    }
-
-    .form-grid-container {
-        display: grid;
-        grid-template-columns: repeat(8, 1fr);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 1rem;
-    }
-
-    .form-grid-container > div {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem;
-        font-size: 0.8rem;
-        border: 1px solid var(--border);
-        background-color: white;
-        text-align: center;
-    }
-
-    .close-button {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 28px;
-        cursor: pointer;
-        color: var(--dark);
-        transition: all 0.3s;
-        z-index: 1000;
-    }
-
-    .close-button:hover {
-        color: var(--accent);
-    }
-    
-    /* Responsive styles */
-    @media (max-width: 768px) {
-        .main-content {
+        /* Dropdown menu styling */
+        .nav-menu {
+            display: flex;
             flex-direction: column;
-        }
-        
-        .sidebar {
-            width: 100%;
             padding: 1rem 0;
+            gap: 4px;
         }
-        
-        .top-bar {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .user-info {
-            margin-top: 0.5rem;
-        }
-        
-        .modal-layout {
+
+        .menu-item {
+            display: flex;
             flex-direction: column;
         }
-        
-        .file-preview-section {
-            border-right: none;
-            border-bottom: 1px solid var(--border);
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            gap: 12px;
         }
-    }
 
-    /* Dropdown menu styling */
-    .nav-menu {
-        display: flex;
-        flex-direction: column;
-        padding: 1rem 0;
-        gap: 4px;
-    }
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
 
-    .menu-item {
-        display: flex;
-        flex-direction: column;
-    }
+        .icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--primary);
+        }
 
-    .menu-header {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 1rem;
-        cursor: pointer;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        gap: 12px;
-    }
+        .menu-header span {
+            flex: 1;
+            font-size: 14px;
+            color: var(--dark);
+        }
 
-    .icon {
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary);
-    }
+        .dropdown-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
 
-    .icon svg {
-        width: 18px;
-        height: 18px;
-        stroke: var(--primary);
-    }
+        .dropdown-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: #777777;
+        }
 
-    .menu-header span {
-        flex: 1;
-        font-size: 14px;
-        color: var(--dark);
-    }
+        .expanded .dropdown-icon {
+            transform: rotate(180deg);
+        }
 
-    .dropdown-icon {
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s ease;
-    }
+        .menu-header:hover {
+            background-color: var(--light);
+        }
 
-    .dropdown-icon svg {
-        width: 16px;
-        height: 16px;
-        stroke: #777777;
-    }
+        .dropdown-content {
+            display: none;
+            flex-direction: column;
+            padding-left: 2.5rem;
+        }
 
-    .expanded .dropdown-icon {
-        transform: rotate(180deg);
-    }
+        .dropdown-content.show {
+            display: flex;
+        }
 
-    .menu-header:hover {
-        background-color: var(--light);
-    }
-
-    .dropdown-content {
-        display: none;
-        flex-direction: column;
-        padding-left: 2.5rem;
-    }
-
-    .dropdown-content.show {
-        display: flex;
-    }
-
-    .submenu-item {
+        .submenu-item {
             padding: 0.6rem 1rem;
             font-size: 13px;
             color: #777777;
@@ -830,26 +573,47 @@ $conn->close();
             color: var(--primary);
         }
 
+        .active {
+            background-color: var(--light);
+            color: var(--primary);
+            font-weight: 500;
+        }
 
-    /* Additional utilities */
-    input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-    }
-
-    .selected {
-        background-color: var(--light);
-    }
-    
-
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #777;
+            font-style: italic;
+        }
     </style>
     <script>
-        // JavaScript to hide the alert initially and show it upon success
         window.onload = function () {
+            // Show success message if status is success
             var status = new URLSearchParams(window.location.search).get('status');
             if (status === 'success') {
                 document.getElementById('success-alert').style.display = 'block';
+
+                // Auto-hide the success message after 5 seconds
+                setTimeout(function () {
+                    document.getElementById('success-alert').style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Modal Functions
+        function openAddModal() {
+            document.getElementById("addDepartmentModal").style.display = "block";
+        }
+
+        function closeAddModal() {
+            document.getElementById("addDepartmentModal").style.display = "none";
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            var modal = document.getElementById("addDepartmentModal");
+            if (event.target == modal) {
+                modal.style.display = "none";
             }
         }
     </script>
@@ -868,7 +632,6 @@ $conn->close();
                 <a href="../../homepage/homepage.php">Home Page</a>
             </div>
             <div class="user-info">
-                <a href="../registeredaccount/panel_register.php">Registered Account</a>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>
@@ -1002,39 +765,119 @@ $conn->close();
     </div>
 </nav>
             <div class="content">
-                <div class="form-container">
-                    <h1>Panelist Registration</h1>
+                <div class="content-container">
+                    <h1>Department and Course Management</h1>
 
-                    <!-- Success Message -->
-                    <div id="success-alert" class="alert alert-success" style="display:none;">
-                        <strong>Success!</strong> Panelist registered successfully.
+                    <div id="success-alert" class="success-alert">
+                        <strong>Success!</strong> Department and course updated successfully!
                     </div>
 
-                    <form action="panel.php" method="POST">
-                        <label for="fullname">Complete Name</label>
-                        <input type="text" id="fullname" name="fullname" placeholder="First name / Middle name / Last name" required>
-
-                        <label for="department">Department</label>
-                        <input type="text" id="department" name="department" required>
-
-                        <label for="position">Position</label>
-                        <input type="text" id="position" name="position" placeholder="Panel1, Panel2, Panel3, Panel4" required>
-
-                        <label for="school_id">School ID</label>
-                        <input type="text" id="school_id" name="school_id" required>
-
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required>
-
-                        <div class="button-container">
-                            <button type="submit">Register</button>
-                        </div>
-                    </form>
+                    <!-- Button to add new department and course -->
+                    <button onclick="openAddModal()" class="add-new-btn">
+                        Add Department & Course
+                    </button>
+                    
+                    <?php if ($result->num_rows > 0): ?>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Course</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            // Reset the result pointer to the beginning
+                            $result->data_seek(0);
+                            while ($row = $result->fetch_assoc()): 
+                            ?>
+                                <tr id="row_<?= $row['id'] ?>">
+                                    <form action="update_department_course.php" method="POST" id="form_<?= $row['id'] ?>">
+                                        <td>
+                                            <span id="department_text_<?= $row['id'] ?>"><?= htmlspecialchars($row['department']) ?></span>
+                                            <input type="text" name="department" value="<?= htmlspecialchars($row['department']) ?>"
+                                                id="department_input_<?= $row['id'] ?>" style="display:none;" required class="form-control">
+                                        </td>
+                                        <td>
+                                            <span id="course_text_<?= $row['id'] ?>"><?= htmlspecialchars($row['course']) ?></span>
+                                            <input type="text" name="course" value="<?= htmlspecialchars($row['course']) ?>"
+                                                id="course_input_<?= $row['id'] ?>" style="display:none;" required class="form-control">
+                                            <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                                        </td>
+                                        <td class="action-buttons">
+                                            <button type="button" onclick="enableEdit('<?= $row['id'] ?>')"
+                                                id="edit_btn_<?= $row['id'] ?>" class="edit-button">Edit</button>
+                                            <button type="submit" style="display:none;"
+                                                id="save_btn_<?= $row['id'] ?>" class="btn-success">Save</button>
+                                            <button type="button" style="display:none;"
+                                                onclick="cancelEdit('<?= $row['id'] ?>')"
+                                                id="cancel_btn_<?= $row['id'] ?>" class="cancel-button">Cancel</button>
+                                        </td>
+                                    </form>
+                                </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div class="no-data">No departments and courses have been added yet.</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</body>
+
+    <!-- Modal for adding new department and course -->
+    <div id="addDepartmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeAddModal()">&times;</span>
+                <h2 class="modal-title">Add New Department and Course</h2>
+            </div>
+            
+            <form action="add_department_course.php" method="POST">
+                <div class="form-group">
+                    <label for="department">Department:</label>
+                    <input type="text" id="department" name="department" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="course">Course:</label>
+                    <input type="text" id="course" name="course" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeAddModal()" class="cancel-button">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Department and Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function enableEdit(id) {
+            document.getElementById('department_text_' + id).style.display = 'none';
+            document.getElementById('course_text_' + id).style.display = 'none';
+
+            document.getElementById('department_input_' + id).style.display = 'inline';
+            document.getElementById('course_input_' + id).style.display = 'inline';
+
+            document.getElementById('edit_btn_' + id).style.display = 'none';
+            document.getElementById('save_btn_' + id).style.display = 'inline';
+            document.getElementById('cancel_btn_' + id).style.display = 'inline';
+        }
+
+        function cancelEdit(id) {
+            document.getElementById('department_text_' + id).style.display = 'inline';
+            document.getElementById('course_text_' + id).style.display = 'inline';
+
+            document.getElementById('department_input_' + id).style.display = 'none';
+            document.getElementById('course_input_' + id).style.display = 'none';
+
+            document.getElementById('edit_btn_' + id).style.display = 'inline';
+            document.getElementById('save_btn_' + id).style.display = 'none';
+            document.getElementById('cancel_btn_' + id).style.display = 'none';
+        }
+    </script>
+    </body>
 </html>
 
 <script src="../sidebar.js"></script>

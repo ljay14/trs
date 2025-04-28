@@ -1,8 +1,6 @@
 <?php
 
-require '../../../vendor/autoload.php';
-
-use Fpdf\Fpdf;
+include '../../../connection.php';
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -13,7 +11,7 @@ if (!isset($_SESSION['student_id'])) {
     exit;
 }
 
-include '../connection.php';
+
 
 $alertMessage = "";
 
@@ -63,27 +61,29 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         exit;
     } else {
         // Check Route 1 approval status
-        $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL");
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $stmt->bind_result($status);
+// Only check rows that are actually Route 1
+$stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id = ?");
+if (!$stmt) {
+    die("Error preparing statement: " . $conn->error);
+}
+$stmt->bind_param("si", $student_id, $student);
+$stmt->execute();
+$stmt->bind_result($status);
 
-        $allApproved = true;  // Flag to check if all approvals are "Approved"
+$allowUpload = true;
+while ($stmt->fetch()) {
+    if ($status != 'Approved') {
+        $allowUpload = false;
+        break;
+    }
+}
+$stmt->close();
 
-        // Check each route1 approval status
-        while ($stmt->fetch()) {
-            if ($status !== 'Approved') {
-                $allApproved = false;
-                break; // No need to check further if one status is not "Approved"
-            }
-        }
-        $stmt->close();
 
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+        if (!$allowUpload) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
             exit;
         }
-
         // Proceed with file upload if Route 1 is approved
         $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
         $fileName = $_FILES["docuRoute3"]["name"];
@@ -973,7 +973,7 @@ input[type="checkbox"] {
             if (confirm("Are you sure you want to delete this file?")) {
                 const form = document.createElement("form");
                 form.method = "POST";
-                form.action = "route2.php";
+                form.action = "route3.php";
 
                 const input = document.createElement("input");
                 input.type = "hidden";

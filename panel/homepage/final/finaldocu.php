@@ -661,17 +661,29 @@ input[type="checkbox"] {
                 <a href="../homepage.php">Home Page</a>
             </div>
             <div class="dropdown-container">
-                <form method="POST">
-                    <select name="department" onchange="this.form.submit()">
-                        <option value="">Select Department</option>
-                        <?php foreach ($departments as $department): ?>
-                            <option value="<?= htmlspecialchars($department) ?>" <?= $selectedDepartment == $department ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($department) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-            </div>
+    <?php
+    // Check if the current user is a panel1 for any document
+    $checkPanel1Query = "SELECT COUNT(*) as count FROM finaldocufinal_files WHERE panel1_id = ?";
+    $checkStmt = $conn->prepare($checkPanel1Query);
+    $checkStmt->bind_param("s", $panel_id);
+    $checkStmt->execute();
+    $isPanelResult = $checkStmt->get_result();
+    $isPanel1 = ($isPanelResult->fetch_assoc()['count'] > 0);
+    
+    // Only show the department dropdown if user is panel1 for any document
+    if ($isPanel1): ?>
+        <form method="POST">
+            <select name="department" onchange="this.form.submit()">
+                <option value="">Select Department</option>
+                <?php foreach ($departments as $department): ?>
+                    <option value="<?= htmlspecialchars($department) ?>" <?= $selectedDepartment == $department ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($department) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+    <?php endif; ?>
+</div>
             <div class="user-info">
                 <div class="routeNo" style="margin-right: 20px;">Final - Final Document</div>
                 <div class="vl"></div>

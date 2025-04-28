@@ -12,7 +12,6 @@ $studentNames = array_map('trim', $studentNames); // Remove extra spaces
 
 // Database connection
 
-
 // Ensure session contains student_id
 if (!isset($_SESSION['student_id'])) {
     die("Student ID not found in session.");
@@ -38,7 +37,7 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Check if necessary files have been uploaded (route1_id, route2_id, route3_id, finaldocu_id)
+// Check if necessary files have been uploaded
 $hasRequiredFiles = false;
 
 // Check if Route 1 file exists
@@ -81,64 +80,88 @@ if ($allApproved && $docuRoute1 && $docuRoute2 && $docuRoute3 && $finaldocu) {
     $pdf = new FPDF();
     $pdf->AddPage();
 
-    // Set Font (you must set a font before using any text or cells)
-    $pdf->SetFont('Arial', '', 10); // Set Arial font, normal weight, size 12
+    // Set Font
+    $pdf->SetFont('Arial', '', 9);
 
-    // Logos
-    $pdf->SetXY(10, 1); // Start text below the logos
+    // Try to add logos - with error handling
+    try {
+        // Left logo
+        $pdf->Image('logo.png', 10, 10, 20);
+        
+        // Right logo - place it at the right side of the page
+        // Assuming letter size paper (8.5 x 11 inches)
+        // FPDF default is mm, so right edge is around 210mm
+        $pdf->Image('socotecs.png', 170, 10, 30);
+    } catch (Exception $e) {
+        // Just continue without the image if there's an error
+    }
+    
+    // Position for centered header text - move y position to account for logo height
+    $pdf->SetXY(35, 10);
 
-    // Header Text
-    $pdf->Cell(190, 10, 'Saint Michael College of Caraga', 0, 1, 'C');
-    $pdf->Cell(190, 7, 'Brgy. 4, Nasipit, Agusan del Norte, Philippines', 0, 1, 'C');
-    $pdf->Cell(190, 7, 'Tel. Nos. +63 085 343-3251 / +63 085 283-3113', 0, 1, 'C');
-    $pdf->Cell(190, 7, 'Fax No. +63 085 808-0892', 0, 1, 'C');
-    $pdf->Cell(190, 7, 'www.smccnasipit.edu.ph', 0, 1, 'C');
-    $pdf->Ln(20); // Space after header
+    // Header Text - centered between the two logos (from x=35 to x=175)
+    $pdf->SetFont('Arial', 'B', 11);
+    $pdf->Cell(140, 7, 'Saint Michael College of Caraga', 0, 1, 'C');
+    
+    $pdf->SetFont('Arial', '', 9);
+    $pdf->SetX(35);
+    $pdf->Cell(140, 6, 'Brgy. 4, Nasipit, Agusan del Norte, Philippines', 0, 1, 'C');
+    
+    $pdf->SetX(35);
+    $pdf->Cell(140, 6, 'Tel. Nos. +63 085 343-3251 / +63 085 283-3113', 0, 1, 'C');
+    
+    $pdf->SetX(35);
+    $pdf->Cell(140, 6, 'Fax No. +63 085 808-0892', 0, 1, 'C');
+    
+    $pdf->SetX(35);
+    $pdf->Cell(140, 6, 'www.smccnasipit.edu.ph', 0, 1, 'C');
+    
+    $pdf->Ln(15); // Space after header, adjusted to account for logo height
 
     // Title
-    $pdf->SetFont('Arial', 'B', 16); // Set bold Arial font for title
+    $pdf->SetFont('Arial', 'B', 16);
     $pdf->Cell(0, 10, 'CERTIFICATE OF ENDORSEMENT', 0, 1, 'C');
-    $pdf->Ln(10); // Add space after title
+    $pdf->Ln(7);
 
     // Body Text
-    $pdf->SetFont('Arial', '', 12); // Reset to normal Arial font
+    $pdf->SetFont('Arial', '', 11);
     $body = "This is to certify that the following researchers have successfully completed a thorough checking and assessment of their software system and manuscript under my supervision. Therefore, I, $adviserName, as their Capstone/Thesis Adviser, hereby endorse them to proceed with their Final Oral Defense for the completion of their Capstone Project/Thesis in the degree of Bachelor of Science in Information Technology.";
     $pdf->MultiCell(0, 8, $body);
-    $pdf->Ln(5); // Add space after body text
+    $pdf->Ln(5);
 
     // Student List
-    $pdf->SetFont('Arial', 'B', 12); // Set bold Arial font for student list
+    $pdf->SetFont('Arial', 'B', 12);
     $pdf->Cell(0, 8, 'Researchers:', 0, 1);
-    $pdf->SetFont('Arial', '', 12); // Reset to normal Arial font
+    $pdf->SetFont('Arial', '', 12);
     foreach ($studentNames as $index => $name) {
         $pdf->Cell(0, 8, ($index + 1) . ". " . $name, 0, 1);
     }
-    $pdf->Ln(5); // Add space after student list
+    $pdf->Ln(5);
 
     // Additional Body Text
     $body2 = "Their project/thesis has met the required standards and criteria set forth by the College of Computing and Information Sciences, and I am confident in the quality and academic rigor of their work.";
     $pdf->MultiCell(0, 8, $body2);
-    $pdf->Ln(20); // Add space after second body text
+    $pdf->Ln(10);
 
     // Adviser Signature
-    $pdf->SetFont('Arial', 'B', 12); // Set bold Arial font for signature
+    $pdf->SetFont('Arial', 'B', 12);
     $pdf->Cell(0, 8, 'Endorsed by:', 0, 1);
-    $pdf->Cell(80, 8, $adviserName, 'B', 1); // Signature line
-    $pdf->SetFont('Arial', '', 12); // Reset to normal Arial font
+    $pdf->Cell(80, 8, $adviserName, 'B', 1);
+    $pdf->SetFont('Arial', '', 12);
     $pdf->Cell(80, 8, 'Capstone Adviser', 0, 1);
     $pdf->Cell(80, 8, $date, 0, 1);
-    $pdf->Ln(20); // Add space after adviser signature
+    $pdf->Ln(10);
 
     // Instructor Approval
-    $pdf->SetFont('Arial', 'B', 12); // Set bold Arial font for instructor approval
+    $pdf->SetFont('Arial', 'B', 12);
     $pdf->Cell(0, 8, 'Approved by:', 0, 1);
-    $pdf->Cell(0, 8, 'MARLON JUHN M. TIMOGAN, MIT', 0, 1); // Instructor name
-    $pdf->SetFont('Arial', '', 12); // Reset to normal Arial font
+    $pdf->Cell(0, 8, 'MARLON JUHN M. TIMOGAN, MIT', 0, 1);
+    $pdf->SetFont('Arial', '', 12);
     $pdf->Cell(0, 8, 'Capstone Project/Thesis Instructor', 0, 1);
     $pdf->Cell(0, 8, $date, 0, 1);
 
     // Output PDF for download
-    $pdf->Output('D', 'Certificate_of_Endorsement.pdf'); // D = force download
+    $pdf->Output('D', 'Certificate_of_Endorsement.pdf');
 } else {
     echo "<script>alert('You cannot download the endorsement until all files are uploaded and approved for Route 1, Route 2, Route 3, and the Final Document.'); window.history.back();</script>";
 }

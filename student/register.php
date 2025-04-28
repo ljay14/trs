@@ -16,9 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
     $school_year = mysqli_real_escape_string($conn, $_POST['school_year']);
     $department = mysqli_real_escape_string($conn, $_POST['department']);
-    $course = isset($_POST['other_course']) && !empty($_POST['other_course'])
-        ? mysqli_real_escape_string($conn, $_POST['other_course'])
-        : mysqli_real_escape_string($conn, $_POST['course']);
+    $course = mysqli_real_escape_string($conn, $_POST['course']);
 
     $adviser = mysqli_real_escape_string($conn, $_POST['adviser']);
     $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
@@ -45,6 +43,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         echo "<script>alert('Error: " . addslashes($conn->error) . "'); window.history.back();</script>";
     }
 }
+
+// Fetch departments from the database
+$departmentQuery = "SELECT DISTINCT department FROM departmentcourse ORDER BY department";
+$departmentResult = $conn->query($departmentQuery);
 
 // Close the connection
 $conn->close();
@@ -225,12 +227,19 @@ $conn->close();
             margin-bottom: 15px;
         }
         
-        .input-group label {
+        .input-group label, #members-container label {
             display: block;
             margin-bottom: 6px;
             font-size: 14px;
             color: #555;
             font-weight: 500;
+        }
+        #members-container input{
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
         }
         
         .input-group input,
@@ -244,7 +253,8 @@ $conn->close();
         }
         
         .input-group input:focus,
-        .input-group select:focus {
+        .input-group select:focus,
+        #members-container input:focus {
             border-color: var(--accent);
             outline: none;
             box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
@@ -427,12 +437,13 @@ $conn->close();
                     <div class="researchers-section">
                         <div class="researchers-title">Thesis Researchers</div>
                         <div class="input-group">
-                            <label for="fullname">Primary Researcher (You)</label>
+                            <label for="fullname">Research Leader</label>
                             <input type="text" id="fullname" name="fullname" placeholder="Enter your complete name" required>
                         </div>
                         
-                        <label for="members">Additional Members</label>
+                        
                         <div id="members-container">
+                        <label for="members">Additional Members</label>
                             <input type="text" name="member_fullname[]" placeholder="Name of Member">
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="addMemberField()">
@@ -467,34 +478,25 @@ $conn->close();
                     
                     <div class="input-group">
                         <label for="department">Department</label>
-                        <select id="department" name="department" required onchange="filterCourses()">
+                        <select id="department" name="department" required onchange="loadCourses(this.value)">
                             <option value="">Select Department</option>
-                            <option value="CBM">College of Business and Management</option>
-                            <option value="CTE">College of Teacher Education</option>
-                            <option value="CAS">College of Arts and Sciences</option>
-                            <option value="CCIS">College of Computing and Information Science</option>
-                            <option value="CTHM">College of Tourism and Hospitality Management</option>
-                            <option value="CCJE">College of Criminal Justice Education</option>
+                            <?php
+                            // Display departments from database
+                            if ($departmentResult && $departmentResult->num_rows > 0) {
+                                while($row = $departmentResult->fetch_assoc()) {
+                                    echo '<option value="' . $row["department"] . '">' . $row["department"] . '</option>';
+                                }
+                            }
+                            ?>
                         </select>
                     </div>
                     
                     <div class="input-group">
                         <label for="course">Course</label>
                         <select id="course" name="course" required>
-                            <option value="">Select Course</option>
+                            <option value="">Select Department First</option>
                         </select>
                     </div>
-                    
-                    <div id="otherCourseDiv" style="display: none;">
-                        <div class="input-group">
-                            <label for="otherCourseInput">Other Course</label>
-                            <input type="text" id="otherCourseInput" name="other_course" placeholder="Enter your course" oninput="toggleCourseRequirement()">
-                        </div>
-                    </div>
-                    
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="showOtherCourseInput()">
-                        Can't find your course? Click here
-                    </button>
                 </div>
                 
                 <div class="form-actions">
@@ -519,92 +521,30 @@ $conn->close();
             container.appendChild(input);
         }
         
-        const courseOptions = {
-            "CBM": [
-                { value: "BSBA-FM", text: "BSBA - Financial Management" },
-                { value: "BSBA-HRM", text: "BSBA - Human Resource Management" },
-                { value: "BSBA-MM", text: "BSBA - Marketing Management" },
-                { value: "BPA", text: "Bachelor of Public Administration" },
-                { value: "BSE", text: "Bachelor of Science in Entrepreneurship" }
-            ],
-            "CTE": [
-                { value: "ElemEd", text: "Bachelor of Elementary Education" },
-                { value: "SecEd", text: "Bachelor of Secondary Education" }
-            ],
-            "CAS": [
-                { value: "AB-English", text: "Bachelor of Arts major in English Language" }
-            ],
-            "CCIS": [
-                { value: "BSIT", text: "Bachelor of Science in Information Technology" },
-                { value: "BSCS", text: "Bachelor of Science in Computer Science" },
-                { value: "BSIS", text: "Bachelor of Science in Information System" }
-            ],
-            "CTHM": [
-                { value: "BSTM", text: "Bachelor of Science in Tourism Management" },
-                { value: "BSHM", text: "Bachelor of Science in Hospitality Management" }
-            ],
-            "CCJE": [
-                { value: "Crim", text: "Criminology" }
-            ]
-        };
-
-        function filterCourses() {
-            const department = document.getElementById('department').value;
+        function loadCourses(department) {
             const courseSelect = document.getElementById('course');
-            const otherCourseDiv = document.getElementById('otherCourseDiv');
-            const otherCourseInput = document.getElementById('otherCourseInput');
-
-            // Reset
-            courseSelect.innerHTML = '<option value="">Select Course</option>';
-            otherCourseDiv.style.display = 'none';
-            otherCourseInput.value = '';
-
-            courseSelect.required = true;
-            otherCourseInput.required = false;
-
-            if (courseOptions[department]) {
-                courseOptions[department].forEach(course => {
-                    const option = document.createElement('option');
-                    option.value = course.value;
-                    option.textContent = course.text;
-                    courseSelect.appendChild(option);
-                });
-            }
+            
+            // Reset course dropdown
+            courseSelect.innerHTML = '<option value="">Loading courses...</option>';
+            
+            // Use AJAX to fetch courses for the selected department
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'get_courses.php?department=' + encodeURIComponent(department), true);
+            
+            xhr.onload = function() {
+                if (this.status == 200) {
+                    courseSelect.innerHTML = this.responseText;
+                } else {
+                    courseSelect.innerHTML = '<option value="">Error loading courses</option>';
+                }
+            };
+            
+            xhr.onerror = function() {
+                courseSelect.innerHTML = '<option value="">Error loading courses</option>';
+            };
+            
+            xhr.send();
         }
-
-        function showOtherCourseInput() {
-            document.getElementById('otherCourseDiv').style.display = 'block';
-            document.getElementById('course').value = '';
-            document.getElementById('course').required = false;
-            document.getElementById('otherCourseInput').required = true;
-            document.getElementById('otherCourseInput').focus();
-        }
-
-        function toggleCourseRequirement() {
-            const otherCourseInput = document.getElementById('otherCourseInput');
-            const courseSelect = document.getElementById('course');
-
-            if (otherCourseInput.value.trim() !== '') {
-                courseSelect.required = false;
-                otherCourseInput.required = true;
-            } else {
-                courseSelect.required = true;
-                otherCourseInput.required = false;
-            }
-        }
-
-        // Also when selecting from course dropdown, hide otherCourseDiv if not using "Other Course"
-        document.getElementById('course').addEventListener('change', function () {
-            const otherCourseDiv = document.getElementById('otherCourseDiv');
-            const otherCourseInput = document.getElementById('otherCourseInput');
-
-            if (this.value !== '') {
-                otherCourseDiv.style.display = 'none';
-                otherCourseInput.value = '';
-                otherCourseInput.required = false;
-                this.required = true;
-            }
-        });
     </script>
 </body>
 </html>

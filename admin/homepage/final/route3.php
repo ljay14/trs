@@ -282,117 +282,132 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
         
         <!-- Main Content -->
         <div class="main-content">
-            <nav class="sidebar">
-            <div class="thesis-sidebar">
+        <nav class="sidebar">
+    <nav class="nav-menu">
+        <!-- Title Proposal Section -->
+        <div class="menu-item dropdown">
+            <div class="menu-header">
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <span>Title Proposal</span>
+                <div class="dropdown-icon expanded">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+            <div class="dropdown-content show">
+                <a href="../titleproposal/route1.php" class="submenu-item">Route 1</a>
+                <a href="../titleproposal/route2.php" class="submenu-item">Route 2</a>
+                <a href="../titleproposal/route3.php" class="submenu-item">Route 3</a>
+                <a href="../titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
+            </div>
+        </div>
 
-<!-- Navigation Menu -->
-<nav class="nav-menu">
-    <!-- Title Proposal Section -->
-    <div class="menu-item dropdown">
-        <div class="menu-header">
-            <div class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
+        <!-- Final Defense Section -->
+        <div class="menu-item dropdown">
+            <div class="menu-header">
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                </div>
+                <span>Final</span>
+                <div class="dropdown-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             </div>
-            <span>Title Proposal</span>
-            <div class="dropdown-icon expanded">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+            <div class="dropdown-content">
+                <a href="../final/route1.php" class="submenu-item">Route 1</a>
+                <a href="../final/route2.php" class="submenu-item">Route 2</a>
+                <a href="../final/route3.php" class="submenu-item">Route 3</a>
+                <a href="../final/finaldocu.php" class="submenu-item">Final Document</a>
             </div>
         </div>
-        <div class="dropdown-content show">
-            <a href="../titleproposal/route1.php" class="submenu-item">Route 1</a>
-            <a href="../titleproposal/route2.php" class="submenu-item">Route 2</a>
-            <a href="../titleproposal/route3.php" class="submenu-item">Route 3</a>
-            <a href="../titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
-        </div>
-    </div>
 
-    <!-- Final Defense Section -->
-    <div class="menu-item dropdown">
-        <div class="menu-header">
-            <div class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                </svg>
+        <!-- Department Course Section -->
+        <div class="menu-item dropdown">
+            <div class="menu-header">
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <span>Department Course</span>
+                <div class="dropdown-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             </div>
-            <span>Final</span>
-            <div class="dropdown-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+            <div class="dropdown-content">
+                <a href="../departmentcourse/departmentcourse.php" class="submenu-item">Department Course</a>
             </div>
         </div>
-        <div class="dropdown-content">
-            <a href="../final/route1.php" class="submenu-item">Route 1</a>
-            <a href="../final/route2.php" class="submenu-item">Route 2</a>
-            <a href="../final/route3.php" class="submenu-item">Route 3</a>
-            <a href="../final/finaldocu.php" class="submenu-item">Final Document</a>
-        </div>
-    </div>
 
-    <!-- Register Account Section -->
-    <div class="menu-item dropdown">
-        <div class="menu-header">
-            <div class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                </svg>
+        <!-- Register Account Section -->
+        <div class="menu-item dropdown">
+            <div class="menu-header">
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                </div>
+                <span>Register Account</span>
+                <div class="dropdown-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             </div>
-            <span>Register Account</span>
-            <div class="dropdown-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+            <div class="dropdown-content">
+                <a href="../registeraccount/panel.php" class="submenu-item">Panel</a>
+                <a href="../registeraccount/adviser.php" class="submenu-item">Adviser</a>
             </div>
         </div>
-        <div class="dropdown-content">
-            <a href="../registeraccount/panel.php" class="submenu-item">Panel</a>
-            <a href="../registeraccount/adviser.php" class="submenu-item">Adviser</a>
-        </div>
-    </div>
 
-    <!-- Registered Account Section -->
-    <div class="menu-item dropdown">
-        <div class="menu-header">
-            <div class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
+        <!-- Registered Account Section -->
+        <div class="menu-item dropdown">
+            <div class="menu-header">
+                <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <span>Registered Account</span>
+                <div class="dropdown-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             </div>
-            <span>Registered Account</span>
-            <div class="dropdown-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
+            <div class="dropdown-content">
+                <a href="../registeredaccount/panel_register.php" class="submenu-item">Panel</a>
+                <a href="../registeredaccount/adviser_register.php" class="submenu-item">Adviser</a>
+                <a href="../registeredaccount/student_register.php" class="submenu-item">Student</a>
             </div>
         </div>
-        <div class="dropdown-content">
-            <a href="../registeredaccount/panel_register.php" class="submenu-item">Panel</a>
-            <a href="../registeredaccount/adviser_register.php" class="submenu-item">Adviser</a>
-            <a href="../registeredaccount/student_register.php" class="submenu-item">Student</a>
-        </div>
+    </nav>
+    <div class="logout">
+        <a href="../../../logout.php">Logout</a>
     </div>
 </nav>
-</div>
-                <div class="logout">
-                    <a href="../../../logout.php">Logout</a>
-                </div>
-            </nav>
-
             <div class="content" id="content-area">
                 <form id="submission-form" action="route3.php" method="POST">
                     <table>
@@ -628,59 +643,4 @@ function closeModal() {
 
 </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const menuHeaders = document.querySelectorAll('.menu-header');
-    const path = window.location.pathname;
-
-    menuHeaders.forEach(header => {
-        const dropdownContent = header.nextElementSibling;
-        const label = header.querySelector('span').textContent.trim().toLowerCase();
-
-        // Default: close all
-        header.querySelector('.dropdown-icon').classList.remove('expanded');
-        dropdownContent.classList.remove('show');
-
-        // Expand the right one based on URL
-        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/final/') && label === 'final') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/registeraccount/') && label === 'register account') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/registeredaccount/') && label === 'registered account') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        }
-
-        // Accordion behavior
-        header.addEventListener('click', function() {
-            // Toggle the clicked one
-            const icon = this.querySelector('.dropdown-icon');
-            icon.classList.toggle('expanded');
-            dropdownContent.classList.toggle('show');
-
-            // Optional: Close others (accordion behavior)
-            menuHeaders.forEach(h => {
-                if (h !== this) {
-                    const otherIcon = h.querySelector('.dropdown-icon');
-                    const otherContent = h.nextElementSibling;
-                    otherIcon.classList.remove('expanded');
-                    otherContent.classList.remove('show');
-                }
-            });
-        });
-    });
-
-    // Highlight active submenu item
-    const submenuItems = document.querySelectorAll('.submenu-item');
-    submenuItems.forEach(item => {
-        if (path.includes(item.getAttribute('href'))) {
-            item.classList.add('active');
-        }
-    });
-});
-</script>
+<script src="../sidebar.js"></script>
