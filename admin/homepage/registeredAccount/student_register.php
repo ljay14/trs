@@ -1030,7 +1030,8 @@ $result = $conn->query($sql);
                                                 <div id="password_inputs_<?= $row['school_id'] ?>" style="display:none;">
                                                     <input type="text" name="password" value="<?= htmlspecialchars($row['password']) ?>" id="password_input_<?= $row['school_id'] ?>" placeholder="New Password" required oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
                                                     <br>
-                                                    <input type="text" name="confirm_password" id="confirm_password_input_<?= $row['school_id'] ?>" placeholder="Confirm Password" required oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
+                                                    <input type="text" name="confirm_password" value="<?= htmlspecialchars($row['confirm_password']) ?>" id="confirm_password_input_<?= $row['school_id'] ?>" placeholder="Confirm Password" required oninput="checkPasswordMatch('<?= $row['school_id'] ?>')">
+                                               
                                                     <br>
                                                     <small id="mismatch_<?= $row['school_id'] ?>" style="color:red; display:none;">Passwords do not match!</small>
                                                 </div>
@@ -1054,50 +1055,60 @@ $result = $conn->query($sql);
     </div>
 
     <script>
-        function enableEdit(school_id) {
-            document.getElementById('fullname_text_' + school_id).style.display = 'none';
-            document.getElementById('department_text_' + school_id).style.display = 'none';
-            document.getElementById('password_text_' + school_id).style.display = 'none';
+       function enableEdit(school_id) {
+    document.getElementById('fullname_text_' + school_id).style.display = 'none';
+    document.getElementById('department_text_' + school_id).style.display = 'none';
+    document.getElementById('password_text_' + school_id).style.display = 'none';
 
-            document.getElementById('fullname_input_' + school_id).style.display = 'inline';
-            document.getElementById('department_input_' + school_id).style.display = 'inline';
-            document.getElementById('password_inputs_' + school_id).style.display = 'block';
+    document.getElementById('fullname_input_' + school_id).style.display = 'inline';
+    document.getElementById('department_input_' + school_id).style.display = 'inline';
+    document.getElementById('password_inputs_' + school_id).style.display = 'block';
 
-            document.getElementById('edit_btn_' + school_id).style.display = 'none';
-            document.getElementById('save_btn_' + school_id).style.display = 'inline';
-            document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+    document.getElementById('edit_btn_' + school_id).style.display = 'none';
+    document.getElementById('save_btn_' + school_id).style.display = 'inline';
+    document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+    
+    // Enable save button by default (will be disabled if passwords are entered and don't match)
+    document.getElementById('save_btn_' + school_id).disabled = false;
+}
+
+function cancelEdit(school_id) {
+    document.getElementById('fullname_text_' + school_id).style.display = 'inline';
+    document.getElementById('department_text_' + school_id).style.display = 'inline';
+    document.getElementById('password_text_' + school_id).style.display = 'inline';
+
+    document.getElementById('fullname_input_' + school_id).style.display = 'none';
+    document.getElementById('department_input_' + school_id).style.display = 'none';
+    document.getElementById('password_inputs_' + school_id).style.display = 'none';
+
+    document.getElementById('edit_btn_' + school_id).style.display = 'inline';
+    document.getElementById('save_btn_' + school_id).style.display = 'none';
+    document.getElementById('cancel_btn_' + school_id).style.display = 'none';
+
+    document.getElementById('mismatch_' + school_id).style.display = 'none';
+}
+
+function checkPasswordMatch(school_id) {
+    var password = document.getElementById('password_input_' + school_id).value;
+    var confirm_password = document.getElementById('confirm_password_input_' + school_id).value;
+    var mismatchText = document.getElementById('mismatch_' + school_id);
+    var saveBtn = document.getElementById('save_btn_' + school_id);
+
+    // Only validate if both password fields have content
+    if (password !== "" || confirm_password !== "") {
+        if (password !== confirm_password) {
+            mismatchText.style.display = 'block';
+            saveBtn.disabled = true;
+        } else {
+            mismatchText.style.display = 'none';
+            saveBtn.disabled = false;
         }
-
-        function cancelEdit(school_id) {
-            document.getElementById('fullname_text_' + school_id).style.display = 'inline';
-            document.getElementById('department_text_' + school_id).style.display = 'inline';
-            document.getElementById('password_text_' + school_id).style.display = 'inline';
-
-            document.getElementById('fullname_input_' + school_id).style.display = 'none';
-            document.getElementById('department_input_' + school_id).style.display = 'none';
-            document.getElementById('password_inputs_' + school_id).style.display = 'none';
-
-            document.getElementById('edit_btn_' + school_id).style.display = 'inline';
-            document.getElementById('save_btn_' + school_id).style.display = 'none';
-            document.getElementById('cancel_btn_' + school_id).style.display = 'none';
-
-            document.getElementById('mismatch_' + school_id).style.display = 'none';
-        }
-
-        function checkPasswordMatch(school_id) {
-            var password = document.getElementById('password_input_' + school_id).value;
-            var confirm_password = document.getElementById('confirm_password_input_' + school_id).value;
-            var mismatchText = document.getElementById('mismatch_' + school_id);
-            var saveBtn = document.getElementById('save_btn_' + school_id);
-
-            if (password !== confirm_password) {
-                mismatchText.style.display = 'block';
-                saveBtn.disabled = true;
-            } else {
-                mismatchText.style.display = 'none';
-                saveBtn.disabled = false;
-            }
-        }
+    } else {
+        // If both password fields are empty, enable the save button
+        mismatchText.style.display = 'none';
+        saveBtn.disabled = false;
+    }
+}
     </script>
 </body>
 </html>

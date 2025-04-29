@@ -20,14 +20,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $position = mysqli_real_escape_string($conn, $_POST['position']);
 
-    // Update adviser in the database
-    $sql = "UPDATE panel SET fullname = ?, department = ?, password = ?, position = ? WHERE school_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssss", $fullname, $department, $password, $school_id, $position);
+    // Check if password was provided; if not, don't update password
+    if (empty($password)) {
+        // Update panel without changing password
+        $sql = "UPDATE panel SET fullname = ?, department = ?, position = ? WHERE school_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssss", $fullname, $department, $position, $school_id);
+    } else {
+        // Update panel including password
+        $sql = "UPDATE panel SET fullname = ?, department = ?, password = ?, position = ? WHERE school_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sssss", $fullname, $department, $password, $position, $school_id);
+    }
 
     if ($stmt->execute()) {
         // Redirect with success message
         header("Location: panel_register.php?status=success");
+        exit;
     } else {
         echo "Error: " . $stmt->error;
         exit;
@@ -35,6 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     
     // Close the statement and connection
     $stmt->close();
-    $conn->close();
 }
+
+$conn->close();
 ?>

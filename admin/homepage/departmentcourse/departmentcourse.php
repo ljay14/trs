@@ -320,6 +320,7 @@ $result = $conn->query($sql);
         .cancel-button {
             background-color: #dc3545;
             color: white;
+            margin-right: 10px;
         }
 
         .cancel-button:hover {
