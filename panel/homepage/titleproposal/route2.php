@@ -20,7 +20,8 @@ if ($result && $result->num_rows > 0) {
 
 $selectedDepartment = $_POST['department'] ?? '';
 $panel_id = $_SESSION['panel_id'];
-$fullname = $_SESSION['fullname'] ?? 'Panelist';
+// Get the panel's name from session
+$panel_fullname = $_SESSION['fullname'] ?? 'Panelist';
 
 $stmt = $conn->prepare("SELECT student_id, route2_id FROM route2proposal_files 
                         WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?");
@@ -688,7 +689,7 @@ input[type="checkbox"] {
                 <div class="routeNo" style="margin-right: 20px;">Proposal - Route 2</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
-                <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
+                <span class="user-name"><?= htmlspecialchars($panel_fullname) ?></span>
             </div>
         </div>
 
@@ -768,7 +769,7 @@ input[type="checkbox"] {
                         student_id, 
                         route2_id, 
                         controlNo, 
-                        fullname, 
+                        fullname as student_fullname, 
                         group_number,
                         title
                     FROM route2proposal_files 
@@ -807,14 +808,14 @@ input[type="checkbox"] {
                         $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
                         $fileName = basename($filePath);
                         $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-                        $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                        $student_fullname = htmlspecialchars($row['student_fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
                         echo "
                             <tr>
                                 <td>$controlNo</td>
-                                <td>$fullname</td>
+                                <td>$student_fullname</td>
                                 <td>$groupNo</td>
                                 <td>$title</td>
                                 <td style='text-align: center;'>
@@ -851,7 +852,7 @@ input[type="checkbox"] {
 
     <script>
 
-const panelName = <?= json_encode($fullname) ?>;
+const panelName = <?= json_encode($panel_fullname) ?>;
 
 function viewFile(filePath, route2_id, student_id) {
     const modal = document.getElementById("fileModal");

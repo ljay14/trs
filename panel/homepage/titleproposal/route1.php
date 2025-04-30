@@ -739,9 +739,6 @@ function toggleForms(route1_id) {
         loadAllForms(route1_id);
     }
 }
-function closeModal() {
-    document.getElementById("fileModal").style.display = "none";
-}
 
 function loadAllForms(route1_id) {
     const formDataContainer = document.getElementById("submittedFormsContainer");

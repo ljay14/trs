@@ -20,7 +20,7 @@ if ($result && $result->num_rows > 0) {
 
 $selectedDepartment = $_POST['department'] ?? '';
 $panel_id = $_SESSION['panel_id'];
-$fullname = $_SESSION['fullname'] ?? 'Panelist';
+$panel_fullname = $_SESSION['fullname'] ?? 'Panelist';
 
 $stmt = $conn->prepare("SELECT student_id, route3_id FROM route3final_files 
                         WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?");
@@ -687,7 +687,7 @@ input[type="checkbox"] {
                 <div class="routeNo" style="margin-right: 20px;">Final - Route 3</div>
                 <div class="vl"></div>
                 <span class="role">Panelist:</span>
-                <span class="user-name"><?= htmlspecialchars($fullname) ?></span>
+                <span class="user-name"><?= htmlspecialchars($panel_fullname) ?></span>
             </div>
         </div>
 
@@ -849,7 +849,7 @@ input[type="checkbox"] {
     </div>
 
     <script>
-        const panelName = <?= json_encode($fullname) ?>;
+        const panelName = <?= json_encode($panel_fullname) ?>;
         const currentPanelPosition = "<?php echo $currentPanelPosition; ?>";
 
         function viewFile(filePath, route3_id, student_id) {
