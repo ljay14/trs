@@ -46,10 +46,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department, controlNo, fullname, group_number, title, and adviser from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name, $school_year);
     $stmt->fetch();
     $stmt->close();
 
@@ -100,9 +100,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Insert the new file info including adviser_id
-                    $stmt = $conn->prepare("INSERT INTO route1proposal_files (student_id, docuRoute1, department, controlNo, fullname, group_number, title, adviser_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route1proposal_files (student_id, docuRoute1, department, controlNo, fullname, group_number, title, adviser_id, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssssssi", $student_id, $filePath, $department, $controlNo, $fullname, $group_number, $title, $adviser_id);
+                        $stmt->bind_param("sssssssis", $student_id, $filePath, $department, $controlNo, $fullname, $group_number, $title, $adviser_id, $school_year);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
                         } else {

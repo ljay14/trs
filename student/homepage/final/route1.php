@@ -45,10 +45,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $school_year);
     $stmt->fetch();
     $stmt->close();
 
@@ -120,9 +120,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
 
                     $date_submitted = date("Y-m-d H:i:s");
 
-                    $stmt = $conn->prepare("INSERT INTO route1final_files (student_id, docuRoute1, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route1final_files (student_id, docuRoute1, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
+                        $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route1.php';</script>";
                         } else {

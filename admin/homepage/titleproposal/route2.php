@@ -21,6 +21,16 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM route2proposal_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
+
+
 // Initialize variables
 $panel = [];
 $adviser = [];
@@ -36,7 +46,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
 
 // Load data for selected department
 if (isset($_SESSION['selected_department'])) {
-    $selectedDepartment = $_SESSION['selected_department'];
+    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
+    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+    
+    $_SESSION['selected_department'] = $selectedDepartment;
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
 
     // Fetch panel data
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
@@ -182,6 +196,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                 <option value="<?= htmlspecialchars($department) ?>"
                                     <?= isset($selectedDepartment) && $selectedDepartment == $department ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($department) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                    <form method="POST" style="display: inline; margin-left: 10px;">
+                        <select name="school_year" onchange="this.form.submit()">
+                            <option value="">All School Years</option>
+                            <?php foreach ($schoolYears as $year): ?>
+                                <option value="<?= htmlspecialchars($year) ?>"
+                                    <?= isset($selectedSchoolYear) && $selectedSchoolYear == $year ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($year) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

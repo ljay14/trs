@@ -11,8 +11,6 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection settings
 include '../../../connection.php';
 
-
-
 // Fetch departments
 $departments = [];
 $deptQuery = "SELECT DISTINCT department FROM student";
@@ -23,22 +21,37 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
+// Fetch school years
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM finaldocuproposal_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
+
 // Initialize variables
 $panel = [];
 $adviser = [];
 $files = [];
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
-    $selectedDepartment = $_POST['department'];
+// Handle form submission for department and school year selection
+if ($_SERVER["REQUEST_METHOD"] === "POST" && (isset($_POST['department']) || isset($_POST['school_year']))) {
+    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
+    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+    
     $_SESSION['selected_department'] = $selectedDepartment;
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
+    
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
-// Load data for selected department
+// Load data for selected department and school year
 if (isset($_SESSION['selected_department'])) {
     $selectedDepartment = $_SESSION['selected_department'];
+    $selectedSchoolYear = $_SESSION['selected_school_year'] ?? '';
 
     // Fetch panel data
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
@@ -60,10 +73,8 @@ if (isset($_SESSION['selected_department'])) {
     }
     $adviserStmt->close();
 
-    // Fetch files
-// Fetch files
-$fileStmt = $conn->prepare(
-    "SELECT 
+    // Fetch files with school year filter
+    $fileQuery = "SELECT 
         finaldocu AS filepath, 
         finaldocu AS filename, 
         date_submitted,
@@ -71,13 +82,21 @@ $fileStmt = $conn->prepare(
         group_number,
         fullname,
         title,
+        school_year,
         student_id, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id
      FROM finaldocuproposal_files 
-     WHERE department = ?"
-);
-
+     WHERE department = ?";
     
-    $fileStmt->bind_param("s", $selectedDepartment);
+    // Add school year filter if selected
+    if (!empty($selectedSchoolYear)) {
+        $fileQuery .= " AND school_year = ?";
+        $fileStmt = $conn->prepare($fileQuery);
+        $fileStmt->bind_param("ss", $selectedDepartment, $selectedSchoolYear);
+    } else {
+        $fileStmt = $conn->prepare($fileQuery);
+        $fileStmt->bind_param("s", $selectedDepartment);
+    }
+    
     $fileStmt->execute();
     $fileResult = $fileStmt->get_result();
     while ($row = $fileResult->fetch_assoc()) {
@@ -93,14 +112,14 @@ $fileStmt = $conn->prepare(
             'panel3_id' => $row['panel3_id'],
             'panel4_id' => $row['panel4_id'],
             'adviser_id' => $row['adviser_id'],
-            'title' => $row['title']
+            'title' => $row['title'],
+            'school_year' => $row['school_year']
         ];
     }
     
     $fileStmt->close();
 }
 
-// Handle file submission for panelists and adviser
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $selectedFiles = $_POST['selected_files'];
@@ -144,7 +163,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     }
 }
 
+// Function to get current school year (e.g., "2024-2025")
+function getCurrentSchoolYear() {
+    $month = date('n');
+    $year = date('Y');
+    
+    // Academic year typically starts in June/July and ends in March/April
+    if ($month >= 6) { // June to December
+        return $year . "-" . ($year + 1);
+    } else { // January to May
+        return ($year - 1) . "-" . $year;
+    }
+}
 
+// If no school years in database, add current one to the array
+if (empty($schoolYears)) {
+    $schoolYears[] = getCurrentSchoolYear();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -170,11 +205,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
         <!-- Top Navigation Bar -->
         <div class="top-bar">
             <div class="navigation">
-            <div class="homepage">
-                <a href="../homepage.php">Home Page</a>
-            </div>
+                <div class="homepage">
+                    <a href="../homepage.php">Home Page</a>
+                </div>
 
-                <!-- Department Dropdown -->
+                <!-- Department and School Year Dropdown -->
                 <div class="dropdown-container">
                     <form method="POST" style="display: inline;">
                         <select name="department" onchange="this.form.submit()">
@@ -183,6 +218,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                 <option value="<?= htmlspecialchars($department) ?>"
                                     <?= isset($selectedDepartment) && $selectedDepartment == $department ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($department) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+
+                    <form method="POST" style="display: inline; margin-left: 10px;">
+                        <select name="school_year" onchange="this.form.submit()">
+                            <option value="">All School Years</option>
+                            <?php foreach ($schoolYears as $year): ?>
+                                <option value="<?= htmlspecialchars($year) ?>"
+                                    <?= isset($selectedSchoolYear) && $selectedSchoolYear == $year ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($year) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -416,6 +463,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>School Year</th>
                                 <th>Assigned</th>
                                 <th>Action</th>
                             </tr>
@@ -432,6 +480,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                         $finaldocu_id = htmlspecialchars($file['finaldocu_id'] ?? '', ENT_QUOTES);
                                         $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
                                         $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
+                                        $school_year = htmlspecialchars($file['school_year'] ?? getCurrentSchoolYear(), ENT_QUOTES);
+                                        
                                         // Check if file is assigned to a panelist and adviser
                                         $assigned = '';
                                         if ($file['panel1_id'] || $file['panel2_id'] || $file['panel3_id'] || $file['panel4_id']) {
@@ -450,6 +500,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                         <td><?= $fullname ?></td>
                                         <td><?= $group_number ?></td>
                                         <td><?= $title ?></td>
+                                        <td><?= $school_year ?></td>
                                         <td style="text-align: center;"><?= $assigned ?></td>
                                         <td style="text-align: center;">
                                             <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $finaldocu_id ?>')">View</button>
@@ -458,7 +509,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" style="text-align: center;">No files found.</td>
+                                    <td colspan="8" style="text-align: center;">No files found.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -496,66 +547,60 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     }
 
     // Handles form submission
-    // Handles form submission
-document.getElementById("external-submit-button").addEventListener("click", function () {
-    const panel1 = document.getElementById("panel1-dropdown").value.trim();
-    const panel2 = document.getElementById("panel2-dropdown").value.trim();
-    const panel3 = document.getElementById("panel3-dropdown").value.trim();
-    const panel4 = document.getElementById("panel4-dropdown").value.trim();
-  
+    document.getElementById("external-submit-button").addEventListener("click", function () {
+        const panel1 = document.getElementById("panel1-dropdown").value.trim();
+        const panel2 = document.getElementById("panel2-dropdown").value.trim();
+        const panel3 = document.getElementById("panel3-dropdown").value.trim();
+        const panel4 = document.getElementById("panel4-dropdown").value.trim();
+      
+        // Set hidden fields
+        document.getElementById("hidden-panel1").value = panel1;
+        document.getElementById("hidden-panel2").value = panel2;
+        document.getElementById("hidden-panel3").value = panel3;
+        document.getElementById("hidden-panel4").value = panel4;
 
-    // Set hidden fields
-    document.getElementById("hidden-panel1").value = panel1;
-    document.getElementById("hidden-panel2").value = panel2;
-    document.getElementById("hidden-panel3").value = panel3;
-    document.getElementById("hidden-panel4").value = panel4;
+        // Validate file selection
+        const selectedFiles = document.querySelectorAll("input[name='selected_files[]']:checked");
+        if (selectedFiles.length === 0) {
+            alert("Please select at least one file.");
+            return;
+        }
 
+        // If at least one panelist is selected, proceed
+        const panelSelected = panel1 || panel2 || panel3 || panel4;
+        if (!panelSelected) {
+            alert("Please select at least one panelist.");
+            return;
+        }
 
-    // Validate file selection
-    const selectedFiles = document.querySelectorAll("input[name='selected_files[]']:checked");
-    if (selectedFiles.length === 0) {
-        alert("Please select at least one file.");
-        return;
-    }
+        // Submit the form
+        document.getElementById("submission-form").submit();
+    });
 
+    function viewFile(filePath, student_id, route1_id, route2_id, route3_id) {
+        const modal = document.getElementById("fileModal");
+        const contentArea = document.getElementById("fileModalContent");
+        const routingFormArea = document.getElementById("routingForm");
 
+        modal.style.display = "flex";
+        contentArea.innerHTML = "Loading file...";
+        routingFormArea.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                <div style="text-align: center;">
+                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                </div>
+                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+            </div>
+            <hr style="border: 1px solid black; margin: 0.2rem 0;">
+            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+            </div>
 
-    // If at least one panelist is selected, proceed
-    const panelSelected = panel1 || panel2 || panel3 || panel4;
-    if (!panelSelected) {
-        alert("Please select at least one panelist.");
-        return;
-    }
-
-    // Submit the form
-    document.getElementById("submission-form").submit();
-});
-
-
-function viewFile(filePath, student_id, route1_id, route2_id, route3_id) {
-            const modal = document.getElementById("fileModal");
-            const contentArea = document.getElementById("fileModalContent");
-            const routingFormArea = document.getElementById("routingForm");
-
-            modal.style.display = "flex";
-            contentArea.innerHTML = "Loading file...";
-            routingFormArea.innerHTML = `
-    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-        <div style="text-align: center;">
-            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-        </div>
-        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-    </div>
-    <hr style="border: 1px solid black; margin: 0.2rem 0;">
-    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
-        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-    </div>
-
-    <!-- Header row for submitted forms -->
-    <div class="form-grid-container" style="margin-top: 20px;">
+            <!-- Header row for submitted forms -->
+            <div class="form-grid-container" style="margin-top: 20px;">
         <div><strong>Date Submitted</strong></div>
         <div><strong>Chapter</strong></div>
         <div><strong>Feedback</strong></div>

@@ -21,6 +21,16 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM route3proposal_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
+
+
 // Initialize variables
 $panel = [];
 $adviser = [];
@@ -36,7 +46,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
 
 // Load data for selected department
 if (isset($_SESSION['selected_department'])) {
-    $selectedDepartment = $_SESSION['selected_department'];
+    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
+    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+    
+    $_SESSION['selected_department'] = $selectedDepartment;
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
 
     // Fetch panel data
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
@@ -185,6 +199,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                             <?php endforeach; ?>
                         </select>
                     </form>
+                    <form method="POST" style="display: inline; margin-left: 10px;">
+                        <select name="school_year" onchange="this.form.submit()">
+                            <option value="">All School Years</option>
+                            <?php foreach ($schoolYears as $year): ?>
+                                <option value="<?= htmlspecialchars($year) ?>"
+                                    <?= isset($selectedSchoolYear) && $selectedSchoolYear == $year ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($year) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
 
                     <!-- Panel Dropdowns -->
                     <select id="panel1-dropdown" name="panel1">
@@ -299,10 +324,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </div>
             <div class="dropdown-content show">
-                <a href="titleproposal/route1.php" class="submenu-item">Route 1</a>
-                <a href="titleproposal/route2.php" class="submenu-item">Route 2</a>
-                <a href="titleproposal/route3.php" class="submenu-item">Route 3</a>
-                <a href="titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
+                <a href="../titleproposal/route1.php" class="submenu-item">Route 1</a>
+                <a href="../titleproposal/route2.php" class="submenu-item">Route 2</a>
+                <a href="../titleproposal/route3.php" class="submenu-item">Route 3</a>
+                <a href="../titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
             </div>
         </div>
 
@@ -323,10 +348,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </div>
             <div class="dropdown-content">
-                <a href="final/route1.php" class="submenu-item">Route 1</a>
-                <a href="final/route2.php" class="submenu-item">Route 2</a>
-                <a href="final/route3.php" class="submenu-item">Route 3</a>
-                <a href="final/finaldocu.php" class="submenu-item">Final Document</a>
+                <a href="../final/route1.php" class="submenu-item">Route 1</a>
+                <a href="../final/route2.php" class="submenu-item">Route 2</a>
+                <a href="../final/route3.php" class="submenu-item">Route 3</a>
+                <a href="../final/finaldocu.php" class="submenu-item">Final Document</a>
             </div>
         </div>
 
@@ -369,8 +394,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </div>
             <div class="dropdown-content">
-                <a href="registeraccount/panel.php" class="submenu-item">Panel</a>
-                <a href="registeraccount/adviser.php" class="submenu-item">Adviser</a>
+                <a href="../registeraccount/panel.php" class="submenu-item">Panel</a>
+                <a href="../registeraccount/adviser.php" class="submenu-item">Adviser</a>
             </div>
         </div>
 
@@ -393,14 +418,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 </div>
             </div>
             <div class="dropdown-content">
-                <a href="registeredaccount/panel_register.php" class="submenu-item">Panel</a>
-                <a href="registeredaccount/adviser_register.php" class="submenu-item">Adviser</a>
-                <a href="registeredaccount/student_register.php" class="submenu-item">Student</a>
+                <a href="../registeredaccount/panel_register.php" class="submenu-item">Panel</a>
+                <a href="../registeredaccount/adviser_register.php" class="submenu-item">Adviser</a>
+                <a href="../registeredaccount/student_register.php" class="submenu-item">Student</a>
             </div>
         </div>
     </nav>
     <div class="logout">
-        <a href="../../logout.php">Logout</a>
+        <a href="../../../logout.php">Logout</a>
     </div>
 </nav>
             <div class="content" id="content-area">

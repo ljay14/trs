@@ -868,7 +868,6 @@ $conn->close();
                 <a href="../../homepage/homepage.php">Home Page</a>
             </div>
             <div class="user-info">
-                <a href="../registeredaccount/panel_register.php">Registered Account</a>
                 <div class="vl"></div>
                 <span class="role">Admin:</span>
                 <span class="user-name"><?php echo isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Guest'; ?></span>

@@ -838,7 +838,7 @@ function viewFile(filePath, student_id, finaldocu_id) {
     const extension = filePath.split('.').pop().toLowerCase();
 
     modal.style.display = "flex";
-    contentArea.innerHTML = "Loading file...";
+    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
     routingForm.innerHTML = "";
 
     if (extension === "pdf") {
@@ -848,109 +848,112 @@ function viewFile(filePath, student_id, finaldocu_id) {
             .then(res => res.arrayBuffer())
             .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
             .then(result => contentArea.innerHTML = `<div class="file-content">${result.value}</div>`)
-            .catch(() => contentArea.innerHTML = "Error loading file.");
+            .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
     } else {
-        contentArea.innerHTML = "Unsupported file type.";
+        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
     }
 
     const adviserName = <?= json_encode($fullname) ?>;
 
     routingForm.innerHTML = `
         <form method="POST">
-            <input type="hidden" name="finaldocu" value="${filePath}">
+            <input type="hidden" name="docuRoute3" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="finaldocu_id" value="${finaldocu_id}">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-            <div style="text-align: center;">
-                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                <div style="text-align: center;">
+                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                </div>
+                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
             </div>
-            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-        </div>
 
-        <hr style="border: 1px solid black; margin: 0.2rem 0;">
-        <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-            <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-            <div>
-                <button type="button" onclick="addFormRow()">Add Row</button>
-                <button type="submit">Submit Routing Form</button>
-                 <button type="button" onclick="showAllForms('${student_id}')">Show all Forms</button>
+            <hr style="border: 1px solid black; margin: 0.2rem 0;">
+            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                <div>
+                    <button type="button" onclick="addFormRow()">Add Row</button>
+                    <button type="submit">Submit Routing Form</button>
+                    <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Hide Forms</button>
+                </div>
             </div>
-        </div>
 
-<!-- Header row for submitted forms -->
-<div class="form-grid-container" style="margin-top: 20px;">
-    <div><strong>Date Submitted</strong></div>
-    <div><strong>Chapter</strong></div>
-    <div><strong>Feedback</strong></div>
-    <div><strong>Paragraph No</strong></div>
-    <div><strong>Page No</strong></div>
-    <div><strong>Submitted By</strong></div>
-    <div><strong>Date Released</strong></div>
-    <div><strong>Status</strong></div>
-    <div><strong>Action</strong></div>
-</div>
-
-<!-- Container for submitted form data -->
-<div id="submittedFormsContainer" class="form-grid-container"></div>
-<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
-
-        <div id="routingRowsContainer">
-            <div class="form-grid-container">
-                <div><input type="text" name="dateSubmitted[]" value="<?= date('Y-m-d'); ?>" readonly></div>
-                <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                <div><input type="number" name="paragraphNumber[]" required></div>
-                <div><input type="number" name="pageNumber[]" required></div>
-                <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
-                <div><input type="date" name="dateReleased[]" value="<?= date('Y-m-d'); ?>" required></div>
+            <!-- Header row for submitted forms -->
+            <div class="form-grid-container" style="margin-top: 20px;">
+                <div><strong>Date Submitted</strong></div>
+                <div><strong>Chapter</strong></div>
+                <div><strong>Feedback</strong></div>
+                <div><strong>Paragraph No</strong></div>
+                <div><strong>Page No</strong></div>
+                <div><strong>Submitted By</strong></div>
+                <div><strong>Date Released</strong></div>
+                <div><strong>Status</strong></div>
+                <div><strong>Action</strong></div>
             </div>
+
+            <!-- Container for submitted form data -->
+            <div id="submittedFormsContainer" class="form-grid-container"></div>
+            <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+            <div id="routingRowsContainer">
+                <div class="form-grid-container">
+                    <div><input type="text" name="dateSubmitted[]" value="<?= date('Y-m-d'); ?>" readonly></div>
+                    <div><input type="text" name="chapter[]" required></div>
+                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                    <div><input type="number" name="paragraphNumber[]" required></div>
+                    <div><input type="number" name="pageNumber[]" required></div>
+                    <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
+                    <div><input type="date" name="dateReleased[]" value="<?= date('Y-m-d'); ?>" required></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    // Load all forms by default
+    loadAllForms(student_id);
+}
+
+function closeModal() {
+    document.getElementById("fileModal").style.display = "none";
+}
+
+function addFormRow() {
+    const row = `
+        <div class="form-grid-container">
+            <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
+            <div><input type="text" name="chapter[]" required></div>
+            <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+            <div><input type="number" name="paragraphNumber[]" required></div>
+            <div><input type="number" name="pageNumber[]" required></div>
+            <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
+            <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
+            <div></div>
+            <div></div>
         </div>
-    </form>
-`;}
-        
+    `;
+    document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
+}
 
-        function closeModal() {
-            document.getElementById("fileModal").style.display = "none";
-        }
+let formsVisible = true;
 
-        function addFormRow() {
-            const row = `
-<div class="form-grid-container">
-    <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
-    <div><input type="text" name="chapter[]" required></div>
-    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-    <div><input type="number" name="paragraphNumber[]" required></div>
-    <div><input type="number" name="pageNumber[]" required></div>
-    <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
-    <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-        <div></div>
-    <div></div>
-</div>
-`;
-            document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
-        }
-
-        let formsVisible = false;
-
-        function showAllForms(student_id) {
+function loadAllForms(student_id) {
     const formDataContainer = document.getElementById("submittedFormsContainer");
     const noFormsMessage = document.getElementById("noFormsMessage");
-    const showButton = document.querySelector("button[onclick^='showAllForms']");
+    
+    // Show loading spinner
+    formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
 
-    if (formsVisible) {
-        formDataContainer.innerHTML = "";
-        noFormsMessage.innerText = "";
-        showButton.textContent = "Show all Forms";
-        formsVisible = false;
-        return;
-    }
-
+    // Fetch data
     fetch('route3get_all_forms.php?student_id=' + student_id)
         .then(response => response.json())
         .then(data => {
+            formDataContainer.innerHTML = ""; // Clear spinner
+            
             if (data.length === 0) {
                 noFormsMessage.innerText = "No routing forms submitted yet.";
                 return;
@@ -959,50 +962,67 @@ function viewFile(filePath, student_id, finaldocu_id) {
             noFormsMessage.innerText = ""; // Clear message
 
             data.forEach(form => {
-    const formId = form.id;
-    const statusValue = (form.status || 'Pending').trim();
+                const formId = form.id;
+                const statusValue = (form.status || 'Pending').trim();
 
-    let submittedBy = 'N/A';
-    if (form.adviser_name) {
-        submittedBy = `${form.adviser_name} - Adviser`;
-    } else if (form.panel_name) {
-        submittedBy = `${form.panel_name} - Panel`;
-    }
+                let submittedBy = 'N/A';
+                if (form.adviser_name) {
+                    submittedBy = `${form.adviser_name} - Adviser`;
+                } else if (form.panel_name) {
+                    submittedBy = `${form.panel_name} - Panel`;
+                }
 
-    formDataContainer.innerHTML += `
-        <div>${form.date_submitted}</div>
-        <div>${form.chapter}</div>
-        <div class="feedback-cell">${form.feedback}</div>
-        <div>${form.paragraph_number}</div>
-        <div>${form.page_number}</div>
-        <div>${submittedBy}</div>
-        <div>${form.date_released}</div>
-        <div>
-            <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-            </select>
-        </div>
-        <div>
-            <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
-        </div>
-    `;
-});
+                formDataContainer.innerHTML += `
+                    <div>${form.date_submitted}</div>
+                    <div>${form.chapter}</div>
+                    <div class="feedback-cell">${form.feedback}</div>
+                    <div>${form.paragraph_number}</div>
+                    <div>${form.page_number}</div>
+                    <div>${submittedBy}</div>
+                    <div>${form.date_released}</div>
+                    <div>
+                        <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                            <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                            <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+                    </div>
+                `;
+            });
 
-            showButton.textContent = "Show less";
             formsVisible = true;
         })
         .catch(error => {
             console.error('Error fetching forms:', error);
+            noFormsMessage.innerText = "Error loading forms.";
         });
 }
 
+function toggleForms(student_id) {
+    const formDataContainer = document.getElementById("submittedFormsContainer");
+    const noFormsMessage = document.getElementById("noFormsMessage");
+    const toggleButton = document.getElementById("toggleFormsBtn");
+
+    if (formsVisible) {
+        // Hide forms
+        formDataContainer.innerHTML = "";
+        noFormsMessage.innerText = "";
+        toggleButton.textContent = "Show Forms";
+        formsVisible = false;
+    } else {
+        // Show forms
+        toggleButton.textContent = "Hide Forms";
+        loadAllForms(student_id);
+    }
+}
 
 function autoGrow(textarea) {
-        textarea.style.height = 'auto'; // Reset height
-        textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
-    }
+    textarea.style.height = 'auto'; // Reset height
+    textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+}
 
 function saveStatus(formId, event) {
     event.preventDefault();  // Prevent any form submission
@@ -1025,37 +1045,35 @@ function saveStatus(formId, event) {
             status: newStatus  // Update to status (changed from adviser_status)
         })
     })
-        .then(response => response.json())
-        .then(data => {
-            console.log("Response from update_form_status.php:", data);
-            if (data.success) {
-                const saveButton = document.getElementById(`saveButton_${formId}`);
-                saveButton.disabled = true;
-                saveButton.textContent = "Saved ✔";
-                saveButton.style.backgroundColor = "green";
-                saveButton.style.color = "white";
-            } else {
-                alert("Failed to save status: " + data.message);
-            }
-        })
-        .catch(error => {
-            alert("Error saving status.");
-            console.error(error);
-        });
+    .then(response => response.json())
+    .then(data => {
+        console.log("Response from update_form_status.php:", data);
+        if (data.success) {
+            const saveButton = document.getElementById(`saveButton_${formId}`);
+            saveButton.disabled = true;
+            saveButton.textContent = "Saved ✔";
+            saveButton.style.backgroundColor = "green";
+            saveButton.style.color = "white";
+        } else {
+            alert("Failed to save status: " + data.message);
+        }
+    })
+    .catch(error => {
+        alert("Error saving status.");
+        console.error(error);
+    });
 }
 
+function enableSaveButton(formId) {
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    saveButton.disabled = false;  // Enable the save button
+}
 
-    function enableSaveButton(formId) {
-        const saveButton = document.getElementById(`saveButton_${formId}`);
-        saveButton.disabled = false;  // Enable the save button
-    }
-
-
-        <?php if ($showModal): ?>
-            window.addEventListener('load', () => {
-                viewFile("<?= addslashes($lastFilePath) ?>");
-            });
-        <?php endif; ?>
+<?php if ($showModal): ?>
+    window.addEventListener('load', () => {
+        viewFile("<?= addslashes($lastFilePath) ?>", "<?= addslashes($student_id) ?>", "<?= addslashes($finaldocu_id) ?>");
+    });
+<?php endif; ?>
     </script>
 
 

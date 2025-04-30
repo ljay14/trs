@@ -51,10 +51,10 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $school_year);
     $stmt->fetch();
     $stmt->close();
 
@@ -63,24 +63,29 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         exit;
     } else {
         // Check Route 1 approval status
-        $stmt = $conn->prepare("SELECT status FROM final_monitoring_form WHERE student_id = ? AND route1_id IS NOT NULL");
+        $stmt = $conn->prepare("SELECT status, route2_id FROM final_monitoring_form WHERE student_id = ?");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status);
+        $stmt->bind_result($status, $route2_id);
 
-        $allApproved = true;  // Flag to check if all approvals are "Approved"
-
-        // Check each route1 approval status
+        // Check
+        $allowUpload = true;
         while ($stmt->fetch()) {
-            if ($status !== 'Approved') {
-                $allApproved = false;
-                break; // No need to check further if one status is not "Approved"
+            if ($status != 'Approved') {
+                if (empty($route2_id)) {
+                    // Meaning it's NOT Route 3, still pending => NOT allowed
+                    $allowUpload = false;
+                    break;
+                }
             }
         }
         $stmt->close();
 
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+        if (!$allowUpload) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
             exit;
         }
 
@@ -129,8 +134,8 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                 $date_submitted = date("Y-m-d H:i:s");
 
                 // Insert into Route 3 with date_submitted
-                $stmt = $conn->prepare("INSERT INTO route3final_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
+                $stmt = $conn->prepare("INSERT INTO route3final_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                 
                 if ($stmt->execute()) {
                     echo "<script>alert('File uploaded successfully.'); window.location.href = 'route3.php';</script>";

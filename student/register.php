@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $adviser = mysqli_real_escape_string($conn, $_POST['adviser']);
     $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
     $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
-    $group_members_json = json_encode($members); // Now properly defined    
+    $group_members = json_encode($members); // Now properly defined    
     $controlNo = mysqli_real_escape_string($conn, $_POST['controlNo']);
     $title = mysqli_real_escape_string($conn, $_POST['title']);
 
@@ -33,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // Insert data into the database (no need for student_id since it's auto-incremented)
     $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number, group_members) 
-            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members_json')";
+            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members')";
 
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id

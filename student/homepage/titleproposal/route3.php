@@ -49,10 +49,10 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $school_year);
     $stmt->fetch();
     $stmt->close();
 
@@ -62,19 +62,23 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
     } else {
         // Check Route 1 approval status
 // Only check rows that are actually Route 1
-$stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ? AND route1_id = ?");
+$stmt = $conn->prepare("SELECT status, route2_id FROM proposal_monitoring_form WHERE student_id = ?");
 if (!$stmt) {
     die("Error preparing statement: " . $conn->error);
 }
-$stmt->bind_param("si", $student_id, $student);
+$stmt->bind_param("s", $student_id);
 $stmt->execute();
-$stmt->bind_result($status);
+$stmt->bind_result($status, $route2_id);
 
+// Check
 $allowUpload = true;
 while ($stmt->fetch()) {
     if ($status != 'Approved') {
-        $allowUpload = false;
-        break;
+        if (empty($route2_id)) {
+            // Meaning it's NOT Route 3, still pending => NOT allowed
+            $allowUpload = false;
+            break;
+        }
     }
 }
 $stmt->close();
@@ -129,8 +133,8 @@ $stmt->close();
                 $date_submitted = date("Y-m-d H:i:s");
 
                 // Insert into Route 3 with date_submitted
-                $stmt = $conn->prepare("INSERT INTO route3proposal_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssiiiiisssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title);
+                $stmt = $conn->prepare("INSERT INTO route3proposal_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                 
                 if ($stmt->execute()) {
                     echo "<script>alert('File uploaded successfully.'); window.location.href = 'route3.php';</script>";

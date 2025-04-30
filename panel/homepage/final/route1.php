@@ -639,165 +639,160 @@ input[type="checkbox"] {
     <script>
     const panelName = <?= json_encode($fullname) ?>;
 
+    
     function viewFile(filePath, route1_id, student_id) {
-        const modal = document.getElementById("fileModal");
-        const contentArea = document.getElementById("fileModalContent");
-        const routingForm = document.getElementById("routingForm");
-        const extension = filePath.split('.').pop().toLowerCase();
+    const modal = document.getElementById("fileModal");
+    const contentArea = document.getElementById("fileModalContent");
+    const routingForm = document.getElementById("routingForm");
+    const extension = filePath.split('.').pop().toLowerCase();
 
-        modal.style.display = "flex";
-        contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
-        routingForm.innerHTML = "";
+    modal.style.display = "flex";
+    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
+    routingForm.innerHTML = "";
 
-        if (extension === "pdf") {
-            contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
-        } else if (extension === "docx") {
-            fetch(filePath)
-                .then(res => res.arrayBuffer())
-                .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-                .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
-                .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
-        } else {
-            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
-        }
-
-        const today = new Date().toISOString().split('T')[0];
-
-        routingForm.innerHTML = `
-            <form method="POST">
-                <input type="hidden" name="docuRoute1" value="${filePath}">
-                <input type="hidden" name="student_id" value="${student_id}">
-                <input type="hidden" name="route1_id" value="${route1_id}">
-
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-                    <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-                    <div style="text-align: center;">
-                        <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                        <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-                    </div>
-                    <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-                </div>
-
-                <hr style="border: 1px solid black; margin: 0.2rem 0;">
-                <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-                    <div>
-                        <button type="button" onclick="addFormRow()">Add Row</button>
-                        <button type="submit">Submit Routing Form</button>
-                        <button type="button" onclick="showAllForms('${route1_id}')">Show all Forms</button>
-                    </div>
-                </div>
-                <!-- Header row for submitted forms -->
-                <div class="form-grid-container" style="margin-top: 20px;">
-                    <div><strong>Date Submitted</strong></div>
-                    <div><strong>Chapter</strong></div>
-                    <div><strong>Feedback</strong></div>
-                    <div><strong>Paragraph No</strong></div>
-                    <div><strong>Page No</strong></div>
-                    <div><strong>Submitted By</strong></div>
-                    <div><strong>Date Released</strong></div>
-                </div>
-
-                <!-- Container for submitted form data -->
-                <div id="submittedFormsContainer" class="form-grid-container"></div>
-                <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
-
-                <div id="routingRowsContainer">
-                    <div class="form-grid-container">
-                        <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                        <div><input type="text" name="chapter[]" required></div>
-                        <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                        <div><input type="number" name="paragraphNumber[]" required></div>
-                        <div><input type="number" name="pageNumber[]" required></div>
-                        <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                        <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                    </div>
-                </div>
-            </form>
-        `;
+    if (extension === "pdf") {
+        contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
+    } else if (extension === "docx") {
+        fetch(filePath)
+            .then(res => res.arrayBuffer())
+            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+            .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
+            .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
+    } else {
+        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
     }
 
-    function closeModal() {
-        document.getElementById("fileModal").style.display = "none";
-    }
+    const today = new Date().toISOString().split('T')[0];
 
-    function addFormRow() {
-        const today = new Date().toISOString().split('T')[0];
-        const row = `
-            <div class="form-grid-container">
-                <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                <div><input type="text" name="chapter[]" required></div>
-                <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                <div><input type="number" name="paragraphNumber[]" required></div>
-                <div><input type="number" name="pageNumber[]" required></div>
-                <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+    routingForm.innerHTML = `
+        <form method="POST">
+            <input type="hidden" name="docuRoute1" value="${filePath}">
+            <input type="hidden" name="student_id" value="${student_id}">
+            <input type="hidden" name="route1_id" value="${route1_id}">
+
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                <div style="text-align: center;">
+                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                </div>
+                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
             </div>
-        `;
-        document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
+
+            <hr style="border: 1px solid black; margin: 0.2rem 0;">
+            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                <div>
+                    <button type="button" onclick="addFormRow()">Add Row</button>
+                    <button type="submit">Submit Routing Form</button>
+                    <button type="button" id="toggleFormsBtn" onclick="toggleForms('${route1_id}')">Show less</button>
+                </div>
+            </div>
+            <!-- Header row for submitted forms -->
+            <div class="form-grid-container" style="margin-top: 20px;">
+                <div><strong>Date Submitted</strong></div>
+                <div><strong>Chapter</strong></div>
+                <div><strong>Feedback</strong></div>
+                <div><strong>Paragraph No</strong></div>
+                <div><strong>Page No</strong></div>
+                <div><strong>Submitted By</strong></div>
+                <div><strong>Date Released</strong></div>
+            </div>
+
+            <!-- Container for submitted form data -->
+            <div id="submittedFormsContainer" class="form-grid-container"></div>
+            <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+            <div id="routingRowsContainer">
+                <div class="form-grid-container">
+                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                    <div><input type="text" name="chapter[]" required></div>
+                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                    <div><input type="number" name="paragraphNumber[]" required></div>
+                    <div><input type="number" name="pageNumber[]" required></div>
+                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    // Load forms by default when opening the modal
+    loadAllForms(route1_id);
+}
+
+let formsVisible = true; // Set to true by default, since we're showing forms initially
+
+function toggleForms(route1_id) {
+    const formDataContainer = document.getElementById("submittedFormsContainer");
+    const noFormsMessage = document.getElementById("noFormsMessage");
+    const toggleButton = document.getElementById("toggleFormsBtn");
+
+    if (formsVisible) {
+        // Hide forms
+        formDataContainer.innerHTML = "";
+        noFormsMessage.innerText = "";
+        toggleButton.textContent = "Show all Forms";
+        formsVisible = false;
+    } else {
+        // Show forms
+        loadAllForms(route1_id);
     }
+}
+function closeModal() {
+    document.getElementById("fileModal").style.display = "none";
+}
 
-    let formsVisible = false;
+function loadAllForms(route1_id) {
+    const formDataContainer = document.getElementById("submittedFormsContainer");
+    const noFormsMessage = document.getElementById("noFormsMessage");
+    const toggleButton = document.getElementById("toggleFormsBtn");
 
-    function showAllForms(route1_id) {
-        const formDataContainer = document.getElementById("submittedFormsContainer");
-        const noFormsMessage = document.getElementById("noFormsMessage");
-        const showButton = document.querySelector("button[onclick^='showAllForms']");
+    // Show loading spinner
+    formDataContainer.innerHTML = "<div style='grid-column: span 7; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
 
-        if (formsVisible) {
-            // Clear content and toggle button
-            formDataContainer.innerHTML = "";
-            noFormsMessage.innerText = "";
-            showButton.textContent = "Show all Forms";
-            formsVisible = false;
-            return;
-        }
+    // Fetch data
+    fetch('get_all_forms.php?route1_id=' + route1_id)
+        .then(response => response.json())
+        .then(data => {
+            formDataContainer.innerHTML = ""; // Clear old content first
 
-        // Show loading spinner
-        formDataContainer.innerHTML = "<div style='grid-column: span 7; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
+            if (!data || data.length === 0) {
+                noFormsMessage.innerText = "No routing forms submitted yet.";
+                return;
+            }
 
-        // Fetch data
-        fetch('get_all_forms.php?route1_id=' + route1_id)
-            .then(response => response.json())
-            .then(data => {
-                formDataContainer.innerHTML = ""; // Clear old content first
+            noFormsMessage.innerText = ""; // Clear message if forms exist
 
-                if (!data || data.length === 0) {
-                    noFormsMessage.innerText = "No routing forms submitted yet.";
-                    return;
+            data.forEach(row => {
+                let submittedBy = "N/A";
+                if (row.adviser_name) {
+                    submittedBy = `${row.adviser_name} - Adviser`;
+                } else if (row.panel_name) {
+                    submittedBy = `${row.panel_name} - Panel`;
                 }
 
-                noFormsMessage.innerText = ""; // Clear message if forms exist
-
-                data.forEach(row => {
-                    let submittedBy = "N/A";
-                    if (row.adviser_name) {
-                        submittedBy = `${row.adviser_name} - Adviser`;
-                    } else if (row.panel_name) {
-                        submittedBy = `${row.panel_name} - Panel`;
-                    }
-
-                    formDataContainer.innerHTML += `
-                        <div>${row.date_submitted}</div>
-                        <div>${row.chapter}</div>
-                        <div>${row.feedback}</div>
-                        <div>${row.paragraph_number}</div>
-                        <div>${row.page_number}</div>
-                        <div>${submittedBy}</div>
-                        <div>${row.date_released}</div>
-                    `;
-                });
-
-                showButton.textContent = "Hide Forms";
-                formsVisible = true;
-            })
-            .catch(error => {
-                console.error('Error fetching forms:', error);
-                noFormsMessage.innerText = "Failed to load forms.";
-                formDataContainer.innerHTML = "";
+                formDataContainer.innerHTML += `
+                    <div>${row.date_submitted}</div>
+                    <div>${row.chapter}</div>
+                    <div>${row.feedback}</div>
+                    <div>${row.paragraph_number}</div>
+                    <div>${row.page_number}</div>
+                    <div>${submittedBy}</div>
+                    <div>${row.date_released}</div>
+                `;
             });
-    }
+
+            toggleButton.textContent = "Show less";
+            formsVisible = true;
+        })
+        .catch(error => {
+            console.error('Error fetching forms:', error);
+            noFormsMessage.innerText = "Failed to load forms.";
+            formDataContainer.innerHTML = "";
+        });
+}
 
     function autoGrow(textarea) {
         textarea.style.height = 'auto'; // Reset height
