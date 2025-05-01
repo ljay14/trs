@@ -827,7 +827,10 @@ $result = $conn->query($sql);
         background-color: var(--light);
     }
     
-
+    .add-panel-button {
+        background-color: var(--primary);
+        color: white;
+    }
     </style>
     <script>
         window.onload = function () {
@@ -982,7 +985,7 @@ $result = $conn->query($sql);
             <div class="content">
                 <div class="form-container">
                     <h1>List of Registered Panel</h1>
-                    <button onclick="window.location.href='panel.php'" class="add-adviser-button">Add Panel</button>
+                    <button onclick="window.location.href='panel.php'" class="add-panel-button">Add Panel</button>
                     <div id="success-alert" class="success-alert">
                         <strong>Success!</strong> Panel updated successfully!
                     </div>

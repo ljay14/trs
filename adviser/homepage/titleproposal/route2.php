@@ -8,17 +8,6 @@ if (!isset($_SESSION['adviser_id'])) {
 
 include '../../../connection.php';
 
-// Fetch departments
-$departments = [];
-$query = "SELECT DISTINCT department FROM student";
-$result = $conn->query($query);
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $departments[] = $row['department'];
-    }
-}
-
-$selectedDepartment = $_POST['department'] ?? '';
 $adviser_id = $_SESSION['adviser_id'];
 $fullname = $_SESSION['fullname'] ?? 'Adviser';
 
@@ -37,6 +26,18 @@ if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $student_id = $row['student_id'];
     $route2_id = $row['route2_id']; // Now you have the route2_id
+    
+    // Check if adviser has already reviewed this document
+    $adviserReviewCheck = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form WHERE route2_id = ? AND adviser_id = ?");
+    $adviserReviewCheck->bind_param("is", $route2_id, $adviser_id);
+    $adviserReviewCheck->execute();
+    $adviserReviewResult = $adviserReviewCheck->get_result();
+    $adviserReviewData = $adviserReviewResult->fetch_assoc();
+    $hasReviewed = $adviserReviewData['count'] > 0;
+    
+    if (!$hasReviewed) {
+        $advisorNotification = "You must review this document first. Panel members will not be able to access it until you've completed your review.";
+    }
 } else {
     // Handle case if no student is found (optional)
     $student_id = null;
@@ -638,6 +639,24 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 
@@ -729,6 +748,19 @@ input[type="checkbox"] {
             </nav>
 
             <div class="content" id="content-area">
+                <?php if (isset($advisorNotification)): ?>
+                <div style="background-color: #ffe6e6; border-left: 4px solid #ff3333; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #d32f2f;">Important Workflow Requirement</h4>
+                    <p><?php echo $advisorNotification; ?></p>
+                    <p><strong>Note:</strong> Panel members will only be able to see and review the document after you have submitted your feedback.</p>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Search bar -->
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+                </div>
+                
                 <?php
                 $query = "
                     SELECT 
@@ -741,16 +773,10 @@ input[type="checkbox"] {
                         fullname, 
                         title 
                     FROM route2proposal_files 
-                    WHERE adviser_id = ?
-                    " . ($selectedDepartment ? " AND department = ?" : "");
+                    WHERE adviser_id = ?";
 
                 $stmt = $conn->prepare($query);
-
-                if ($selectedDepartment) {
-                    $stmt->bind_param("ss", $adviser_id, $selectedDepartment);
-                } else {
-                    $stmt->bind_param("s", $adviser_id);
-                }
+                $stmt->bind_param("s", $adviser_id);
 
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -817,6 +843,7 @@ input[type="checkbox"] {
         </div>
     </div>
 
+</body>
 </html>
 
 
@@ -1067,6 +1094,28 @@ function enableSaveButton(formId) {
         viewFile("<?= addslashes($lastFilePath) ?>", "<?= addslashes($student_id) ?>", "<?= addslashes($route2_id) ?>");
     });
 <?php endif; ?>
+
+        // Search function for the table
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.querySelector("table tbody");
+            if (!table) return;
+            
+            const rows = table.getElementsByTagName("tr");
+            
+            for (let i = 0; i < rows.length; i++) {
+                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+                if (leaderCell) {
+                    const leaderName = leaderCell.textContent || leaderCell.innerText;
+                    if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
     </script>
 
 <script>

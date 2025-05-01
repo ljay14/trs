@@ -380,6 +380,45 @@ button {
     background-color: var(--primary);
 }
 
+.delete-button {
+    background-color: var(--accent);
+    color: white;
+    margin-right: 0.5rem;
+}
+
+.delete-button:hover {
+    background-color: var(--primary);
+}
+
+/* Action column styling */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.action-label {
+    text-align: center;
+}
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
 /* Modal Styling */
 .modal {
     position: fixed;
@@ -801,6 +840,9 @@ function loadAllForms(route1_id) {
             closeModal();
         }
     });
+    function closeModal() {
+    document.getElementById("fileModal").style.display = "none";
+}
     </script>
 </head>
 
@@ -917,6 +959,12 @@ function loadAllForms(route1_id) {
             </nav>
 
             <div class="content" id="content-area">
+            
+            <!-- Search bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+            </div>
+            
             <?php
             $query = "
                 SELECT 
@@ -1052,4 +1100,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+        document.getElementById("submit-file-button")?.addEventListener("click", function(e) {
+            e.preventDefault();
+            document.querySelector("#docuRoute1").click();
+        });
+        
+        document.querySelector("#docuRoute1")?.addEventListener("change", function() {
+            document.querySelector("#file-upload-form").submit();
+        });
+
+        // Search function for the table
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.querySelector("table tbody");
+            const rows = table.getElementsByTagName("tr");
+            
+            for (let i = 0; i < rows.length; i++) {
+                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+                if (leaderCell) {
+                    const leaderName = leaderCell.textContent || leaderCell.innerText;
+                    if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
 </script>

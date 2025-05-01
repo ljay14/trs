@@ -1,41 +1,78 @@
+// Simpler sidebar management to ensure consistent behavior
 document.addEventListener('DOMContentLoaded', function() {
     const menuHeaders = document.querySelectorAll('.menu-header');
     const path = window.location.pathname;
-
-    menuHeaders.forEach(header => {
-        const dropdownContent = header.nextElementSibling;
-        const label = header.querySelector('span').textContent.trim().toLowerCase();
-
-        // Default: close all
-        header.querySelector('.dropdown-icon').classList.remove('expanded');
-        dropdownContent.classList.remove('show');
-
-        // Expand the right one based on URL
-        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/final/') && label === 'final') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/registeraccount/') && label === 'register account') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/registeredaccount/') && label === 'registered account') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/departmentcourse/') && label === 'department course') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
+    
+    // Helper function to close all dropdowns
+    function closeAllDropdowns() {
+        menuHeaders.forEach(header => {
+            const dropdownContent = header.nextElementSibling;
+            const icon = header.querySelector('.dropdown-icon');
+            icon.classList.remove('expanded');
+            dropdownContent.classList.remove('show');
+        });
+    }
+    
+    // Helper function to open a specific section
+    function openSection(sectionName) {
+        menuHeaders.forEach(header => {
+            const label = header.querySelector('span').textContent.trim().toLowerCase();
+            if (label === sectionName || (sectionName === 'title proposal' && label.includes('title proposal'))) {
+                const dropdownContent = header.nextElementSibling;
+                const icon = header.querySelector('.dropdown-icon');
+                icon.classList.add('expanded');
+                dropdownContent.classList.add('show');
+            }
+        });
+    }
+    
+    // Helper function to set active section based on URL
+    function setActiveSection(path) {
+        if (path.includes('/titleproposal/')) {
+            openSection('title proposal');
+            openSection('research proposal');
+        } else if (path.includes('/final/')) {
+            openSection('final');
+            openSection('final defense');
+        } else if (path.includes('/registeredaccount/')) {
+            openSection('registered account');
+        } else if (path.includes('/departmentcourse/')) {
+            openSection('department course');
         }
-
-        // Accordion behavior
-        header.addEventListener('click', function() {
-            // Toggle the clicked one
+    }
+    
+    // Helper function to highlight active submenu
+    function highlightActiveSubmenu(path) {
+        const submenuItems = document.querySelectorAll('.submenu-item');
+        submenuItems.forEach(item => {
+            const href = item.getAttribute('href');
+            if (href && path.includes(href)) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+    
+    // First step: Close all dropdowns by default
+    closeAllDropdowns();
+    
+    // Second step: Open the active section based on URL
+    setActiveSection(path);
+    
+    // Add click handlers for all menu headers
+    menuHeaders.forEach(header => {
+        header.addEventListener('click', function(e) {
+            // Prevent the click from affecting parent elements
+            e.stopPropagation();
+            
+            const dropdownContent = this.nextElementSibling;
             const icon = this.querySelector('.dropdown-icon');
-            icon.classList.toggle('expanded');
-            dropdownContent.classList.toggle('show');
-
-            // Optional: Close others (accordion behavior)
+            
+            // Toggle the clicked dropdown
+            const wasOpen = dropdownContent.classList.contains('show');
+            
+            // Close all other dropdowns (but not this one yet)
             menuHeaders.forEach(h => {
                 if (h !== this) {
                     const otherIcon = h.querySelector('.dropdown-icon');
@@ -44,14 +81,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     otherContent.classList.remove('show');
                 }
             });
+            
+            // Now toggle this dropdown
+            if (wasOpen) {
+                icon.classList.remove('expanded');
+                dropdownContent.classList.remove('show');
+            } else {
+                icon.classList.add('expanded');
+                dropdownContent.classList.add('show');
+            }
         });
     });
-
-    // Highlight active submenu item
+    
+    // Prevent submenu items from closing the dropdown when clicked
     const submenuItems = document.querySelectorAll('.submenu-item');
     submenuItems.forEach(item => {
-        if (path.includes(item.getAttribute('href'))) {
-            item.classList.add('active');
-        }
+        item.addEventListener('click', function(e) {
+            // Don't let the click bubble up to the parent elements
+            e.stopPropagation();
+        });
     });
+    
+    // Highlight active submenu item
+    highlightActiveSubmenu(path);
 });

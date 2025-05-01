@@ -8,17 +8,6 @@ if (!isset($_SESSION['adviser_id'])) {
 
 include '../../../connection.php';
 
-// Fetch departments
-$departments = [];
-$query = "SELECT DISTINCT department FROM student";
-$result = $conn->query($query);
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $departments[] = $row['department'];
-    }
-}
-
-$selectedDepartment = $_POST['department'] ?? '';
 $adviser_id = $_SESSION['adviser_id'];
 $fullname = $_SESSION['fullname'] ?? 'Adviser';
 
@@ -638,6 +627,24 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 
@@ -653,18 +660,6 @@ input[type="checkbox"] {
         <div class="top-bar">
             <div class="homepage">
                 <a href="../homepage.php">Home Page</a>
-            </div>
-            <div class="dropdown-container">
-                <form method="POST">
-                    <select name="department" onchange="this.form.submit()">
-                        <option value="">Select Department</option>
-                        <?php foreach ($departments as $department): ?>
-                            <option value="<?= htmlspecialchars($department) ?>" <?= $selectedDepartment == $department ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($department) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
             </div>
             <div class="user-info">
                 <div class="routeNo" style="margin-right: 20px;">Final - Route 2</div>
@@ -742,8 +737,14 @@ input[type="checkbox"] {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
-                $query = "
+            
+            <!-- Search bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+            </div>
+            
+            <?php
+            $query = "
                     SELECT 
                         docuRoute2, 
                         student_id, 
@@ -754,16 +755,10 @@ input[type="checkbox"] {
                         fullname, 
                         title 
                     FROM route2final_files 
-                    WHERE adviser_id = ?
-                    " . ($selectedDepartment ? " AND department = ?" : "");
+                    WHERE adviser_id = ?";
 
                 $stmt = $conn->prepare($query);
-
-                if ($selectedDepartment) {
-                    $stmt->bind_param("ss", $adviser_id, $selectedDepartment);
-                } else {
-                    $stmt->bind_param("s", $adviser_id);
-                }
+                $stmt->bind_param("s", $adviser_id);
 
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -1123,3 +1118,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<script>
+        // Search function for the table
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.querySelector("table tbody");
+            if (!table) return;
+            
+            const rows = table.getElementsByTagName("tr");
+            
+            for (let i = 0; i < rows.length; i++) {
+                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+                if (leaderCell) {
+                    const leaderName = leaderCell.textContent || leaderCell.innerText;
+                    if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>

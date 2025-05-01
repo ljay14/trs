@@ -24,16 +24,21 @@ $result = $conn->query($sql);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Department and Course Management - Thesis Routing System</title>
     <style>
-        :root {
-            --primary: #002366;
-            --primary-light: #0a3885;
-            --accent: #4a6fd1;
-            --light: #f5f7fd;
-            --dark: #333;
-            --success: #28a745;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --border: #e0e0e0;
-        }
+:root {
+--primary: #4366b3;
+--primary-light: #0a3885;
+--accent: #4a6fd1;
+--light: #f5f7fd;
+--dark: #333;
+--success: #28a745;
+--shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+--border: #e0e0e0;
+--white: #ffffff;
+--hover: #f5f7fd;
+--active: #e5ebf8;
+--text-light: #777777;
+--radius: 8px;
+}
 
         * {
             margin: 0;

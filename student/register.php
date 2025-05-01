@@ -15,6 +15,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $confirm_password = mysqli_real_escape_string($conn, $_POST['confirm_password']);
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
     $school_year = mysqli_real_escape_string($conn, $_POST['school_year']);
+    $semester = mysqli_real_escape_string($conn, $_POST['semester']);
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $course = mysqli_real_escape_string($conn, $_POST['course']);
 
@@ -32,8 +33,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Insert data into the database (no need for student_id since it's auto-incremented)
-    $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, school_year, department, course, adviser, group_number, group_members) 
-            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$department', '$course', '$adviser', '$group_number', '$group_members')";
+    $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, school_year, semester, department, course, adviser, group_number, group_members) 
+            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$semester', '$department', '$course', '$adviser', '$group_number', '$group_members')";
 
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id
@@ -458,7 +459,9 @@ $conn->close();
                         </div>
                         <div class="input-group">
                             <label for="adviser">Adviser</label>
-                            <input type="text" id="adviser" name="adviser" placeholder="Enter your adviser's name" required>
+                            <select id="adviser" name="adviser" required>
+                                <option value="">Loading advisers...</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -473,6 +476,16 @@ $conn->close();
                             <option value="2025-2026">2025-2026</option>
                             <option value="2026-2027">2026-2027</option>
                             <option value="2027-2028">2027-2028</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="semester">Semester</label>
+                        <select id="semester" name="semester" required>
+                            <option value="">Select Semester</option>
+                            <option value="First Semester">First Semester</option>
+                            <option value="Second Semester">Second Semester</option>
+                            <option value="Summer">Summer</option>
                         </select>
                     </div>
                     
@@ -545,6 +558,33 @@ $conn->close();
             
             xhr.send();
         }
+        
+        function loadAdvisers() {
+            const adviserSelect = document.getElementById('adviser');
+            
+            // Use AJAX to fetch available advisers
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'get_advisers.php', true);
+            
+            xhr.onload = function() {
+                if (this.status == 200) {
+                    adviserSelect.innerHTML = this.responseText;
+                } else {
+                    adviserSelect.innerHTML = '<option value="">Error loading advisers</option>';
+                }
+            };
+            
+            xhr.onerror = function() {
+                adviserSelect.innerHTML = '<option value="">Error loading advisers</option>';
+            };
+            
+            xhr.send();
+        }
+        
+        // Load advisers when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAdvisers();
+        });
     </script>
 </body>
 </html>

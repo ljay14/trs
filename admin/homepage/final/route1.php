@@ -1011,26 +1011,7 @@ if (isset($selectedDepartment)) {
         currentEditFile = null; // Clear current file data
     }
 
-    // Modify the existing showAssignmentDetails call in the HTML table generation
-    // You need to pass the full file data as the second parameter
-    // Update your function call in the PHP section to include file data:
-    /* Replace the existing onclick function with:
-    onclick="showAssignmentDetails(
-        <?= htmlspecialchars(json_encode([
-            'panels' => $assigned_panels,
-            'adviser' => $adviser_name
-        ]), ENT_QUOTES) ?>, 
-        <?= htmlspecialchars(json_encode([
-            'filepath' => $filepath,
-            'panel1_id' => $file['panel1_id'],
-            'panel2_id' => $file['panel2_id'],
-            'panel3_id' => $file['panel3_id'],
-            'panel4_id' => $file['panel4_id'],
-            'panel5_id' => $file['panel5_id'],
-            'adviser_id' => $file['adviser_id']
-        ]), ENT_QUOTES) ?>
-    )"
-    */
+
     function viewFile(filePath, student_id, route1_id) {
         const modal = document.getElementById("fileModal");
         const contentArea = document.getElementById("fileModalContent");

@@ -8,17 +8,6 @@ if (!isset($_SESSION['adviser_id'])) {
 
 include '../../../connection.php';
 
-// Fetch departments
-$departments = [];
-$query = "SELECT DISTINCT department FROM student";
-$result = $conn->query($query);
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $departments[] = $row['department'];
-    }
-}
-
-$selectedDepartment = $_POST['department'] ?? '';
 $adviser_id = $_SESSION['adviser_id'];
 $fullname = $_SESSION['fullname'] ?? 'Adviser';
 
@@ -638,6 +627,24 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 
@@ -730,79 +737,79 @@ input[type="checkbox"] {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
-                $query = "
-                    SELECT 
-                        docuRoute3, 
-                        student_id, 
-                        route3_id, 
-                        department, 
-                        group_number, 
-                        controlNo, 
-                        fullname, 
-                        title 
-                    FROM route3proposal_files 
-                    WHERE adviser_id = ?
-                    " . ($selectedDepartment ? " AND department = ?" : "");
+            
+            <!-- Search bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+            </div>
+            
+            <?php
+            $query = "
+                SELECT 
+                    docuRoute3, 
+                    student_id, 
+                    route3_id, 
+                    department, 
+                    group_number, 
+                    controlNo, 
+                    fullname, 
+                    title 
+                FROM route3proposal_files 
+                WHERE adviser_id = ?";
 
-                $stmt = $conn->prepare($query);
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param("s", $adviser_id);
 
-                if ($selectedDepartment) {
-                    $stmt->bind_param("ss", $adviser_id, $selectedDepartment);
-                } else {
-                    $stmt->bind_param("s", $adviser_id);
-                }
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-                $stmt->execute();
-                $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                echo "
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Control No.</th>
+                            <th>Leader</th>
+                            <th>Group No.</th>
+                            <th>Title</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                ";
 
-                if ($result->num_rows > 0) {
-                    echo "
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Control No.</th>
-                                <th>Leader</th>
-                                <th>Group No.</th>
-                                <th>Title</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    ";
-
-                    while ($row = $result->fetch_assoc()) {
-                        $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
-                        $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
-                        $route3_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
-                        $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-                        $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-                        $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
-                        $title = htmlspecialchars($row['title'], ENT_QUOTES);
-
-                        echo "
-                            <tr>
-                                <td>$controlNo</td>
-                                <td>$fullName</td>
-                                <td>$groupNo</td>
-                                <td>$title</td>
-                                <td style='text-align: center;'>
-                                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
-                                </td>
-                            </tr>
-                        ";
-                    }
+                while ($row = $result->fetch_assoc()) {
+                    $filePath = htmlspecialchars($row['docuRoute3'], ENT_QUOTES);
+                    $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
+                    $route3_id = htmlspecialchars($row['route3_id'], ENT_QUOTES);
+                    $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                    $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                    $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                    $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
                     echo "
-                        </tbody>
-                    </table>
+                        <tr>
+                            <td>$controlNo</td>
+                            <td>$fullName</td>
+                            <td>$groupNo</td>
+                            <td>$title</td>
+                            <td style='text-align: center;'>
+                                <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
+                            </td>
+                        </tr>
                     ";
-                } else {
-                    echo "<p>No files uploaded yet.</p>";
                 }
 
-                $stmt->close();
-                ?>
+                echo "
+                    </tbody>
+                </table>
+                ";
+            } else {
+                echo "<p>No files uploaded yet.</p>";
+            }
+
+            $stmt->close();
+            ?>
             </div>
         </div>
     </div>
@@ -1106,4 +1113,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+        // Search function for the table
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.querySelector("table tbody");
+            if (!table) return;
+            
+            const rows = table.getElementsByTagName("tr");
+            
+            for (let i = 0; i < rows.length; i++) {
+                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+                if (leaderCell) {
+                    const leaderName = leaderCell.textContent || leaderCell.innerText;
+                    if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        // Existing code...
 </script>

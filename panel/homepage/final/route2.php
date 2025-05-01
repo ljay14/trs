@@ -644,6 +644,24 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 
@@ -760,7 +778,13 @@ input[type="checkbox"] {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
+            
+            <!-- Search bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+            </div>
+            
+            <?php
                 $query = "
                     SELECT 
                         docuRoute2, 
@@ -785,8 +809,48 @@ input[type="checkbox"] {
 
                 $stmt->execute();
                 $result = $stmt->get_result();
+                $files_to_display = [];
 
+                // For each file, check if adviser approved final route1
                 if ($result->num_rows > 0) {
+                    while($row = $result->fetch_assoc()) {
+                        $student_id = $row['student_id'];
+                        $route2_id = $row['route2_id'];
+                        $can_display = false;
+                        
+                        // Only check final route1 approval - ignore route2 status
+                        // Get route1_id
+                        $get_route1 = $conn->prepare("SELECT route1_id FROM route1final_files WHERE student_id = ?");
+                        $get_route1->bind_param("s", $student_id);
+                        $get_route1->execute();
+                        $route1_result = $get_route1->get_result();
+                        
+                        if ($route1_result && $route1_row = $route1_result->fetch_assoc()) {
+                            $route1_id = $route1_row['route1_id'];
+                            
+                            // Check if final route1 was approved
+                            $check_route1 = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                          WHERE route1_id = ? AND adviser_id IS NOT NULL 
+                                                          AND (status = 'Approved' OR status = 'approved')");
+                            $check_route1->bind_param("i", $route1_id);
+                            $check_route1->execute();
+                            $route1_result = $check_route1->get_result();
+                            $route1_approved = ($route1_result && $route1_result->fetch_assoc()['count'] > 0);
+                            $check_route1->close();
+                            
+                            if ($route1_approved) {
+                                $can_display = true;
+                            }
+                        }
+                        $get_route1->close();
+                        
+                        if ($can_display) {
+                            $files_to_display[] = $row;
+                        }
+                    }
+                }
+
+                if (count($files_to_display) > 0) {
                     echo "
                     <table>
                         <thead>
@@ -801,7 +865,7 @@ input[type="checkbox"] {
                         <tbody>
                     ";
 
-                    while ($row = $result->fetch_assoc()) {
+                    foreach ($files_to_display as $row) {
                         $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
                         $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
                         $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
@@ -854,73 +918,114 @@ input[type="checkbox"] {
         const currentPanelPosition = "<?php echo $currentPanelPosition; ?>";
 
         function viewFile(filePath, route2_id, student_id) {
-    const modal = document.getElementById("fileModal");
-    const contentArea = document.getElementById("fileModalContent");
-    const routingForm = document.getElementById("routingForm");
-    const extension = filePath.split('.').pop().toLowerCase();
+            // First check if the adviser has approved route1 final
+            fetch(`check_adviser_route2.php?route2_id=${route2_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.hasReviewed) {
+                        alert("This document cannot be viewed yet. " + data.message);
+                        return;
+                    }
+                    
+                    // Continue with normal file view process
+                    const modal = document.getElementById("fileModal");
+                    const contentArea = document.getElementById("fileModalContent");
+                    const routingForm = document.getElementById("routingForm");
+                    const extension = filePath.split('.').pop().toLowerCase();
 
-    modal.style.display = "flex";
-    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
-    routingForm.innerHTML = "";
+                    modal.style.display = "flex";
+                    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
+                    routingForm.innerHTML = "";
 
-    if (extension === "pdf") {
-        contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
-    } else if (extension === "docx") {
-        fetch(filePath)
-            .then(res => res.arrayBuffer())
-            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-            .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
-            .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
-    } else {
-        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
-    }
+                    if (extension === "pdf") {
+                        contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
+                    } else if (extension === "docx") {
+                        fetch(filePath)
+                            .then(res => res.arrayBuffer())
+                            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+                            .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
+                            .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
+                    } else {
+                        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
+                    }
 
-    const today = new Date().toISOString().split('T')[0];
+                    const today = new Date().toISOString().split('T')[0];
 
-    routingForm.innerHTML = `
-        <form method="POST">
-            <input type="hidden" name="docuRoute2" value="${filePath}">
-            <input type="hidden" name="student_id" value="${student_id}">
-            <input type="hidden" name="route2_id" value="${route2_id}">
+                    routingForm.innerHTML = `
+                        <form method="POST">
+                            <input type="hidden" name="docuRoute2" value="${filePath}">
+                            <input type="hidden" name="student_id" value="${student_id}">
+                            <input type="hidden" name="route2_id" value="${route2_id}">
 
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-                <div style="text-align: center;">
-                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-                </div>
-                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-            </div>
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                                <div style="text-align: center;">
+                                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                                </div>
+                                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+                            </div>
 
-            <hr style="border: 1px solid black; margin: 0.2rem 0;">
-            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-                <div>
-                    <button type="button" onclick="addFormRow()">Add Row</button>
-                    <button type="submit">Submit Routing Form</button>
-                    <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Show less</button>
-                </div>
-            </div>
-            
-            <!-- Header row for submitted forms -->
-            <div class="form-grid-container" style="margin-top: 20px;">
-                <div><strong>Date Submitted</strong></div>
-                <div><strong>Chapter</strong></div>
-                <div><strong>Feedback</strong></div>
-                <div><strong>Paragraph No</strong></div>
-                <div><strong>Page No</strong></div>
-                <div><strong>Submitted By</strong></div>
-                <div><strong>Date Released</strong></div>
-                <div><strong>Status</strong></div>
-                <div><strong>Action</strong></div>
-            </div>
+                            <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                                <div>
+                                    <button type="button" onclick="addFormRow()">Add Row</button>
+                                    <button type="submit">Submit Routing Form</button>
+                                    <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Show less</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Header row for submitted forms -->
+                            <div class="form-grid-container" style="margin-top: 20px;">
+                                <div><strong>Date Submitted</strong></div>
+                                <div><strong>Chapter</strong></div>
+                                <div><strong>Feedback</strong></div>
+                                <div><strong>Paragraph No</strong></div>
+                                <div><strong>Page No</strong></div>
+                                <div><strong>Submitted By</strong></div>
+                                <div><strong>Date Released</strong></div>
+                                <div><strong>Status</strong></div>
+                                <div><strong>Action</strong></div>
+                            </div>
 
-            <!-- Container for submitted form data -->
-            <div id="submittedFormsContainer" class="form-grid-container"></div>
-            <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+                            <!-- Container for submitted form data -->
+                            <div id="submittedFormsContainer" class="form-grid-container"></div>
+                            <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
-            <div id="routingRowsContainer">
+                            <div id="routingRowsContainer">
+                                <div class="form-grid-container">
+                                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                                    <div><input type="text" name="chapter[]" required></div>
+                                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                                    <div><input type="number" name="paragraphNumber[]" required></div>
+                                    <div><input type="number" name="pageNumber[]" required></div>
+                                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                                    <div></div>
+                                    <div></div>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                    
+                    // Load forms by default when opening the modal
+                    loadAllForms(student_id);
+                })
+                .catch(error => {
+                    console.error('Error checking adviser approval:', error);
+                    alert('Unable to verify adviser approval status. Please try again later or contact support.');
+                });
+        }
+
+        function closeModal() {
+            document.getElementById("fileModal").style.display = "none";
+        }
+
+        function addFormRow() {
+            const today = new Date().toISOString().split('T')[0];
+            const row = `
                 <div class="form-grid-container">
                     <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
                     <div><input type="text" name="chapter[]" required></div>
@@ -932,190 +1037,188 @@ input[type="checkbox"] {
                     <div></div>
                     <div></div>
                 </div>
-            </div>
-        </form>
-    `;
-    
-    // Load forms by default when opening the modal
-    loadAllForms(student_id);
-}
-
-function closeModal() {
-    document.getElementById("fileModal").style.display = "none";
-}
-
-function addFormRow() {
-    const today = new Date().toISOString().split('T')[0];
-    const row = `
-        <div class="form-grid-container">
-            <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-            <div><input type="text" name="chapter[]" required></div>
-            <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-            <div><input type="number" name="paragraphNumber[]" required></div>
-            <div><input type="number" name="pageNumber[]" required></div>
-            <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-            <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-            <div></div>
-            <div></div>
-        </div>
-    `;
-    document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
-}
-
-let formsVisible = true; // Set to true by default, since we're showing forms initially
-
-function toggleForms(student_id) {
-    const formDataContainer = document.getElementById("submittedFormsContainer");
-    const noFormsMessage = document.getElementById("noFormsMessage");
-    const toggleButton = document.getElementById("toggleFormsBtn");
-
-    if (formsVisible) {
-        // Hide forms
-        formDataContainer.innerHTML = "";
-        noFormsMessage.innerText = "";
-        toggleButton.textContent = "Show all Forms";
-        formsVisible = false;
-    } else {
-        // Show forms
-        loadAllForms(student_id);
-    }
-}
-
-function loadAllForms(student_id) {
-    const formDataContainer = document.getElementById("submittedFormsContainer");
-    const noFormsMessage = document.getElementById("noFormsMessage");
-    const toggleButton = document.getElementById("toggleFormsBtn");
-
-    // Show loading spinner
-    formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
-
-    // Fetch data
-    fetch('route2get_all_forms.php?student_id=' + student_id)
-        .then(response => response.json())
-        .then(data => {
-            formDataContainer.innerHTML = ""; // Clear old content first
-
-            if (!data || data.length === 0) {
-                noFormsMessage.innerText = "No routing forms submitted yet.";
-                return;
-            }
-
-            noFormsMessage.innerText = ""; // Clear message
-
-            data.forEach(form => {
-                const formId = form.id;
-                const statusValue = (form.status || 'Pending').trim();
-
-                let submittedBy = 'N/A';
-                if (form.adviser_name) {
-                    submittedBy = `${form.adviser_name} - Adviser`;
-                } else if (form.panel_name) {
-                    submittedBy = `${form.panel_name} - Panel`;
-                }
-
-                formDataContainer.innerHTML += `
-                    <div>${form.date_submitted}</div>
-                    <div>${form.chapter}</div>
-                    <div class="feedback-cell">${form.feedback}</div>
-                    <div>${form.paragraph_number}</div>
-                    <div>${form.page_number}</div>
-                    <div>${submittedBy}</div>
-                    <div>${form.date_released}</div>
-                    <div>
-                        <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                            <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                        </select>
-                    </div>
-                    <div>
-                        <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
-                    </div>
-                `;
-            });
-
-            toggleButton.textContent = "Show less";
-            formsVisible = true;
-        })
-        .catch(error => {
-            console.error('Error fetching forms:', error);
-            noFormsMessage.innerText = "Failed to load forms.";
-        });
-}
-
-function autoGrow(textarea) {
-    textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
-}
-
-function saveStatus(formId, event) {
-    event.preventDefault();
-    const status = document.getElementById(`statusSelect_${formId}`).value;
-
-    fetch('update_form_status.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: formId, status: status })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Disable the save button once status is saved
-                document.getElementById(`saveButton_${formId}`).disabled = true;
-            } else {
-                alert(data.message || 'Failed to update.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while saving the status.');
-        });
-}
-
-function enableSaveButton(formId) {
-    const saveButton = document.getElementById(`saveButton_${formId}`);
-    saveButton.disabled = false;  // Enable the save button
-}
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const menuHeaders = document.querySelectorAll('.menu-header');
-    const path = window.location.pathname;
-
-    menuHeaders.forEach(header => {
-        const dropdownContent = header.nextElementSibling;
-        const label = header.querySelector('span').textContent.trim().toLowerCase();
-
-        // Default: close all
-        header.querySelector('.dropdown-icon').classList.remove('expanded');
-        dropdownContent.classList.remove('show');
-
-        // Expand the right one based on URL
-        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
-        } else if (path.includes('/final/') && label === 'final') {
-            header.querySelector('.dropdown-icon').classList.add('expanded');
-            dropdownContent.classList.add('show');
+            `;
+            document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
         }
 
-        // Accordion behavior
-        header.addEventListener('click', function() {
-            menuHeaders.forEach(h => {
-                const icon = h.querySelector('.dropdown-icon');
-                const content = h.nextElementSibling;
-                
-                if (h !== this) {
-                    icon.classList.remove('expanded');
-                    content.classList.remove('show');
-                }
-            });
+        let formsVisible = true; // Set to true by default, since we're showing forms initially
 
-            // Toggle the clicked one
-            this.querySelector('.dropdown-icon').classList.toggle('expanded');
-            dropdownContent.classList.toggle('show');
+        function toggleForms(student_id) {
+            const formDataContainer = document.getElementById("submittedFormsContainer");
+            const noFormsMessage = document.getElementById("noFormsMessage");
+            const toggleButton = document.getElementById("toggleFormsBtn");
+
+            if (formsVisible) {
+                // Hide forms
+                formDataContainer.innerHTML = "";
+                noFormsMessage.innerText = "";
+                toggleButton.textContent = "Show all Forms";
+                formsVisible = false;
+            } else {
+                // Show forms
+                loadAllForms(student_id);
+            }
+        }
+
+        function loadAllForms(student_id) {
+            const formDataContainer = document.getElementById("submittedFormsContainer");
+            const noFormsMessage = document.getElementById("noFormsMessage");
+            const toggleButton = document.getElementById("toggleFormsBtn");
+
+            // Show loading spinner
+            formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
+
+            // Fetch data
+            fetch('route2get_all_forms.php?student_id=' + student_id)
+                .then(response => response.json())
+                .then(data => {
+                    formDataContainer.innerHTML = ""; // Clear old content first
+
+                    if (!data || data.length === 0) {
+                        noFormsMessage.innerText = "No routing forms submitted yet.";
+                        return;
+                    }
+
+                    noFormsMessage.innerText = ""; // Clear message
+
+                    data.forEach(form => {
+                        const formId = form.id;
+                        const statusValue = (form.status || 'Pending').trim();
+
+                        let submittedBy = 'N/A';
+                        if (form.adviser_name) {
+                            submittedBy = `${form.adviser_name} - Adviser`;
+                        } else if (form.panel_name) {
+                            submittedBy = `${form.panel_name} - Panel`;
+                        }
+
+                        formDataContainer.innerHTML += `
+                            <div>${form.date_submitted}</div>
+                            <div>${form.chapter}</div>
+                            <div class="feedback-cell">${form.feedback}</div>
+                            <div>${form.paragraph_number}</div>
+                            <div>${form.page_number}</div>
+                            <div>${submittedBy}</div>
+                            <div>${form.date_released}</div>
+                            <div>
+                                <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                                    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                                    <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+                            </div>
+                        `;
+                    });
+
+                    toggleButton.textContent = "Show less";
+                    formsVisible = true;
+                })
+                .catch(error => {
+                    console.error('Error fetching forms:', error);
+                    noFormsMessage.innerText = "Failed to load forms.";
+                });
+        }
+
+        function autoGrow(textarea) {
+            textarea.style.height = 'auto'; // Reset height
+            textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+        }
+
+        function saveStatus(formId, event) {
+            event.preventDefault();
+            const status = document.getElementById(`statusSelect_${formId}`).value;
+
+            fetch('update_form_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: formId, status: status })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Disable the save button once status is saved
+                        document.getElementById(`saveButton_${formId}`).disabled = true;
+                    } else {
+                        alert(data.message || 'Failed to update.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while saving the status.');
+                });
+        }
+
+        function enableSaveButton(formId) {
+            const saveButton = document.getElementById(`saveButton_${formId}`);
+            saveButton.disabled = false;  // Enable the save button
+        }
+
+        // Search function for the table
+        function searchTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.querySelector("table tbody");
+            if (!table) return;
+            
+            const rows = table.getElementsByTagName("tr");
+            
+            for (let i = 0; i < rows.length; i++) {
+                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+                if (leaderCell) {
+                    const leaderName = leaderCell.textContent || leaderCell.innerText;
+                    if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuHeaders = document.querySelectorAll('.menu-header');
+        const path = window.location.pathname;
+
+        menuHeaders.forEach(header => {
+            const dropdownContent = header.nextElementSibling;
+            const label = header.querySelector('span').textContent.trim().toLowerCase();
+
+            // Default: close all
+            header.querySelector('.dropdown-icon').classList.remove('expanded');
+            dropdownContent.classList.remove('show');
+
+            // Expand the right one based on URL
+            if (path.includes('/titleproposal/') && label.includes('title proposal')) {
+                header.querySelector('.dropdown-icon').classList.add('expanded');
+                dropdownContent.classList.add('show');
+            } else if (path.includes('/final/') && label === 'final') {
+                header.querySelector('.dropdown-icon').classList.add('expanded');
+                dropdownContent.classList.add('show');
+            }
+
+            // Accordion behavior
+            header.addEventListener('click', function() {
+                menuHeaders.forEach(h => {
+                    const icon = h.querySelector('.dropdown-icon');
+                    const content = h.nextElementSibling;
+                    
+                    if (h !== this) {
+                        icon.classList.remove('expanded');
+                        content.classList.remove('show');
+                    }
+                });
+
+                // Toggle the clicked one
+                this.querySelector('.dropdown-icon').classList.toggle('expanded');
+                dropdownContent.classList.toggle('show');
+            });
         });
     });
-});
-</script>
+    </script>
+</body>
+</html>

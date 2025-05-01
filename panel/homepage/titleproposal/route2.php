@@ -38,6 +38,54 @@ if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $student_id = $row['student_id'];
     $route2_id = $row['route2_id'];
+    
+    // Check if adviser has reviewed the document first
+    $adviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form WHERE route2_id = ? AND adviser_id IS NOT NULL");
+    $adviserCheck->bind_param("i", $route2_id);
+    $adviserCheck->execute();
+    $adviserResult = $adviserCheck->get_result();
+    $adviserData = $adviserResult->fetch_assoc();
+    $route2_reviewed = ($adviserData['count'] > 0);
+    $adviserCheck->close();
+    
+    $showAlert = true;
+    
+    // Only check route1 approval if route2 has not been reviewed
+    if (!$route2_reviewed) {
+        // Check if route1 was approved for this student
+        $route1Check = $conn->prepare("SELECT r.route1_id FROM route1proposal_files r WHERE r.student_id = ?");
+        $route1Check->bind_param("s", $student_id);
+        $route1Check->execute();
+        $route1Result = $route1Check->get_result();
+        
+        if ($route1Result && $route1Row = $route1Result->fetch_assoc()) {
+            $route1_id = $route1Row['route1_id'];
+            
+            // Check if route1 was approved
+            $route1ApprovalCheck = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
+                                                  WHERE route1_id = ? AND adviser_id IS NOT NULL 
+                                                  AND (status = 'Approved' OR status = 'approved')");
+            $route1ApprovalCheck->bind_param("i", $route1_id);
+            $route1ApprovalCheck->execute();
+            $route1ApprovalResult = $route1ApprovalCheck->get_result();
+            $route1_approved = ($route1ApprovalResult && $route1ApprovalResult->fetch_assoc()['count'] > 0);
+            $route1ApprovalCheck->close();
+            
+            if ($route1_approved) {
+                // If route1 was approved, no need to show alert
+                $showAlert = false;
+            }
+        }
+        $route1Check->close();
+    } else {
+        // If route2 has been reviewed, don't show alert
+        $showAlert = false;
+    }
+    
+    if ($showAlert) {
+        // Display message that adviser needs to review first
+        echo "<script>alert('The adviser must review this document first before panel members can access it.');</script>";
+    }
 } else {
     $student_id = null;
     $route2_id = null;
@@ -645,6 +693,24 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+/* Search bar styling */
+.search-container {
+    margin: 15px 0;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.search-box {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 
@@ -761,20 +827,27 @@ input[type="checkbox"] {
             </nav>
 
             <div class="content" id="content-area">
-                <?php
+            
+            <!-- Search bar -->
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+            </div>
+            
+            <?php
+                // First, get all route2 files assigned to this panel member
                 $query = "
                     SELECT 
-                        docuRoute2, 
-                        department, 
-                        student_id, 
-                        route2_id, 
-                        controlNo, 
-                        fullname, 
-                        group_number,
-                        title
-                    FROM route2proposal_files 
-                    WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?)
-                    " . ($selectedDepartment ? " AND department = ?" : "");
+                        r.docuRoute2, 
+                        r.department, 
+                        r.student_id, 
+                        r.route2_id, 
+                        r.controlNo, 
+                        r.fullname, 
+                        r.group_number,
+                        r.title
+                    FROM route2proposal_files r
+                    WHERE (r.panel1_id = ? OR r.panel2_id = ? OR r.panel3_id = ? OR r.panel4_id = ? OR r.panel5_id = ?)
+                    " . ($selectedDepartment ? " AND r.department = ?" : "");
 
                 $stmt = $conn->prepare($query);
 
@@ -786,8 +859,48 @@ input[type="checkbox"] {
 
                 $stmt->execute();
                 $result = $stmt->get_result();
+                $files_to_display = [];
 
+                // For each file, check if adviser approved route1
                 if ($result->num_rows > 0) {
+                    while($row = $result->fetch_assoc()) {
+                        $student_id = $row['student_id'];
+                        $route2_id = $row['route2_id'];
+                        $can_display = false;
+                        
+                        // Only check route1 approval - ignore route2 status
+                        // Get route1_id
+                        $get_route1 = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ?");
+                        $get_route1->bind_param("s", $student_id);
+                        $get_route1->execute();
+                        $route1_result = $get_route1->get_result();
+                        
+                        if ($route1_result && $route1_row = $route1_result->fetch_assoc()) {
+                            $route1_id = $route1_row['route1_id'];
+                            
+                            // Check if route1 was approved
+                            $check_route1 = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
+                                                          WHERE route1_id = ? AND adviser_id IS NOT NULL 
+                                                          AND (status = 'Approved' OR status = 'approved')");
+                            $check_route1->bind_param("i", $route1_id);
+                            $check_route1->execute();
+                            $route1_result = $check_route1->get_result();
+                            $route1_approved = ($route1_result && $route1_result->fetch_assoc()['count'] > 0);
+                            $check_route1->close();
+                            
+                            if ($route1_approved) {
+                                $can_display = true;
+                            }
+                        }
+                        $get_route1->close();
+                        
+                        if ($can_display) {
+                            $files_to_display[] = $row;
+                        }
+                    }
+                }
+
+                if (count($files_to_display) > 0) {
                     echo "
                     <table>
                         <thead>
@@ -802,7 +915,7 @@ input[type="checkbox"] {
                         <tbody>
                     ";
 
-                    while ($row = $result->fetch_assoc()) {
+                    foreach ($files_to_display as $row) {
                         $filePath = htmlspecialchars($row['docuRoute2'], ENT_QUOTES);
                         $route2_id = htmlspecialchars($row['route2_id'], ENT_QUOTES);
                         $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
@@ -830,7 +943,15 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    echo "<p>No files uploaded yet.</p>";
+                    echo "<div class='alert-message' style='background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;'>
+                        <h4 style='color: #856404; margin-top: 0;'>No Files Available for Review</h4>
+                        <p>There are no files available for your review at this time. This could be because:</p>
+                        <ul>
+                            <li>No students have uploaded files for Route 2 where you are assigned as a panel member.</li>
+                            <li>The adviser has not yet reviewed the documents. Panel members can only view files after the adviser has completed their review.</li>
+                        </ul>
+                        <p>Please check back later or contact the Research Coordinator if you believe this is an error.</p>
+                    </div>";
                 }
 
                 $stmt->close();
@@ -855,90 +976,105 @@ input[type="checkbox"] {
 const panelName = <?= json_encode($panel_fullname) ?>;
 
 function viewFile(filePath, route2_id, student_id) {
-    const modal = document.getElementById("fileModal");
-    const contentArea = document.getElementById("fileModalContent");
-    const routingForm = document.getElementById("routingForm");
-    const extension = filePath.split('.').pop().toLowerCase();
-
-    modal.style.display = "flex";
-    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
-    routingForm.innerHTML = "";
-
-    if (extension === "pdf") {
-        contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
-    } else if (extension === "docx") {
-        fetch(filePath)
-            .then(res => res.arrayBuffer())
-            .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
-            .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
-            .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
-    } else {
-        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-
-    routingForm.innerHTML = `
-        <form method="POST">
-            <input type="hidden" name="docuRoute2" value="${filePath}">
-            <input type="hidden" name="student_id" value="${student_id}">
-            <input type="hidden" name="route2_id" value="${route2_id}">
-
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-                <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-                <div style="text-align: center;">
-                    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-                </div>
-                <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-            </div>
-
-            <hr style="border: 1px solid black; margin: 0.2rem 0;">
-            <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-                <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-                <div>
-                    <button type="button" onclick="addFormRow()">Add Row</button>
-                    <button type="submit">Submit Routing Form</button>
-                    <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Show less</button>
-                </div>
-            </div>
+    // First check if the adviser has reviewed this document
+    fetch(`check_adviser_route2.php?route2_id=${route2_id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.hasReviewed) {
+                alert("This document cannot be viewed yet. The adviser must complete their review first.");
+                return;
+            }
             
-            <!-- Header row for submitted forms -->
-            <div class="form-grid-container" style="margin-top: 20px;">
-                <div><strong>Date Submitted</strong></div>
-                <div><strong>Chapter</strong></div>
-                <div><strong>Feedback</strong></div>
-                <div><strong>Paragraph No</strong></div>
-                <div><strong>Page No</strong></div>
-                <div><strong>Submitted By</strong></div>
-                <div><strong>Date Released</strong></div>
-                <div><strong>Status</strong></div>
-                <div><strong>Action</strong></div>
-            </div>
+            // Continue with normal file view process
+            const modal = document.getElementById("fileModal");
+            const contentArea = document.getElementById("fileModalContent");
+            const routingForm = document.getElementById("routingForm");
+            const extension = filePath.split('.').pop().toLowerCase();
 
-            <!-- Container for submitted form data -->
-            <div id="submittedFormsContainer" class="form-grid-container"></div>
-            <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
+            routingForm.innerHTML = "";
 
-            <div id="routingRowsContainer">
-                <div class="form-grid-container">
-                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                    <div><input type="text" name="chapter[]" required></div>
-                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                    <div><input type="number" name="paragraphNumber[]" required></div>
-                    <div><input type="number" name="pageNumber[]" required></div>
-                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                    <div></div>
-                    <div></div>
-                </div>
-            </div>
-        </form>
-    `;
-    
-    // Load forms by default when opening the modal
-    loadAllForms(student_id);
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border:none;"></iframe>`;
+            } else if (extension === "docx") {
+                fetch(filePath)
+                    .then(res => res.arrayBuffer())
+                    .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+                    .then(result => contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`)
+                    .catch(() => contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Error loading file.</p></div>");
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+
+            routingForm.innerHTML = `
+                <form method="POST">
+                    <input type="hidden" name="docuRoute2" value="${filePath}">
+                    <input type="hidden" name="student_id" value="${student_id}">
+                    <input type="hidden" name="route2_id" value="${route2_id}">
+
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                        <div style="text-align: center;">
+                            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                        </div>
+                        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+                    </div>
+
+                    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+                        <div>
+                            <button type="button" onclick="addFormRow()">Add Row</button>
+                            <button type="submit">Submit Routing Form</button>
+                            <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Show less</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Header row for submitted forms -->
+                    <div class="form-grid-container" style="margin-top: 20px;">
+                        <div><strong>Date Submitted</strong></div>
+                        <div><strong>Chapter</strong></div>
+                        <div><strong>Feedback</strong></div>
+                        <div><strong>Paragraph No</strong></div>
+                        <div><strong>Page No</strong></div>
+                        <div><strong>Submitted By</strong></div>
+                        <div><strong>Date Released</strong></div>
+                        <div><strong>Status</strong></div>
+                        <div><strong>Action</strong></div>
+                    </div>
+
+                    <!-- Container for submitted form data -->
+                    <div id="submittedFormsContainer" class="form-grid-container"></div>
+                    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+
+                    <div id="routingRowsContainer">
+                        <div class="form-grid-container">
+                            <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                            <div><input type="text" name="chapter[]" required></div>
+                            <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                            <div><input type="number" name="paragraphNumber[]" required></div>
+                            <div><input type="number" name="pageNumber[]" required></div>
+                            <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                            <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                    </div>
+                </form>
+            `;
+            
+            // Load forms by default when opening the modal
+            loadAllForms(student_id);
+        })
+        .catch(error => {
+            console.error('Error checking adviser review:', error);
+            alert('An error occurred while checking adviser review.');
+        });
 }
 
 function closeModal() {
@@ -1077,6 +1213,32 @@ function enableSaveButton(formId) {
     const saveButton = document.getElementById(`saveButton_${formId}`);
     saveButton.disabled = false;  // Enable the save button
 }
+
+// Search function for the table
+function searchTable() {
+    const input = document.getElementById("searchInput");
+    const filter = input.value.toUpperCase();
+    const table = document.querySelector("table tbody");
+    if (!table) return;
+    
+    const rows = table.getElementsByTagName("tr");
+    
+    for (let i = 0; i < rows.length; i++) {
+        const leaderCell = rows[i].getElementsByTagName("td")[1]; // Index 1 is the Leader column
+        if (leaderCell) {
+            const leaderName = leaderCell.textContent || leaderCell.innerText;
+            if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                rows[i].style.display = "";
+            } else {
+                rows[i].style.display = "none";
+            }
+        }
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    // ... existing code ...
+});
 </script>
 
 

@@ -650,17 +650,18 @@ if (isset($selectedDepartment)) {
         ?>
     </select>
     <select id="panel2-dropdown">
-        <option value="">Panel 2</option>
+        <option value="">Panel 1</option>
         <?php
         if (isset($selectedDepartment)) {
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
-            $panelStmt->bind_param("s", $selectedDepartment);
+            // Modified query to include all Panel 2 members regardless of department
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel2'");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
+                // You can optionally show the department in the dropdown option
             ?>
                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                    <?= htmlspecialchars($row['fullname']) ?>
+                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                 </option>
             <?php endwhile;
             $panelStmt->close();
@@ -669,17 +670,18 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel3-dropdown">
-        <option value="">Panel 3</option>
+        <option value="">Panel 1</option>
         <?php
         if (isset($selectedDepartment)) {
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel3'");
-            $panelStmt->bind_param("s", $selectedDepartment);
+            // Modified query to include all Panel 3 members regardless of department
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel3'");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
+                // You can optionally show the department in the dropdown option
             ?>
                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                    <?= htmlspecialchars($row['fullname']) ?>
+                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                 </option>
             <?php endwhile;
             $panelStmt->close();
@@ -688,17 +690,18 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel4-dropdown">
-        <option value="">Panel 4</option>
+        <option value="">Panel 1</option>
         <?php
         if (isset($selectedDepartment)) {
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel4'");
-            $panelStmt->bind_param("s", $selectedDepartment);
+            // Modified query to include all Panel 4 members regardless of department
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel4'");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
+                // You can optionally show the department in the dropdown option
             ?>
                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                    <?= htmlspecialchars($row['fullname']) ?>
+                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                 </option>
             <?php endwhile;
             $panelStmt->close();
@@ -707,17 +710,18 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel5-dropdown">
-        <option value="">Panel 5</option>
+        <option value="">Panel 1</option>
         <?php
         if (isset($selectedDepartment)) {
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel5'");
-            $panelStmt->bind_param("s", $selectedDepartment);
+            // Modified query to include all Panel 5 members regardless of department
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel5'");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
+                // You can optionally show the department in the dropdown option
             ?>
                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                    <?= htmlspecialchars($row['fullname']) ?>
+                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                 </option>
             <?php endwhile;
             $panelStmt->close();

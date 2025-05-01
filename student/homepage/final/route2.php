@@ -40,6 +40,65 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
     exit;
 }
 
+// HANDLE REUPLOAD REQUEST
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && isset($_POST['old_file_path'])) {
+    $student_id = $_SESSION['student_id'];
+    $oldFilePath = $_POST['old_file_path'];
+    
+    // Check if old file exists in database
+    $stmt = $conn->prepare("SELECT route2_id FROM route2final_files WHERE student_id = ? AND docuRoute2 = ?");
+    $stmt->bind_param("ss", $student_id, $oldFilePath);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2_id = $row['route2_id'];
+        
+        // Process the new file upload
+        $fileTmpPath = $_FILES["docuRoute2"]["tmp_name"];
+        $fileName = $_FILES["docuRoute2"]["name"];
+        $uploadDir = "../../../uploads/";
+        $newFilePath = $uploadDir . basename($fileName);
+        
+        $allowedTypes = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ];
+        
+        if (in_array($_FILES["docuRoute2"]["type"], $allowedTypes)) {
+            // Delete old file if it exists
+            if (file_exists($oldFilePath)) {
+                unlink($oldFilePath);
+            }
+            
+            if (move_uploaded_file($fileTmpPath, $newFilePath)) {
+                // Update the database with the new file path
+                $updateStmt = $conn->prepare("UPDATE route2final_files SET docuRoute2 = ? WHERE route2_id = ?");
+                $updateStmt->bind_param("si", $newFilePath, $route2_id);
+                
+                if ($updateStmt->execute()) {
+                    $alertMessage = "File reuploaded successfully.";
+                } else {
+                    $alertMessage = "Error updating database: " . $updateStmt->error;
+                }
+                $updateStmt->close();
+            } else {
+                $alertMessage = "Error moving the uploaded file.";
+            }
+        } else {
+            $alertMessage = "Invalid file type. Only PDF and DOCX files are allowed.";
+        }
+    } else {
+        $alertMessage = "Original file not found in database.";
+    }
+    $stmt->close();
+    
+    $_SESSION['alert_message'] = $alertMessage;
+    header("Location: route2.php");
+    exit;
+}
+
 // HANDLE UPLOAD
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
     $student_id = $_POST["student_id"];
@@ -479,6 +538,27 @@ button {
     background-color: var(--primary);
 }
 
+.delete-button {
+    background-color: var(--accent);
+    color: white;
+    margin-right: 0.5rem;
+}
+
+.delete-button:hover {
+    background-color: var(--primary);
+}
+
+/* Action column styling */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.action-label {
+    text-align: center;
+}
+
 /* Modal Styling */
 .modal {
     position: fixed;
@@ -845,7 +925,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -865,9 +945,11 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
-                            <td style='text-align: center;'>
-                                <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id', '$route2_id')\">View</button>
-                                <button class='delete-button' onclick=\"confirmDelete('$filePath')\">Delete</button>
+                            <td>
+                                <div class='action-buttons'>
+                                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
+                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                </div>
                             </td>
                         </tr>
                         ";
@@ -896,6 +978,14 @@ input[type="checkbox"] {
         <input type="file" name="docuRoute2" id="docuRoute2" accept=".pdf,.docx" required>
     </form>
 
+    <!-- Form for reupload -->
+    <form action="route2.php" method="POST" enctype="multipart/form-data" id="file-reupload-form" style="display: none;">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+        <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
+        <input type="hidden" name="old_file_path" id="old_file_path">
+        <input type="file" name="docuRoute2" id="docuRoute2_reupload" accept=".pdf,.docx" required>
+    </form>
+
     <div id="fileModal" class="modal">
         <div class="modal-content">
             <span class="close-button" onclick="closeModal()">&times;</span>
@@ -916,7 +1006,7 @@ input[type="checkbox"] {
             document.querySelector("#file-upload-form").submit();
         });
 
-        function viewFile(filePath, student_id, route1_id, route2_id) {
+        function viewFile(filePath, student_id, route2_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
@@ -957,7 +1047,7 @@ input[type="checkbox"] {
             `;
 
             // Load form data dynamically using route2_id
-            fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route1_id=${encodeURIComponent(route1_id)}&route2_id=${encodeURIComponent(route2_id)}`)
+            fetch(`route2get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route2_id=${encodeURIComponent(route2_id)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Fetched forms:", data);
@@ -1037,6 +1127,17 @@ input[type="checkbox"] {
                 form.submit();
             }
         }
+        
+        function confirmReupload(filePath) {
+            if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
+                document.getElementById("old_file_path").value = filePath;
+                document.getElementById("docuRoute2_reupload").click();
+            }
+        }
+        
+        document.getElementById("docuRoute2_reupload").addEventListener("change", function() {
+            document.getElementById("file-reupload-form").submit();
+        });
         
         // For modal animation
         document.addEventListener('keydown', function(event) {

@@ -833,6 +833,10 @@ $result = $conn->query($sql);
         .selected {
             background-color: var(--light);
         }
+        .add-adviser-button {
+        background-color: var(--primary);
+        color: white;
+    }
     </style>
     <script>
         window.onload = function () {

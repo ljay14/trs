@@ -282,7 +282,20 @@ $conn->close();
             transition: border 0.3s;
         }
         
-        .form-container input:focus {
+        .form-container select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s;
+            background-color: white;
+            appearance: auto;
+        }
+        
+        .form-container input:focus,
+        .form-container select:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
@@ -993,7 +1006,9 @@ $conn->close();
                             placeholder="First name / Middle name / Last name" required>
 
                         <label for="department">Department</label>
-                        <input type="text" id="department" name="department" required>
+                        <select id="department" name="department" required>
+                            <option value="">Loading departments...</option>
+                        </select>
 
                         <label for="school_id">School ID</label>
                         <input type="text" id="school_id" name="school_id" required>
@@ -1013,3 +1028,31 @@ $conn->close();
 </html>
 
 <script src="../sidebar.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDepartments();
+    });
+    
+    function loadDepartments() {
+        const departmentSelect = document.getElementById('department');
+        
+        // Use AJAX to fetch available departments
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'get_departments.php', true);
+        
+        xhr.onload = function() {
+            if (this.status == 200) {
+                departmentSelect.innerHTML = this.responseText;
+            } else {
+                departmentSelect.innerHTML = '<option value="">Error loading departments</option>';
+            }
+        };
+        
+        xhr.onerror = function() {
+            departmentSelect.innerHTML = '<option value="">Error loading departments</option>';
+        };
+        
+        xhr.send();
+    }
+</script>
