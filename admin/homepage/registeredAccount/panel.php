@@ -1,5 +1,4 @@
 <?php
-// Start the session
 session_start(); // Start session to check admin login
 
 // Check if the user is logged in as admin
@@ -11,39 +10,40 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-// Check if form is submitted
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get form data
-    $fullname = $_POST['fullname'];
-    $department = $_POST['department'];
-    $school_id = $_POST['school_id']; // Changed from username to school_id
+// Handle form submission
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $fullname = $conn->real_escape_string($_POST['fullname']);
+    $department = $conn->real_escape_string($_POST['department']);
+    
+    // Sanitize and normalize position input
+    $position = trim(strtolower($conn->real_escape_string($_POST['position'])));
+    $school_id = $conn->real_escape_string($_POST['school_id']); // Changed from username to school_id
     $password = $_POST['password']; // Get password as plain text
 
-    // Input validation
-    if (empty($fullname) || empty($department) || empty($school_id) || empty($password)) {
-        echo "<script>alert('All fields are required!'); window.history.back();</script>";
+    // Generate a unique panel_id
+    $panel_id = uniqid("PANEL_");
+
+    // Ensure the position is valid
+    $valid_positions = ['panel1', 'panel2', 'panel3', 'panel4'];
+    if (!in_array($position, $valid_positions)) {
+        echo "<script>alert('Invalid position! Please select a valid position.');</script>";
+        exit;
+    }
+
+    // Insert data into the database
+    $sql = "INSERT INTO panel (panel_id, school_id, password, fullname, department, position) 
+            VALUES ('$panel_id', '$school_id', '$password', '$fullname', '$department', '$position')";
+
+    if ($conn->query($sql) === TRUE) {
+        // Redirect with success status
+        header("Location: panel.php?status=success");
+        exit;
     } else {
-        // Sanitize input
-        $fullname = mysqli_real_escape_string($conn, $fullname);
-        $department = mysqli_real_escape_string($conn, $department);
-        $school_id = mysqli_real_escape_string($conn, $school_id);
-        $password = mysqli_real_escape_string($conn, $password);
-
-        // SQL query to insert data into the database
-        $sql = "INSERT INTO adviser (fullname, department, school_id, password) 
-                VALUES ('$fullname', '$department', '$school_id', '$password')";
-
-        if ($conn->query($sql) === TRUE) {
-            // Redirect to the same page with a success status in the URL
-            header("Location: adviser.php?status=success");
-            exit();
-        } else {
-            echo "<script>alert('Error: " . addslashes($conn->error) . "'); window.history.back();</script>";
-        }
+        echo "Error: " . $sql . "<br>" . $conn->error;
     }
 }
 
-// Close connection
+// Close the connection
 $conn->close();
 ?>
 
@@ -52,7 +52,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adviser Registration - Thesis Routing System</title>
+    <title>Panelist Registration - Thesis Routing System</title>
     <style>
         :root {
             --primary: #002366;
@@ -943,33 +943,11 @@ $conn->close();
                 </div>
             </div>
             <div class="dropdown-content">
-                <a href="departmentcourse/departmentcourse.php" class="submenu-item">Department Course</a>
+                <a href="../departmentcourse/departmentcourse.php" class="submenu-item">Department Course</a>
             </div>
         </div>
 
-        <!-- Register Account Section -->
-        <div class="menu-item dropdown">
-            <div class="menu-header">
-                <div class="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                    </svg>
-                </div>
-                <span>Register Account</span>
-                <div class="dropdown-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </div>
-            </div>
-            <div class="dropdown-content">
-                <a href="../registeraccount/panel.php" class="submenu-item">Panel</a>
-                <a href="../registeraccount/adviser.php" class="submenu-item">Adviser</a>
-            </div>
-        </div>
+
 
         <!-- Registered Account Section -->
         <div class="menu-item dropdown">
@@ -1002,20 +980,22 @@ $conn->close();
 </nav>
             <div class="content">
                 <div class="form-container">
-                    <h1>Adviser Registration</h1>
+                    <h1>Panelist Registration</h1>
 
                     <!-- Success Message -->
                     <div id="success-alert" class="alert alert-success" style="display:none;">
-                        <strong>Success!</strong> New adviser registered successfully.
+                        <strong>Success!</strong> Panelist registered successfully.
                     </div>
 
-                    <form action="adviser.php" method="POST">
+                    <form action="panel.php" method="POST">
                         <label for="fullname">Complete Name</label>
-                        <input type="text" id="fullname" name="fullname"
-                            placeholder="First name / Middle name / Last name" required>
+                        <input type="text" id="fullname" name="fullname" placeholder="First name / Middle name / Last name" required>
 
                         <label for="department">Department</label>
                         <input type="text" id="department" name="department" required>
+
+                        <label for="position">Position</label>
+                        <input type="text" id="position" name="position" placeholder="Panel1, Panel2, Panel3, Panel4" required>
 
                         <label for="school_id">School ID</label>
                         <input type="text" id="school_id" name="school_id" required>

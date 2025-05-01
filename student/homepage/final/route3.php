@@ -118,10 +118,10 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                 exit;
             } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                 // Fetch panel and adviser IDs from Route 1
-                $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
+                $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE student_id = ?");
                 $panelStmt->bind_param("s", $student_id);
                 $panelStmt->execute();
-                $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id);
                 $panelStmt->fetch();
                 $panelStmt->close();
 
@@ -134,8 +134,8 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                 $date_submitted = date("Y-m-d H:i:s");
 
                 // Insert into Route 3 with date_submitted
-                $stmt = $conn->prepare("INSERT INTO route3final_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
+                $stmt = $conn->prepare("INSERT INTO route3final_files (student_id, docuRoute3, department, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                 
                 if ($stmt->execute()) {
                     echo "<script>alert('File uploaded successfully.'); window.location.href = 'route3.php';</script>";

@@ -943,29 +943,7 @@ $result = $conn->query($sql);
             </div>
         </div>
 
-        <!-- Register Account Section -->
-        <div class="menu-item dropdown">
-            <div class="menu-header">
-                <div class="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                    </svg>
-                </div>
-                <span>Register Account</span>
-                <div class="dropdown-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </div>
-            </div>
-            <div class="dropdown-content">
-                <a href="../registeraccount/panel.php" class="submenu-item">Panel</a>
-                <a href="../registeraccount/adviser.php" class="submenu-item">Adviser</a>
-            </div>
-        </div>
+
 
         <!-- Registered Account Section -->
         <div class="menu-item dropdown">
@@ -999,7 +977,7 @@ $result = $conn->query($sql);
             <div class="content">
                 <div class="form-container">
                     <h1>List of Registered Advisers</h1>
-
+                    <button onclick="window.location.href='adviser.php'" class="add-adviser-button">Add Adviser</button>
                     <div id="success-alert" class="success-alert">
                         <strong>Success!</strong> Adviser updated successfully!
                     </div>

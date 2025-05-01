@@ -23,13 +23,13 @@ $panel_id = $_SESSION['panel_id'];
 $fullname = $_SESSION['fullname'] ?? 'Panelist';
 
 $stmt = $conn->prepare("SELECT student_id, route1_id FROM route1final_files 
-                        WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?");
+                        WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?");
 
 if ($stmt === false) {
     die("Error preparing the query: " . $conn->error);
 }
 
-$stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+$stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $panel_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -824,9 +824,9 @@ function loadAllForms(route1_id) {
             <div class="dropdown-container">
     <?php
     // Check if the current user is a panel1 for any document
-    $checkPanel1Query = "SELECT COUNT(*) as count FROM route1final_files WHERE panel1_id = ?";
+    $checkPanel1Query = "SELECT COUNT(*) as count FROM route1final_files WHERE panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?";
     $checkStmt = $conn->prepare($checkPanel1Query);
-    $checkStmt->bind_param("s", $panel_id);
+    $checkStmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $panel_id);
     $checkStmt->execute();
     $isPanelResult = $checkStmt->get_result();
     $isPanel1 = ($isPanelResult->fetch_assoc()['count'] > 0);
@@ -933,15 +933,15 @@ function loadAllForms(route1_id) {
                     group_number,
                     title
                 FROM route1final_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ?)
+                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?)
                 " . ($selectedDepartment ? " AND department = ?" : "");
 
             $stmt = $conn->prepare($query);
 
             if ($selectedDepartment) {
-                $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
+                $stmt->bind_param("ssssss", $panel_id, $panel_id, $panel_id, $panel_id, $panel_id, $selectedDepartment);
             } else {
-                $stmt->bind_param("ssss", $panel_id, $panel_id, $panel_id, $panel_id);
+                $stmt->bind_param("sssss", $panel_id, $panel_id, $panel_id, $panel_id, $panel_id);
             }
 
             $stmt->execute();

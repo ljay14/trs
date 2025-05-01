@@ -122,13 +122,13 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
                     if (!$panelStmt) {
                         die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
                     }
                     $panelStmt->bind_param("s", $student_id);
                     $panelStmt->execute();
-                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id);
                     $panelStmt->fetch();
                     $panelStmt->close();
 
@@ -141,9 +141,9 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 3 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO finaldocuproposal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO finaldocuproposal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
+                        $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'finaldocu.php';</script>";
                         } else {

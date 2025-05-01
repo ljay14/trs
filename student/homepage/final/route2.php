@@ -86,10 +86,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
 
                     // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE student_id = ?");
+                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE student_id = ?");
                     $panelStmt->bind_param("s", $student_id);
                     $panelStmt->execute();
-                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id);
+                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id);
                     $panelStmt->fetch();
                     $panelStmt->close();
 
@@ -102,9 +102,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $date_submitted = date("Y-m-d H:i:s");
 
                     // Insert into Route 2 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, adviser_id, date_submitted,controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ? ,? ,? ,? ,? , ?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO route2final_files (student_id, docuRoute2, department, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     if ($stmt) {
-                        $stmt->bind_param("sssiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
+                        $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                         if ($stmt->execute()) {
                             echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
                         } else {
@@ -140,7 +140,7 @@ if (!$route1_id) {
 }
 
 // Get panel and adviser IDs
-$stmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, adviser_id FROM route1final_files WHERE route1_id = ?");
+$stmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE route1_id = ?");
 $stmt->bind_param("i", $route1_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -148,7 +148,7 @@ $route = $result->fetch_assoc();
 $stmt->close();
 
 $panel_ids = [];
-foreach (['panel1_id', 'panel2_id', 'panel3_id', 'panel4_id'] as $key) {
+foreach (['panel1_id', 'panel2_id', 'panel3_id', 'panel4_id', 'panel5_id'] as $key) {
     if (!empty($route[$key])) {
         $panel_ids[] = (int) $route[$key];
     }
