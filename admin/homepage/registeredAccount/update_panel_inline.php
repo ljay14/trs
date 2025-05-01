@@ -43,8 +43,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
     
     // Close the statement and connection
-    $stmt->close();
+    
 }
-
+$stmt->close();
 $conn->close();
 ?>
