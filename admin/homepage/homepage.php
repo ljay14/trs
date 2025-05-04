@@ -398,7 +398,7 @@ if (!isset($_SESSION['admin_id'])) {
                 <a href="titleproposal/route1.php" class="submenu-item">Route 1</a>
                 <a href="titleproposal/route2.php" class="submenu-item">Route 2</a>
                 <a href="titleproposal/route3.php" class="submenu-item">Route 3</a>
-                <a href="titleproposal/finaldocu.php" class="submenu-item">Endorsement Form</a>
+                <a href="titleproposal/finaldocu.php" class="submenu-item">Final Document</a>
             </div>
         </div>
 

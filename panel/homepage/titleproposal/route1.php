@@ -54,10 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $docuRoute1 = $_POST['docuRoute1'];
     $route1_id = $_POST['route1_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare the query
-    $stmt = $conn->prepare("INSERT INTO proposal_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, student_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO proposal_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, student_id, status, routeNumber) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     if ($stmt === false) {
         die("Prepare failed: " . $conn->error);
@@ -72,9 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $panelName = $panelNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         $stmt->bind_param(
-            "ssssssisssi", 
+            "ssssssisssiss", 
             $panel_id, 
             $panelName, 
             $dateSubmitted, 
@@ -85,7 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $dateReleased, 
             $docuRoute1, 
             $route1_id, 
-            $student_id
+            $student_id,
+            $status,
+            $routeNumber
         );
 
         if (!$stmt->execute()) {
@@ -476,7 +481,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(8, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -492,6 +497,31 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+
+        /* Specific style for the feedback cell (3rd column) - supports different grid sizes */
+        .form-grid-container > div:nth-child(8n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none; /* Remove height limit */
+            height: auto; /* Allow height to adjust to content */
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
+        }
+        
+        /* Style for feedback cell class used in JavaScript */
+        .feedback-cell {
+            text-align: left !important;
+            justify-content: flex-start !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .form-grid-container input,
@@ -508,7 +538,7 @@ button {
 
         .form-input-row textarea {
             resize: vertical;
-            min-height: 24px;
+            min-height: 40px;
         }
 .close-button {
     position: absolute;
@@ -707,6 +737,7 @@ input[type="checkbox"] {
             <input type="hidden" name="docuRoute1" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="route1_id" value="${route1_id}">
+            <input type="hidden" name="status" value="Pending">
 
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
@@ -735,6 +766,7 @@ input[type="checkbox"] {
                 <div><strong>Paragraph No</strong></div>
                 <div><strong>Page No</strong></div>
                 <div><strong>Submitted By</strong></div>
+                <div><strong>Route Number</strong></div>
                 <div><strong>Date Released</strong></div>
             </div>
 
@@ -751,6 +783,7 @@ input[type="checkbox"] {
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                    <div><input type="text" name="routeNumber[]" value="Route 1" required></div>
                 </div>
             </div>
         </form>
@@ -816,6 +849,7 @@ function loadAllForms(route1_id) {
                     <div>${row.page_number}</div>
                     <div>${submittedBy}</div>
                     <div>${row.date_released}</div>
+                    <div>${row.routeNumber}</div>
                 `;
             });
 
@@ -831,7 +865,12 @@ function loadAllForms(route1_id) {
 
     function autoGrow(textarea) {
         textarea.style.height = 'auto'; // Reset height
-        textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+        textarea.style.height = (textarea.scrollHeight) + 'px'; // Set to scrollHeight
+        
+        // Ensure minimum height
+        if (textarea.scrollHeight < 40) {
+            textarea.style.height = '40px';
+        }
     }
 
     // For modal animation

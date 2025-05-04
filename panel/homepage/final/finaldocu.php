@@ -446,7 +446,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(9, 1fr);
+            grid-template-columns: repeat(10, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -462,6 +462,31 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) */
+        .form-grid-container > div:nth-child(10n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none; /* Remove height limit */
+            height: auto; /* Allow height to adjust to content */
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
+        }
+        
+        /* Style for feedback cell class used in JavaScript */
+        .feedback-cell {
+            text-align: left !important;
+            justify-content: flex-start !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .form-grid-container input,
@@ -971,8 +996,6 @@ input[type="checkbox"] {
                             <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
                                 <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
                                 <div>
-                                    <button type="button" onclick="addFormRow()">Add Row</button>
-                                    <button type="submit">Submit Routing Form</button>
                                     <button type="button" id="toggleFormsButton" onclick="toggleForms('${student_id}')">Show less</button>
                                 </div>
                             </div>
@@ -986,6 +1009,7 @@ input[type="checkbox"] {
                                 <div><strong>Page No</strong></div>
                                 <div><strong>Submitted By</strong></div>
                                 <div><strong>Date Released</strong></div>
+                                <div><strong>Route Number</strong></div>
                                 <div><strong>Status</strong></div>
                                 <div><strong>Action</strong></div>
                             </div>
@@ -993,20 +1017,6 @@ input[type="checkbox"] {
                             <!-- Container for submitted form data -->
                             <div id="submittedFormsContainer" class="form-grid-container"></div>
                             <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
-
-                            <div id="routingRowsContainer">
-                                <div class="form-grid-container">
-                                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                                    <div><input type="text" name="chapter[]" required></div>
-                                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                                    <div><input type="number" name="paragraphNumber[]" required></div>
-                                    <div><input type="number" name="pageNumber[]" required></div>
-                                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                                    <div></div>
-                                    <div></div>
-                                </div>
-                            </div>
                         </form>
                     `;
                     
@@ -1023,21 +1033,6 @@ input[type="checkbox"] {
             document.getElementById("fileModal").style.display = "none";
         }
 
-        function addFormRow() {
-            const today = new Date().toISOString().split('T')[0];
-            const row = `
-                <div class="form-grid-container">
-                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                    <div><input type="text" name="chapter[]" required></div>
-                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                    <div><input type="number" name="paragraphNumber[]" required></div>
-                    <div><input type="number" name="pageNumber[]" required></div>
-                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
-                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                </div>
-            `;
-            document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
-        }
 
         let formsVisible = true;
 
@@ -1098,6 +1093,7 @@ input[type="checkbox"] {
                         <div>${form.page_number}</div>
                         <div>${submittedBy}</div>
                         <div>${form.date_released}</div>
+                        <div>${form.routeNumber}</div>
                         <div>
                             <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
                                 <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>

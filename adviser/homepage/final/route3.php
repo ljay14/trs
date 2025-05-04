@@ -45,11 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $docuRoute3 = $_POST['docuRoute3'];
     $route3_id = $_POST['route3_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare SQL for inserting form data
     $stmt = $conn->prepare("INSERT INTO final_monitoring_form 
-    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute3, route3_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute3, route3_id, status, routeNumber) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt === false) {
         die("Error preparing the insert query: " . $conn->error);
     }
@@ -63,10 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $adviserName = $adviserNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         // Bind parameters including the route3_id
         $stmt->bind_param(
-            "ssssssissss",  // 11 specifiers
+            "ssssssissssss",  // 11 specifiers
             $adviser_id, 
             $adviserName, 
             $student_id, 
@@ -77,7 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $pageNumber, 
             $dateReleased, 
             $docuRoute3,
-            $route3_id
+            $route3_id,
+            $status,
+            $routeNumber
         );
         
         // Execute the statement
@@ -429,7 +434,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(9, 1fr);
+            grid-template-columns: repeat(10, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -445,10 +450,68 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) */
+        .form-grid-container > div:nth-child(10n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none; /* Remove height limit */
+            height: auto; /* Allow height to adjust to content */
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
         }
 
-        .form-grid-container input,
-        .form-grid-container textarea {
+        .form-grid-container1 {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .form-grid-container1 > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background-color: white;
+            text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) */
+        .form-grid-container1 > div:nth-child(8n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none;
+            height: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Style for feedback cell class used in JavaScript */
+        .feedback-cell {
+            text-align: left !important;
+            justify-content: flex-start !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+
+        .form-grid-container1 input,
+        .form-grid-container1 textarea {
             width: 100%;
             height: 100%;
             padding: 4px;
@@ -856,6 +919,7 @@ function viewFile(filePath, student_id, route3_id) {
             <input type="hidden" name="docuRoute3" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="route3_id" value="${route3_id}">
+            <input type="hidden" name="status" value="Pending">
 
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
@@ -872,6 +936,7 @@ function viewFile(filePath, student_id, route3_id) {
                 <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
                 <div>
                     <button type="button" onclick="addFormRow()">Add Row</button>
+                    <button type="button" onclick="doneEditing()" style="background-color: var(--success); color: white;">Done</button>
                     <button type="submit">Submit Routing Form</button>
                     <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Hide Forms</button>
                 </div>
@@ -886,6 +951,7 @@ function viewFile(filePath, student_id, route3_id) {
                 <div><strong>Page No</strong></div>
                 <div><strong>Submitted By</strong></div>
                 <div><strong>Date Released</strong></div>
+                <div><strong>Route Number</strong></div>
                 <div><strong>Status</strong></div>
                 <div><strong>Action</strong></div>
             </div>
@@ -895,7 +961,7 @@ function viewFile(filePath, student_id, route3_id) {
             <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
             <div id="routingRowsContainer">
-                <div class="form-grid-container">
+                <div class="form-grid-container1">
                     <div><input type="text" name="dateSubmitted[]" value="<?= date('Y-m-d'); ?>" readonly></div>
                     <div><input type="text" name="chapter[]" required></div>
                     <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
@@ -903,8 +969,7 @@ function viewFile(filePath, student_id, route3_id) {
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
                     <div><input type="date" name="dateReleased[]" value="<?= date('Y-m-d'); ?>" required></div>
-                    <div></div>
-                    <div></div>
+                    <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 3" required></div>
                 </div>
             </div>
         </form>
@@ -918,9 +983,56 @@ function closeModal() {
     document.getElementById("fileModal").style.display = "none";
 }
 
+function doneEditing() {
+    // Get the form elements
+    const form = document.querySelector('#routingForm form');
+    const student_id = form.querySelector('input[name="student_id"]').value;
+    const route3_id = form.querySelector('input[name="route3_id"]').value;
+    const docuRoute3 = form.querySelector('input[name="docuRoute3"]').value;
+    const adviserName = form.querySelector('input[name="adviserName[]"]').value;
+    
+    // Confirm the action
+    if (confirm("Are you sure you want to mark this as done without additional comments? This indicates you've reviewed the document and have no further feedback.")) {
+        // Create a form data object
+        const formData = new FormData();
+        
+        // Add a single entry with "No comments" as feedback
+        formData.append('dateSubmitted[]', new Date().toISOString().split('T')[0]);
+        formData.append('chapter[]', 'All');
+        formData.append('feedback[]', 'No additional comments. Document reviewed.');
+        formData.append('paragraphNumber[]', '0');
+        formData.append('pageNumber[]', '0');
+        formData.append('adviserName[]', adviserName);
+        formData.append('dateReleased[]', new Date().toISOString().split('T')[0]);
+        formData.append('routeNumber[]', 'Route 3');
+        formData.append('docuRoute3', docuRoute3);
+        formData.append('route3_id', route3_id);
+        formData.append('student_id', student_id);
+        formData.append('status', 'Approved');
+        
+        // Submit the form data using fetch
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Document marked as reviewed with no additional comments.');
+                window.location.reload();
+            } else {
+                throw new Error('Network response was not ok');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to mark document as done. Please try again.');
+        });
+    }
+}
+
 function addFormRow() {
     const row = `
-        <div class="form-grid-container">
+        <div class="form-grid-container1">
             <div><input type="text" name="dateSubmitted[]" value="<?php echo date('Y-m-d'); ?>" readonly></div>
             <div><input type="text" name="chapter[]" required></div>
             <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
@@ -928,8 +1040,7 @@ function addFormRow() {
             <div><input type="number" name="pageNumber[]" required></div>
             <div><input type="text" name="adviserName[]" value="<?= htmlspecialchars($fullname) ?>" readonly></div>
             <div><input type="date" name="dateReleased[]" value="<?php echo date('Y-m-d'); ?>" required></div>
-            <div></div>
-            <div></div>
+            <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 3" required></div>
         </div>
     `;
     document.getElementById('routingRowsContainer').insertAdjacentHTML('beforeend', row);
@@ -976,6 +1087,7 @@ function loadAllForms(student_id) {
                     <div>${form.page_number}</div>
                     <div>${submittedBy}</div>
                     <div>${form.date_released}</div>
+                    <div>${form.routeNumber}</div>
                     <div>
                         <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
                             <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>

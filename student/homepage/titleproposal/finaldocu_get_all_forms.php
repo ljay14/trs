@@ -7,7 +7,7 @@ if ($student_id) {
     $stmt = $conn->prepare("
         SELECT * FROM proposal_monitoring_form 
         WHERE student_id = ?
-        AND (route1_id IS NOT NULL OR route2_id IS NOT NULL)
+        AND (finaldocu_id IS NOT NULL)
         ORDER BY date_submitted ASC
     ");
     $stmt->bind_param("s", $student_id);
@@ -19,15 +19,10 @@ if ($student_id) {
         $forms[] = $row;
     }
 
-    // Debugging: Check the result array
-    if (empty($forms)) {
-        echo "No forms found for this student with route1_id or route2_id.";
-    } else {
-        // Output the forms array as JSON
-        header('Content-Type: application/json');
-        echo json_encode($forms);
-    }
+    // Output as JSON
+    header('Content-Type: application/json');
+    echo json_encode($forms);
 } else {
     echo json_encode([]);
 }
-?>
+?> 

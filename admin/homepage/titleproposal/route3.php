@@ -255,7 +255,7 @@ if (isset($selectedDepartment)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route 3 - Thesis Routing System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <link rel="stylesheet" href="proposalstyles.css">
+    <link rel="stylesheet" href="proposalstyle.css">
     <style>
         /* Add styles for the search bar */
         .search-container {
@@ -1039,38 +1039,48 @@ if (isset($selectedDepartment)) {
         modal.style.display = "flex";
         contentArea.innerHTML = "Loading file...";
         routingFormArea.innerHTML = `
-<div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-<img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-<img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-<div style="text-align: center;">
-    <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-    <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
-</div>
-<img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
-</div>
-<hr style="border: 1px solid black; margin: 0.2rem 0;">
-<div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
-<h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+            <div style="text-align: center;">
+                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+            </div>
+            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+        </div>
+        <button id="printButton" style="background-color: var(--primary); color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+                <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            </svg>
+            Print Form
+        </button>
+    </div>
+    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+    </div>
 
-<!-- Header row for submitted forms -->
-<div class="form-grid-container" style="margin-top: 20px;">
-<div><strong>Date Submitted</strong></div>
-<div><strong>Chapter</strong></div>
-<div><strong>Feedback</strong></div>
-<div><strong>Paragraph No</strong></div>
-<div><strong>Page No</strong></div>
-<div><strong>Submitted By</strong></div>
-<div><strong>Date Released</strong></div>
-<div><strong>Status</strong></div>
-</div>
+    <!-- Header row for submitted forms -->
+    <div class="form-grid-container" style="margin-top: 20px;">
+        <div><strong>Date Submitted</strong></div>
+        <div><strong>Chapter</strong></div>
+        <div><strong>Feedback</strong></div>
+        <div><strong>Paragraph No</strong></div>
+        <div><strong>Page No</strong></div>
+        <div><strong>Submitted By</strong></div>
+        <div><strong>Date Released</strong></div>
+        <div><strong>Status</strong></div>
+        <div><strong>Route Number</strong></div>
+    </div>
 
-<!-- Container for submitted form data -->
-<div id="submittedFormsContainer" class="form-grid-container"></div>
-<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+    <!-- Container for submitted form data -->
+    <div id="submittedFormsContainer" class="form-grid-container"></div>
+    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 `;
 
-        // Load form data dynamically
+        // Load form data dynamically 
         fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route3_id=${encodeURIComponent(route3_id)}`)
             .then(res => res.json())
             .then(data => {
@@ -1081,6 +1091,7 @@ if (isset($selectedDepartment)) {
                     rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
                     return;
                 }
+                
                 data.forEach(row => {
                     let submittedBy = "N/A";
                     if (row.adviser_name) {
@@ -1098,6 +1109,7 @@ if (isset($selectedDepartment)) {
                         <div>${submittedBy}</div>
                         <div>${row.date_released}</div>
                         <div>${row.status}</div>
+                        <div>${row.routeNumber}</div>
                     `;
                 });
             })
@@ -1123,6 +1135,84 @@ if (isset($selectedDepartment)) {
         } else {
             contentArea.innerHTML = "Unsupported file type.";
         }
+        
+        // New event listener for print button
+        setTimeout(() => {
+            document.getElementById('printButton').addEventListener('click', function() {
+                // Create a hidden iframe element
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Get content to print
+                const headerContent = document.querySelector('.routing-form-section > div:first-child').cloneNode(true);
+                const titleContent = document.querySelector('.routing-form-section > div:nth-child(3)').cloneNode(true);
+                const tableHeaders = document.querySelector('.form-grid-container').cloneNode(true);
+                const tableData = document.getElementById('submittedFormsContainer').cloneNode(true);
+                
+                // Remove print button from cloned header
+                headerContent.querySelector('#printButton').remove();
+                
+                // Create print HTML
+                const printContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Routing Monitoring Form</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; }
+                            .header { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1rem; }
+                            .title { text-align: center; margin: 1.5rem 0; }
+                            .grid-container {
+                                display: grid;
+                                grid-template-columns: repeat(9, 1fr);
+                                border: 1px solid #e0e0e0;
+                                border-radius: 6px;
+                                overflow: hidden;
+                                margin-bottom: 1rem;
+                            }
+                            .grid-container > div {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                padding: 0.5rem;
+                                font-size: 0.9rem;
+                                border: 1px solid #e0e0e0;
+                                background-color: white;
+                                text-align: center;
+                            }
+                            @media print {
+                                @page { size: landscape; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">${headerContent.innerHTML}</div>
+                        <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                        <div class="title">${titleContent.innerHTML}</div>
+                        <div class="grid-container">${tableHeaders.innerHTML}</div>
+                        <div class="grid-container">${tableData.innerHTML}</div>
+                    </body>
+                    </html>
+                `;
+                
+                // Write content to iframe and print
+                iframe.contentWindow.document.open();
+                iframe.contentWindow.document.write(printContent);
+                iframe.contentWindow.document.close();
+                
+                // Add onload event to ensure content is fully loaded before printing
+                iframe.onload = function() {
+                    setTimeout(function() {
+                        iframe.contentWindow.print();
+                        // Clean up after printing
+                        setTimeout(function() {
+                            document.body.removeChild(iframe);
+                        }, 500);
+                    }, 300);
+                };
+            });
+        }, 100);
     }
 
     function closeModal() {

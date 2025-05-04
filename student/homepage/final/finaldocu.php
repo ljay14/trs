@@ -63,8 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
         $newFilePath = $uploadDir . basename($fileName);
         
         $allowedTypes = [
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "application/pdf"
         ];
         
         if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
@@ -88,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
                 $alertMessage = "Error moving the uploaded file.";
             }
         } else {
-            $alertMessage = "Invalid file type. Only PDF and DOCX files are allowed.";
+            $alertMessage = "Invalid file type. Only PDF files are allowed.";
         }
     } else {
         $alertMessage = "Original file not found in database.";
@@ -155,8 +154,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
             $filePath = $uploadDir . basename($fileName);
 
             $allowedTypes = [
-                "application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "application/pdf"
             ];
 
             if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
@@ -213,7 +211,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
                     echo "<script>alert('Error moving the file.'); window.history.back();</script>";
                 }
             } else {
-                echo "<script>alert('Invalid file type. Only PDF and DOCX files are allowed.'); window.history.back();</script>";
+                echo "<script>alert('Invalid file type. Only PDF files are allowed.'); window.history.back();</script>";
             }
         } else {
             echo "<script>alert('Error uploading file.'); window.history.back();</script>";
@@ -256,6 +254,20 @@ if ($result->num_rows > 0) {
 } else {
     echo "No student found.";
 }
+
+// Get the student's department
+$department = "";
+$stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$stmt->bind_result($department);
+$stmt->fetch();
+$stmt->close();
+
+// Store department info in a JS variable for later use
+$is_computing_student = (strpos(strtolower($department), 'computing') !== false || 
+                         strpos(strtolower($department), 'computer') !== false ||
+                         strpos(strtolower($department), 'information') !== false);
 ?>
 
 <!DOCTYPE html>
@@ -617,7 +629,7 @@ button {
 
 .form-grid-container {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(9, 1fr);
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;
@@ -633,12 +645,37 @@ button {
     border: 1px solid var(--border);
     background-color: white;
     text-align: center;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-height: 40px;
+}
+
+/* Specific style for the feedback cell (3rd column) */
+.form-grid-container > div:nth-child(9n + 3) {
+    text-align: left;
+    justify-content: flex-start;
+    overflow-y: visible;
+    max-height: none; /* Remove height limit */
+    height: auto; /* Allow height to adjust to content */
+    white-space: pre-wrap; /* Preserve line breaks and spacing */
+}
+
+/* Style for feedback cells in JavaScript output */
+.feedback-cell {
+    text-align: left !important;
+    justify-content: flex-start !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
 }
 
 .close-button {
     position: absolute;
-    top: 10px;
-    right: 20px;
+    top: -5px;
+    right: 2px;
     font-size: 28px;
     cursor: pointer;
     color: var(--dark);
@@ -977,7 +1014,7 @@ input[type="checkbox"] {
     <form action="finaldocu.php" method="POST" enctype="multipart/form-data" id="file-upload-form" style="display: none;">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); ?>">
         <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
-        <input type="file" name="finaldocu" id="finaldocu" accept=".pdf,.docx" required>
+        <input type="file" name="finaldocu" id="finaldocu" accept=".pdf" required>
     </form>
 
     <!-- Form for reupload -->
@@ -985,7 +1022,7 @@ input[type="checkbox"] {
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
         <input type="hidden" name="student_id" value="<?= htmlspecialchars($_SESSION['student_id']); ?>">
         <input type="hidden" name="old_file_path" id="old_file_path">
-        <input type="file" name="finaldocu" id="finaldocu_reupload" accept=".pdf,.docx" required>
+        <input type="file" name="finaldocu" id="finaldocu_reupload" accept=".pdf" required>
     </form>
 
     <div id="fileModal" class="modal">
@@ -1056,23 +1093,32 @@ document.getElementById("submit-file-button").addEventListener("click", function
             document.querySelector("#file-upload-form").submit();
         });
 
-        function viewFile(filePath, student_id, route3_id) {
+        function viewFile(filePath, student_id, finaldocu_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
             const routingFormArea = document.getElementById("routingForm");
 
             modal.style.display = "flex";
-            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading file...</p></div></div>";
             
             routingFormArea.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-                    <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-                    <div style="text-align: center;">
-                        <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-                        <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+                        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+                        <div style="text-align: center;">
+                            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+                        </div>
+                        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
                     </div>
-                    <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+                    <button id="printButton" style="background-color: var(--primary); color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+                            <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                        </svg>
+                        Print Form
+                    </button>
                 </div>
                 <hr style="border: 1px solid black; margin: 0.2rem 0;">
                 <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
@@ -1089,6 +1135,7 @@ document.getElementById("submit-file-button").addEventListener("click", function
                     <div><strong>Submitted By</strong></div>
                     <div><strong>Date Released</strong></div>
                     <div><strong>Status</strong></div>
+                    <div><strong>Route Number</strong></div>
                 </div>
                 
                 <!-- Container for submitted form data -->
@@ -1096,8 +1143,8 @@ document.getElementById("submit-file-button").addEventListener("click", function
                 <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
             `;
 
-            // Load form data dynamically using route3_id
-            fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route3_id=${encodeURIComponent(route3_id)}`)
+            // Load form data dynamically
+            fetch(`finaldocu_get_all_forms.php?student_id=${encodeURIComponent(student_id)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Fetched forms:", data);
@@ -1105,7 +1152,7 @@ document.getElementById("submit-file-button").addEventListener("click", function
                     rowsContainer.innerHTML = ""; // Important: Clear previous data
 
                     if (!Array.isArray(data) || data.length === 0) {
-                        rowsContainer.innerHTML = `<div style="grid-column: span 8; text-align: center; padding: 1rem;">No routing form data available.</div>`;
+                        rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center; padding: 1rem;">No routing form data available.</div>`;
                         return;
                     }
                     
@@ -1120,14 +1167,115 @@ document.getElementById("submit-file-button").addEventListener("click", function
                         rowsContainer.innerHTML += `
                             <div>${row.date_submitted}</div>
                             <div>${row.chapter}</div>
-                            <div>${row.feedback}</div>
+                            <div class="feedback-cell">${row.feedback}</div>
                             <div>${row.paragraph_number}</div>
                             <div>${row.page_number}</div>
                             <div>${submittedBy}</div>
                             <div>${row.date_released}</div>
                             <div>${row.status}</div>
+                            <div>${row.routeNumber}</div>
                         `;
                     });
+                    
+                    // Add event listener for print button
+                    setTimeout(() => {
+                        document.getElementById('printButton').addEventListener('click', function() {
+                            // Create a hidden iframe element
+                            const iframe = document.createElement('iframe');
+                            iframe.style.display = 'none';
+                            document.body.appendChild(iframe);
+                            
+                            // Get content to print
+                            const headerContent = document.querySelector('.routing-form-section > div:first-child').cloneNode(true);
+                            const titleContent = document.querySelector('.routing-form-section > div:nth-child(3)').cloneNode(true);
+                            const tableHeaders = document.querySelector('.form-grid-container').cloneNode(true);
+                            const tableData = document.getElementById('submittedFormsContainer').cloneNode(true);
+                            
+                            // Remove print button from cloned header
+                            headerContent.querySelector('#printButton').remove();
+                            
+                            // Create print HTML
+                            const printContent = `
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <title>Routing Monitoring Form</title>
+                                    <style>
+                                        body { font-family: Arial, sans-serif; }
+                                        .header { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 1rem; }
+                                        .title { text-align: center; margin: 1.5rem 0; }
+                                        .grid-container {
+                                            display: grid;
+                                            grid-template-columns: repeat(9, 1fr);
+                                            border: 1px solid #e0e0e0;
+                                            border-radius: 6px;
+                                            overflow: hidden;
+                                            margin-bottom: 1rem;
+                                        }
+                                        .grid-container > div {
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            padding: 0.5rem;
+                                            font-size: 0.9rem;
+                                            border: 1px solid #e0e0e0;
+                                            background-color: white;
+                                            text-align: center;
+                                        }
+                                        
+                                        /* Specific style for the feedback cell (3rd column) */
+                                        .grid-container > div:nth-child(9n + 3) {
+                                            text-align: left;
+                                            justify-content: flex-start;
+                                            overflow-y: visible;
+                                            max-height: none;
+                                            height: auto;
+                                            white-space: pre-wrap;
+                                            word-break: break-word;
+                                            overflow-wrap: break-word;
+                                        }
+                                        
+                                        /* Support for feedback-cell class */
+                                        .feedback-cell {
+                                            text-align: left !important;
+                                            justify-content: flex-start !important;
+                                            white-space: pre-wrap !important;
+                                            word-break: break-word !important;
+                                            overflow-wrap: break-word !important;
+                                        }
+                                        
+                                        @media print {
+                                            @page { size: landscape; }
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="header">${headerContent.innerHTML}</div>
+                                    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+                                    <div class="title">${titleContent.innerHTML}</div>
+                                    <div class="grid-container">${tableHeaders.innerHTML}</div>
+                                    <div class="grid-container">${tableData.innerHTML}</div>
+                                </body>
+                                </html>
+                            `;
+                            
+                            // Write content to iframe and print
+                            iframe.contentWindow.document.open();
+                            iframe.contentWindow.document.write(printContent);
+                            iframe.contentWindow.document.close();
+                            
+                            // Add onload event to ensure content is fully loaded before printing
+                            iframe.onload = function() {
+                                setTimeout(function() {
+                                    iframe.contentWindow.print();
+                                    // Clean up after printing
+                                    setTimeout(function() {
+                                        document.body.removeChild(iframe);
+                                    }, 500);
+                                }, 300);
+                            };
+                        });
+                    }, 100);
                 })
                 .catch(err => {
                     console.error("Error loading form data:", err);
@@ -1205,5 +1353,5 @@ document.getElementById("submit-file-button").addEventListener("click", function
                 }
             </style>
         `);
-    </script>
+</script>
 

@@ -45,11 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $docuRoute1 = $_POST['docuRoute1'];
     $route1_id = $_POST['route1_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare SQL for inserting form data
     $stmt = $conn->prepare("INSERT INTO proposal_monitoring_form 
-    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, status, routeNumber) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     if ($stmt === false) {
         die("Error preparing the insert query: " . $conn->error);
@@ -64,10 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $adviserName = $adviserNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         // Bind parameters including the route1_id
         $stmt->bind_param(
-            "ssssssissss",  // 11 specifiers
+            "ssssssissssss",  // 11 specifiers
             $adviser_id, 
             $adviserName, 
             $student_id, 
@@ -78,7 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $pageNumber, 
             $dateReleased, 
             $docuRoute1,
-            $route1_id
+            $route1_id,
+            $status,
+            $routeNumber
         );
         
         // Execute the statement
@@ -430,7 +435,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(8, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -446,6 +451,19 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+
+        /* Specific style for the feedback cell (3rd column) */
+        .form-grid-container > div:nth-child(8n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none; /* Remove height limit */
+            height: auto; /* Allow height to adjust to content */
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
         }
 
         .form-grid-container input,
@@ -462,7 +480,7 @@ button {
 
         .form-input-row textarea {
             resize: vertical;
-            min-height: 24px;
+            min-height: 40px;
         }
 
 .close-button {
@@ -857,6 +875,7 @@ input[type="checkbox"] {
             <input type="hidden" name="docuRoute1" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="route1_id" value="${route1_id}">
+            <input type="hidden" name="status" value="Pending">
 
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
@@ -887,6 +906,7 @@ input[type="checkbox"] {
                 <div><strong>Page No</strong></div>
                 <div><strong>Submitted By</strong></div>
                 <div><strong>Date Released</strong></div>
+                <div><strong>Route Number</strong></div>
             </div>
 
             <!-- Container for submitted form data -->
@@ -902,6 +922,7 @@ input[type="checkbox"] {
                     <div><input type="number" name="pageNumber[]" required></div>
                     <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
                     <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                    <div><input type="text" name="routeNumber[]" value="Route 1" readonly></div>
                 </div>
             </div>
         </form>
@@ -926,9 +947,17 @@ function addFormRow() {
             <div><input type="number" name="pageNumber[]" required></div>
             <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
             <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+            <div><input type="text" name="routeNumber[]" value="Route 1" readonly></div>
         </div>
     `;
     document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
+    
+    // Initialize auto-grow for the newly added textarea
+    const textareas = document.querySelectorAll('textarea');
+    const lastTextarea = textareas[textareas.length - 1];
+    lastTextarea.addEventListener('input', function() {
+        autoGrow(this);
+    });
 }
 
 let formsVisible = true;
@@ -938,7 +967,7 @@ function loadAllForms(route1_id) {
     const noFormsMessage = document.getElementById("noFormsMessage");
     
     // Show loading spinner
-    formDataContainer.innerHTML = "<div style='grid-column: span 7; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
+    formDataContainer.innerHTML = "<div style='grid-column: span 8; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
 
     // Fetch data
     fetch('get_all_forms.php?route1_id=' + route1_id)
@@ -962,13 +991,14 @@ function loadAllForms(route1_id) {
                 }
 
                 formDataContainer.innerHTML += `
-                    <div>${row.date_submitted}</div>
-                    <div>${row.chapter}</div>
-                    <div>${row.feedback}</div>
-                    <div>${row.paragraph_number}</div>
-                    <div>${row.page_number}</div>
+                    <div>${row.date_submitted || "N/A"}</div>
+                    <div>${row.chapter || "N/A"}</div>
+                    <div>${row.feedback || "N/A"}</div>
+                    <div>${row.paragraph_number || "N/A"}</div>
+                    <div>${row.page_number || "N/A"}</div>
                     <div>${submittedBy}</div>
-                    <div>${row.date_released}</div>
+                    <div>${row.date_released || "N/A"}</div>
+                    <div>${row.routeNumber || "N/A"}</div>
                 `;
             });
 
@@ -1000,7 +1030,12 @@ function toggleForms(route1_id) {
 
 function autoGrow(textarea) {
     textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+    textarea.style.height = (textarea.scrollHeight) + 'px'; // Set to scrollHeight
+    
+    // Ensure minimum height
+    if (textarea.scrollHeight < 40) {
+        textarea.style.height = '40px';
+    }
 }
 
 <?php if ($showModal): ?>

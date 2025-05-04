@@ -57,11 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $docuRoute2 = $_POST['docuRoute2'];
     $route2_id = $_POST['route2_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare SQL for inserting form data
     $stmt = $conn->prepare("INSERT INTO proposal_monitoring_form 
-    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute2, route2_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute2, route2_id, status, routeNumber) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt === false) {
         die("Error preparing the insert query: " . $conn->error);
     }
@@ -75,10 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $adviserName = $adviserNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         // Bind parameters including the route2_id
         $stmt->bind_param(
-            "ssssssissss",  // 11 specifiers
+            "ssssssissssss",  // 11 specifiers
             $adviser_id, 
             $adviserName, 
             $student_id, 
@@ -89,7 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $pageNumber, 
             $dateReleased, 
             $docuRoute2,
-            $route2_id
+            $route2_id,
+            $status,
+            $routeNumber
         );
         
         // Execute the statement
@@ -441,7 +446,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(9, 1fr);
+            grid-template-columns: repeat(10, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -457,10 +462,56 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) in 10-column grid */
+        .form-grid-container > div:nth-child(10n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none;
+            height: auto;
+            white-space: pre-wrap;
+        }
+        
+        .form-grid-container1 {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
         }
 
-        .form-grid-container input,
-        .form-grid-container textarea {
+        .form-grid-container1 > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background-color: white;
+            text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) in 8-column grid */
+        .form-grid-container1 > div:nth-child(8n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none;
+            height: auto;
+            white-space: pre-wrap;
+        }
+
+        .form-grid-container1 input,
+        .form-grid-container1 textarea {
             width: 100%;
             height: 100%;
             padding: 4px;
@@ -473,7 +524,7 @@ button {
 
         .form-input-row textarea {
             resize: vertical;
-            min-height: 24px;
+            min-height: 40px;
         }
 
 .close-button {
@@ -879,6 +930,7 @@ input[type="checkbox"] {
             <input type="hidden" name="docuRoute2" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="route2_id" value="${route2_id}">
+            <input type="hidden" name="status" value="Pending">
 
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
@@ -909,6 +961,7 @@ input[type="checkbox"] {
                 <div><strong>Page No</strong></div>
                 <div><strong>Submitted By</strong></div>
                 <div><strong>Date Released</strong></div>
+                <div><strong>Route Number</strong></div>
                 <div><strong>Status</strong></div>
                 <div><strong>Action</strong></div>
             </div>
@@ -918,16 +971,16 @@ input[type="checkbox"] {
             <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 
             <div id="routingRowsContainer">
-                <div class="form-grid-container">
-                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
-                    <div><input type="text" name="chapter[]" required></div>
-                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
-                    <div><input type="number" name="paragraphNumber[]" required></div>
-                    <div><input type="number" name="pageNumber[]" required></div>
-                    <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
-                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-                    <div></div>
-                    <div></div>
+                <div class="form-grid-container1">
+                    <div><input type="text" placeholder="Date Submitted" name="dateSubmitted[]" value="${today}" readonly></div>
+                    <div><input type="text" placeholder="Chapter" name="chapter[]" required></div>
+                    <div><textarea placeholder="Feedback" name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                    <div><input type="number" placeholder="Paragraph No" name="paragraphNumber[]" required></div>
+                    <div><input type="number" placeholder="Page No" name="pageNumber[]" required></div>
+                    <div><input type="text" placeholder="Submitted By" name="adviserName[]" value="${adviserName}" readonly></div>
+                    <div><input type="date" placeholder="Date Released" name="dateReleased[]" value="${today}" required></div>
+                    <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 1" required></div>
+                    
                 </div>
             </div>
         </form>
@@ -944,16 +997,15 @@ function closeModal() {
 function addFormRow() {
     const today = new Date().toISOString().split('T')[0];
     const row = `
-        <div class="form-grid-container">
+        <div class="form-grid-container1">
             <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
             <div><input type="text" name="chapter[]" required></div>
             <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
             <div><input type="number" name="paragraphNumber[]" required></div>
             <div><input type="number" name="pageNumber[]" required></div>
             <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
-            <div><input type="date" name="dateReleased[]" value="${today}" required></div>
-            <div></div>
-            <div></div>
+            <div><input type="text" name="dateReleased[]" value="${today}" required></div>
+             <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 1" required></div>
         </div>
     `;
     document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
@@ -1000,6 +1052,7 @@ function loadAllForms(student_id) {
                     <div>${form.page_number}</div>
                     <div>${submittedBy}</div>
                     <div>${form.date_released}</div>
+                    <div>${form.routeNumber}</div>
                     <div>
                         <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
                             <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
@@ -1041,7 +1094,12 @@ function toggleForms(student_id) {
 
 function autoGrow(textarea) {
     textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
+    textarea.style.height = (textarea.scrollHeight) + 'px'; // Set to scrollHeight
+    
+    // Ensure minimum height
+    if (textarea.scrollHeight < 40) {
+        textarea.style.height = '40px';
+    }
 }
 
 function saveStatus(formId, event) {

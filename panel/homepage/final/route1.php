@@ -70,10 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $docuRoute1 = $_POST['docuRoute1'];
     $route1_id = $_POST['route1_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
+    $routeNumber = $_POST['routeNumber'];
 
     // Prepare the query
-    $stmt = $conn->prepare("INSERT INTO final_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, student_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO final_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, student_id, status, routeNumber) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     if ($stmt === false) {
         die("Prepare failed: " . $conn->error);
@@ -88,9 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $panelName = $panelNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         $stmt->bind_param(
-            "ssssssisssi", 
+            "ssssssisssiss", 
             $panel_id, 
             $panelName, 
             $dateSubmitted, 
@@ -101,7 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $dateReleased, 
             $docuRoute1, 
             $route1_id, 
-            $student_id
+            $student_id,
+            $status,
+            $routeNumber
         );
 
         if (!$stmt->execute()) {
@@ -452,7 +457,7 @@ button {
 
 .form-grid-container {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(8, 1fr);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
@@ -468,6 +473,31 @@ button {
             border: 1px solid var(--border);
             background-color: white;
             text-align: center;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-height: 40px;
+        }
+        
+        /* Specific style for the feedback cell (3rd column) */
+        .form-grid-container > div:nth-child(8n + 3) {
+            text-align: left;
+            justify-content: flex-start;
+            overflow-y: visible;
+            max-height: none; /* Remove height limit */
+            height: auto; /* Allow height to adjust to content */
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
+        }
+        
+        /* Style for feedback cell class used in JavaScript */
+        .feedback-cell {
+            text-align: left !important;
+            justify-content: flex-start !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
         }
 
         .form-grid-container input,
@@ -723,6 +753,7 @@ input[type="checkbox"] {
                         <input type="hidden" name="docuRoute1" value="${filePath}">
                         <input type="hidden" name="student_id" value="${student_id}">
                         <input type="hidden" name="route1_id" value="${route1_id}">
+                        <input type="hidden" name="status" value="Pending">
 
                         <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                             <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
@@ -752,6 +783,7 @@ input[type="checkbox"] {
                             <div><strong>Page No</strong></div>
                             <div><strong>Submitted By</strong></div>
                             <div><strong>Date Released</strong></div>
+                            <div><strong>Route Number</strong></div>
                         </div>
 
                         <!-- Container for submitted form data -->
@@ -767,6 +799,7 @@ input[type="checkbox"] {
                                 <div><input type="number" name="pageNumber[]" required></div>
                                 <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
                                 <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                                <div><input type="text" name="routeNumber[]" value="Route 1" required></div>
                             </div>
                         </div>
                     </form>
@@ -781,6 +814,24 @@ input[type="checkbox"] {
                 alert("Unable to verify adviser review status. Please try again later or contact support.");
             });
     }
+
+    function addFormRow() {
+            const today = new Date().toISOString().split('T')[0];
+            const row = `
+                <div class="form-grid-container">
+                    <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+                    <div><input type="text" name="chapter[]" required></div>
+                    <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+                    <div><input type="number" name="paragraphNumber[]" required></div>
+                    <div><input type="number" name="pageNumber[]" required></div>
+                    <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+                    <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+                    <div><input type="text" name="routeNumber[]" value="Route 1" required></div>
+                    
+                </div>
+            `;
+            document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
+        }
 
     let formsVisible = true; // Set to true by default, since we're showing forms initially
 
@@ -836,11 +887,12 @@ input[type="checkbox"] {
                     formDataContainer.innerHTML += `
                         <div>${row.date_submitted}</div>
                         <div>${row.chapter}</div>
-                        <div>${row.feedback}</div>
+                        <div class="feedback-cell">${row.feedback}</div>
                         <div>${row.paragraph_number}</div>
                         <div>${row.page_number}</div>
                         <div>${submittedBy}</div>
                         <div>${row.date_released}</div>
+                        <div>${row.routeNumber}</div>
                     `;
                 });
 
