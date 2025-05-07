@@ -17,21 +17,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fullname = $_POST['fullname'];
     $department = $_POST['department'];
     $school_id = $_POST['school_id']; // Changed from username to school_id
+    $email = $_POST['email']; // Get email
     $password = $_POST['password']; // Get password as plain text
 
     // Input validation
-    if (empty($fullname) || empty($department) || empty($school_id) || empty($password)) {
+    if (empty($fullname) || empty($department) || empty($school_id) || empty($email) || empty($password)) {
         echo "<script>alert('All fields are required!'); window.history.back();</script>";
     } else {
         // Sanitize input
         $fullname = mysqli_real_escape_string($conn, $fullname);
         $department = mysqli_real_escape_string($conn, $department);
         $school_id = mysqli_real_escape_string($conn, $school_id);
+        $email = mysqli_real_escape_string($conn, $email);
         $password = mysqli_real_escape_string($conn, $password);
 
         // SQL query to insert data into the database
-        $sql = "INSERT INTO adviser (fullname, department, school_id, password) 
-                VALUES ('$fullname', '$department', '$school_id', '$password')";
+        $sql = "INSERT INTO adviser (fullname, department, school_id, email, password) 
+                VALUES ('$fullname', '$department', '$school_id', '$email', '$password')";
 
         if ($conn->query($sql) === TRUE) {
             // Redirect to the same page with a success status in the URL
@@ -1012,6 +1014,9 @@ $conn->close();
 
                         <label for="school_id">School ID</label>
                         <input type="text" id="school_id" name="school_id" required>
+
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required>
 
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>

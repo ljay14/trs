@@ -421,18 +421,17 @@ button {
     width: 100%;
 }
 
-.file-preview-section,
-.routing-form-section {
-    flex: 1;
+.file-preview-section {
+    flex: 0 0 45%;
     padding: 1rem;
     overflow-y: auto;
-}
-
-.file-preview-section {
     border-right: 1px solid var(--border);
 }
 
 .routing-form-section {
+    flex: 0 0 55%;
+    padding: 1rem;
+    overflow-y: auto;
     background-color: #f9f9f9;
     font-size: 0.85rem;
 }
@@ -567,8 +566,13 @@ button {
     }
     
     .file-preview-section {
+        flex: 0 0 300px;
         border-right: none;
         border-bottom: 1px solid var(--border);
+    }
+    
+    .routing-form-section {
+        flex: 1 1 auto;
     }
 }
 
@@ -707,6 +711,35 @@ input[type="checkbox"] {
     width: 300px;
     font-size: 14px;
     margin-bottom: 15px;
+}
+
+/* Change modal layout proportions */
+.modal-layout {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+.file-preview-section {
+    flex: 0 0 45%;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+}
+
+.routing-form-section {
+    flex: 0 0 55%;
+    padding: 1rem;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    font-size: 0.85rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
 }
     </style>
 </head>

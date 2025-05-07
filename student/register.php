@@ -14,12 +14,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $confirm_password = mysqli_real_escape_string($conn, $_POST['confirm_password']);
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
     $school_year = mysqli_real_escape_string($conn, $_POST['school_year']);
     $semester = mysqli_real_escape_string($conn, $_POST['semester']);
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $course = mysqli_real_escape_string($conn, $_POST['course']);
 
     $adviser = mysqli_real_escape_string($conn, $_POST['adviser']);
+    $adviser_email = mysqli_real_escape_string($conn, $_POST['adviser_email']);
     $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
     $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
     $group_members = json_encode($members); // Now properly defined    
@@ -33,8 +35,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Insert data into the database (no need for student_id since it's auto-incremented)
-    $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, school_year, semester, department, course, adviser, group_number, group_members) 
-            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$school_year', '$semester', '$department', '$course', '$adviser', '$group_number', '$group_members')";
+    $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, email, school_year, semester, department, course, adviser, adviser_email, group_number, group_members) 
+            VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$email', '$school_year', '$semester', '$department', '$course', '$adviser', '$adviser_email', '$group_number', '$group_members')";
 
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id
@@ -431,6 +433,10 @@ $conn->close();
                             <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
                         </div>
                     </div>
+                    <div class="input-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="Enter your email address" required>
+                    </div>
                 </div>
                 
                 <div class="form-section">
@@ -459,9 +465,10 @@ $conn->close();
                         </div>
                         <div class="input-group">
                             <label for="adviser">Adviser</label>
-                            <select id="adviser" name="adviser" required>
+                            <select id="adviser" name="adviser" required onchange="updateAdviserEmail()">
                                 <option value="">Loading advisers...</option>
                             </select>
+                            <input type="hidden" id="adviser_email" name="adviser_email">
                         </div>
                     </div>
                 </div>
@@ -581,9 +588,24 @@ $conn->close();
             xhr.send();
         }
         
+        function updateAdviserEmail() {
+            const adviserSelect = document.getElementById('adviser');
+            const adviserEmailInput = document.getElementById('adviser_email');
+            const selectedOption = adviserSelect.options[adviserSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.getAttribute('data-email')) {
+                adviserEmailInput.value = selectedOption.getAttribute('data-email');
+            } else {
+                adviserEmailInput.value = '';
+            }
+        }
+        
         // Load advisers when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadAdvisers();
+            
+            // Add change event listener to adviser select
+            document.getElementById('adviser').addEventListener('change', updateAdviserEmail);
         });
     </script>
 </body>

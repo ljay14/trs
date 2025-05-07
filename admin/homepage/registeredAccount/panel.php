@@ -18,6 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Sanitize and normalize position input
     $position = trim(strtolower($conn->real_escape_string($_POST['position'])));
     $school_id = $conn->real_escape_string($_POST['school_id']); // Changed from username to school_id
+    $email = $conn->real_escape_string($_POST['email']); // Get email
     $password = $_POST['password']; // Get password as plain text
 
     // Generate a unique panel_id
@@ -31,8 +32,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Insert data into the database
-    $sql = "INSERT INTO panel (panel_id, school_id, password, fullname, department, position) 
-            VALUES ('$panel_id', '$school_id', '$password', '$fullname', '$department', '$position')";
+    $sql = "INSERT INTO panel (panel_id, school_id, email, password, fullname, department, position) 
+            VALUES ('$panel_id', '$school_id', '$email', '$password', '$fullname', '$department', '$position')";
 
     if ($conn->query($sql) === TRUE) {
         // Redirect with success status
@@ -1014,6 +1015,9 @@ $conn->close();
 
                         <label for="school_id">School ID</label>
                         <input type="text" id="school_id" name="school_id" required>
+
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required>
 
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>

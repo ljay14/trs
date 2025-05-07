@@ -11,6 +11,11 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection settings
 include '../../../connection.php';
 
+// Import PHPMailer classes at the top of the file
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
 // Fetch departments
 $departments = [];
 $deptQuery = "SELECT DISTINCT department FROM student";
@@ -33,15 +38,14 @@ if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
 
 // Helper functions to get names from IDs
 function getPanelName($conn, $panel_id) {
-    $stmt = $conn->prepare("SELECT fullname FROM panel WHERE panel_id = ?");
+    $stmt = $conn->prepare("SELECT fullname, email FROM panel WHERE panel_id = ?");
     $stmt->bind_param("i", $panel_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['fullname'];
+        return $result->fetch_assoc();
     }
-    return "";
+    return null;
 }
 
 function getAdviserName($conn, $adviser_id) {
@@ -54,6 +58,140 @@ function getAdviserName($conn, $adviser_id) {
         return $row['fullname'];
     }
     return "";
+}
+
+// Function to validate email address
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Custom error logging function for email issues
+function logEmailError($message) {
+    $logFile = __DIR__ . '/../../../email_debug.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[$timestamp] $message\n";
+    
+    // Also log to PHP error log
+    error_log($message);
+    
+    // Write to custom log file
+    file_put_contents($logFile, $logMessage, FILE_APPEND);
+}
+
+// Function to send email notification to panel
+function sendPanelNotificationEmail($panelEmail, $panelName, $position, $studentName, $title) {
+    try {
+        // Validate email address first
+        if (!isValidEmail($panelEmail)) {
+            logEmailError("Invalid email address format: $panelEmail");
+            return false;
+        }
+        
+        // Check for Composer autoloader
+        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
+        
+        if (!file_exists($autoloader_path)) {
+            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
+            return false;
+        }
+        
+        // Include the autoloader
+        require_once $autoloader_path;
+        
+        // Create instance of PHPMailer
+        $mail = new PHPMailer(true);
+
+        // Server settings
+        $mail->SMTPDebug  = 2;  // Enable verbose debug output (0 for no output, 2 for verbose)
+        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
+        $mail->Password   = 'appf rexr omgy ngjw';   // App password
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
+        
+        // Recommended Gmail-specific settings
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
+        
+        // Set Timeout values
+        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
+        $mail->SMTPKeepAlive = true; // SMTP keep alive
+
+        // Sender and recipient settings
+        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
+        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($panelEmail, $panelName);
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = "Panel Assignment Notification - Thesis Routing System";
+        
+        // Get server URL dynamically
+        $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
+        $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
+        $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $base_url = $http_protocol . '://' . $server_name . $server_port;
+        
+        $login_url = $base_url . '/TRS/panel/';
+        
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$panelName}</strong>,</p>
+                <p>You have been assigned as <strong>{$position}</strong> for the following thesis:</p>
+                <p><strong>Student:</strong> {$studentName}</p>
+                <p><strong>Title:</strong> {$title}</p>
+                <p>Please log in to the Thesis Routing System to review the proposal.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                </div>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$panelName}, You have been assigned as {$position} for the thesis '{$title}' by {$studentName}. Please login at: {$login_url} to review the proposal.";
+
+        // Add additional headers that may help with deliverability
+        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
+        $mail->addCustomHeader('X-Priority', '3');
+
+        $mail->send();
+        error_log("Email sent successfully to panel: $panelEmail using PHPMailer");
+        return true;
+    } catch (Exception $e) {
+        $errorMsg = "Email could not be sent to panel: $panelEmail. ";
+        
+        if (isset($mail)) {
+            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
+            
+            // Log SMTP debug info for connection issues
+            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
+                $errorMsg .= ". Possible connection issue with SMTP server.";
+            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
+                $errorMsg .= ". Authentication issue - check username and password.";
+            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
+                $errorMsg .= ". Invalid email address format.";
+            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
+                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
+            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
+                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
+            }
+        } else {
+            $errorMsg .= "Exception: " . $e->getMessage();
+        }
+        
+        logEmailError($errorMsg);
+        return false;
+    }
 }
 
 // Initialize variables
@@ -172,7 +310,40 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
 
-                echo "<script>alert('Successfully Submitted.');</script>";
+                // Get student information for email notifications
+                $studentInfoStmt = $conn->prepare("SELECT fullname, title FROM route1proposal_files WHERE docuRoute1 = ?");
+                $studentInfoStmt->bind_param("s", $fileName);
+                $studentInfoStmt->execute();
+                $studentInfo = $studentInfoStmt->get_result()->fetch_assoc();
+                $studentName = $studentInfo['fullname'] ?? 'Unknown Student';
+                $thesisTitle = $studentInfo['title'] ?? 'Unknown Title';
+                $studentInfoStmt->close();
+
+                // Send emails to newly assigned panels
+                $panelPositions = [
+                    1 => $panel1,
+                    2 => $panel2,
+                    3 => $panel3,
+                    4 => $panel4,
+                    5 => $panel5
+                ];
+
+                foreach ($panelPositions as $position => $panelId) {
+                    if ($panelId) {
+                        $panelInfo = getPanelName($conn, $panelId);
+                        if ($panelInfo && !empty($panelInfo['email'])) {
+                            sendPanelNotificationEmail(
+                                $panelInfo['email'],
+                                $panelInfo['fullname'],
+                                "Panel {$position}",
+                                $studentName,
+                                $thesisTitle
+                            );
+                        }
+                    }
+                }
+
+                echo "<script>alert('Successfully Submitted. Email notifications sent to panel members.');</script>";
             } else {
                 echo "<script>alert('File $fileName not found in the database.');</script>";
             }
@@ -189,6 +360,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $panel5 = $_POST['panel5'] ?? null;
     $adviser_id = $_POST['adviser_id'] ?? null;
 
+    // Get student information
+    $studentInfoStmt = $conn->prepare("SELECT fullname, title FROM route1proposal_files WHERE docuRoute1 = ?");
+    $studentInfoStmt->bind_param("s", $filepath);
+    $studentInfoStmt->execute();
+    $studentInfo = $studentInfoStmt->get_result()->fetch_assoc();
+    $studentName = $studentInfo['fullname'] ?? 'Unknown Student';
+    $thesisTitle = $studentInfo['title'] ?? 'Unknown Title';
+    $studentInfoStmt->close();
+
     // Update panel IDs in the database
     $updateStmt = $conn->prepare("UPDATE route1proposal_files 
         SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
@@ -196,20 +376,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
     
     if ($updateStmt->execute()) {
+        // Send emails to newly assigned panels
+        $panelPositions = [
+            1 => $panel1,
+            2 => $panel2,
+            3 => $panel3,
+            4 => $panel4,
+            5 => $panel5
+        ];
+
+        foreach ($panelPositions as $position => $panelId) {
+            if ($panelId) {
+                $panelInfo = getPanelName($conn, $panelId);
+                if ($panelInfo && !empty($panelInfo['email'])) {
+                    sendPanelNotificationEmail(
+                        $panelInfo['email'],
+                        $panelInfo['fullname'],
+                        "Panel {$position}",
+                        $studentName,
+                        $thesisTitle
+                    );
+                }
+            }
+        }
+
         // Only show alert if not an AJAX request
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-        echo "<script>alert('Assignments updated successfully.');</script>";
-    } else {
+            echo "<script>alert('Assignments updated successfully and notifications sent.');</script>";
+        } else {
             // For AJAX requests, just return a success message that will be handled by JavaScript
             if (!headers_sent()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully and notifications sent.']);
                 exit;
             }
         }
     } else {
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-        echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+            echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
         } else {
             if (!headers_sent()) {
                 header('Content-Type: application/json');
@@ -693,7 +897,7 @@ if (isset($selectedDepartment)) {
         ?>
     </select>
     <select id="panel2-dropdown">
-        <option value="">Panel 1</option>
+        <option value="">Panel 2</option>
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 2 members regardless of department
@@ -713,7 +917,7 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel3-dropdown">
-        <option value="">Panel 1</option>
+        <option value="">Panel 3</option>
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 3 members regardless of department
@@ -733,7 +937,7 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel4-dropdown">
-        <option value="">Panel 1</option>
+        <option value="">Panel 4</option>
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 4 members regardless of department
@@ -753,7 +957,7 @@ if (isset($selectedDepartment)) {
     </select>
     
     <select id="panel5-dropdown">
-        <option value="">Panel 1</option>
+        <option value="">Panel 5</option>
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 5 members regardless of department

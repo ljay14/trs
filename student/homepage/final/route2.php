@@ -3,12 +3,138 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
+// Import PHPMailer classes at the top of the file
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
 if (!isset($_SESSION['student_id'])) {
     header("Location: ../../../logout.php");
     exit;
 }
 
 include '../../../connection.php';
+
+// Function to validate email address
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Create function to send email notification to adviser
+function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title) {
+    try {
+        // Validate email address first
+        if (!isValidEmail($adviser_email)) {
+            error_log("Invalid email address format: $adviser_email");
+            return false;
+        }
+        
+        // Check for Composer autoloader
+        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
+        
+        if (!file_exists($autoloader_path)) {
+            error_log("PHPMailer autoloader not found. Please install PHPMailer via Composer.");
+            return false;
+        }
+        
+        // Include the autoloader
+        require_once $autoloader_path;
+        
+        // Create instance of PHPMailer
+        $mail = new PHPMailer(true);
+
+        // Server settings
+        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
+        $mail->Password   = 'appf rexr omgy ngjw';   // App password
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
+        
+        // Recommended Gmail-specific settings
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
+        
+        // Set Timeout values
+        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
+        $mail->SMTPKeepAlive = true; // SMTP keep alive
+
+        // Sender and recipient settings
+        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
+        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($adviser_email, $adviser_name);
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = 'New Final Defense Document (Route 2) Submitted for Review';
+        
+        // Get server URL dynamically
+        $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
+        $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
+        $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $base_url = $http_protocol . '://' . $server_name . $server_port;
+        
+        $login_url = $base_url . '/TRS/adviser/';
+        
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$adviser_name}</strong>,</p>
+                <p>A new final defense document (Route 2) has been submitted and requires your review.</p>
+                <p><strong>Student:</strong> {$fullname}</p>
+                <p><strong>Title:</strong> {$title}</p>
+                <p>Please log in to the Thesis Routing System to review this document.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                </div>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$adviser_name}, A new final defense document (Route 2) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: {$login_url}";
+
+        // Add additional headers that may help with deliverability
+        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
+        $mail->addCustomHeader('X-Priority', '3');
+
+        $mail->send();
+        error_log("Email sent successfully to: $adviser_email using PHPMailer");
+        return true;
+    } catch (Exception $e) {
+        $errorMsg = "Email could not be sent to: $adviser_email. ";
+        
+        if (isset($mail)) {
+            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
+            
+            // Log SMTP debug info for connection issues
+            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
+                $errorMsg .= ". Possible connection issue with SMTP server.";
+            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
+                $errorMsg .= ". Authentication issue - check username and password.";
+            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
+                $errorMsg .= ". Invalid email address format.";
+            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
+                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
+            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
+                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
+            }
+        } else {
+            $errorMsg .= "Exception: " . $e->getMessage();
+        }
+        
+        error_log($errorMsg);
+        return false;
+    }
+}
+
 $alertMessage = "";
 
 // HANDLE DELETE REQUEST
@@ -46,7 +172,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
     $oldFilePath = $_POST['old_file_path'];
     
     // Check if old file exists in database
-    $stmt = $conn->prepare("SELECT route2_id FROM route2final_files WHERE student_id = ? AND docuRoute2 = ?");
+    $stmt = $conn->prepare("SELECT r.route2_id, r.title, r.fullname, r.adviser_id 
+                           FROM route2final_files r 
+                           WHERE r.student_id = ? AND r.docuRoute2 = ?");
     $stmt->bind_param("ss", $student_id, $oldFilePath);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -54,6 +182,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $route2_id = $row['route2_id'];
+        $title = $row['title'];
+        $fullname = $row['fullname'];
+        $adviser_id = $row['adviser_id'];
+        
+        // Get adviser name and email from student table
+        $stmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $adviserResult = $stmt->get_result();
+        if ($adviserResult->num_rows > 0) {
+            $adviserRow = $adviserResult->fetch_assoc();
+            $adviser_name = $adviserRow['adviser'];
+            $adviser_email = $adviserRow['adviser_email'];
+        } else {
+            $adviser_name = "";
+            $adviser_email = "";
+        }
+        $stmt->close();
         
         // Process the new file upload
         $fileTmpPath = $_FILES["docuRoute2"]["tmp_name"];
@@ -77,7 +223,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
                 $updateStmt->bind_param("si", $newFilePath, $route2_id);
                 
                 if ($updateStmt->execute()) {
-                    $alertMessage = "File reuploaded successfully.";
+                    // Send email notification about reupload
+                    if (!empty($adviser_email)) {
+                        if (isValidEmail($adviser_email)) {
+                            $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
+                            if ($emailSent) {
+                                $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
+                                error_log("Success: Notification email sent to adviser ($adviser_email) for file reupload.");
+                            } else {
+                                $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
+                                error_log("Error: Failed to send notification email to adviser ($adviser_email) for file reupload.");
+                            }
+                        } else {
+                            $alertMessage = "File reuploaded successfully but adviser email address is invalid.";
+                            error_log("Error: Invalid adviser email address ($adviser_email) for file reupload.");
+                        }
+                    } else {
+                        $alertMessage = "File reuploaded successfully. No adviser email available for notification.";
+                        error_log("Warning: No adviser email available for notification during file reupload.");
+                    }
                 } else {
                     $alertMessage = "Error updating database: " . $updateStmt->error;
                 }
@@ -103,10 +267,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
     $student_id = $_POST["student_id"];
 
     // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, school_year FROM student WHERE student_id = ?");
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $school_year);
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name, $adviser_email, $school_year);
     $stmt->fetch();
     $stmt->close();
 
@@ -129,7 +293,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     mkdir($uploadDir, 0777, true);
                 }
 
-                // Check if the student already uploaded for Route 2
                 $stmt = $conn->prepare("SELECT COUNT(*) FROM route2final_files WHERE student_id = ? AND department = ?");
                 $stmt->bind_param("ss", $student_id, $department);
                 $stmt->execute();
@@ -138,10 +301,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                 $stmt->close();
 
                 if ($count > 0) {
-                    echo "<script>alert('You can only upload one file.'); window.history.back();</script>";
+                    echo "<script>alert('You can only upload one file for Route 2.'); window.history.back();</script>";
                     exit;
                 } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-
                     // Fetch panel and adviser IDs from Route 1
                     $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE student_id = ?");
                     $panelStmt->bind_param("s", $student_id);
@@ -163,7 +325,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     if ($stmt) {
                         $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
                         if ($stmt->execute()) {
-                            echo "<script>alert('File uploaded successfully.'); window.location.href = 'route2.php';</script>";
+                            // Send email notification to adviser if email is available
+                            if ($adviser_email) {
+                                if (isValidEmail($adviser_email)) {
+                                    $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
+                                    if ($emailSent) {
+                                        echo "<script>alert('File uploaded successfully and notification email sent to adviser.'); window.location.href = 'route2.php';</script>";
+                                        error_log("Success: Notification email sent to adviser ($adviser_email) for Final Route 2 file upload.");
+                                    } else {
+                                        echo "<script>alert('File uploaded successfully but failed to send notification email to adviser.'); window.location.href = 'route2.php';</script>";
+                                        error_log("Error: Failed to send notification email to adviser ($adviser_email) for Final Route 2 file upload.");
+                                    }
+                                } else {
+                                    echo "<script>alert('File uploaded successfully but adviser email address is invalid.'); window.location.href = 'route2.php';</script>";
+                                    error_log("Error: Invalid adviser email address ($adviser_email) for Final Route 2 file upload.");
+                                }
+                            } else {
+                                echo "<script>alert('File uploaded successfully. No adviser email available for notification.'); window.location.href = 'route2.php';</script>";
+                                error_log("Warning: No adviser email available for notification during Final Route 2 file upload.");
+                            }
                         } else {
                             echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
                         }

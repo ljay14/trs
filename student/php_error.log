@@ -1,5 +1,0 @@
-[02-May-2025 09:35:17 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'semester' in 'field list' in C:\xampp1\htdocs\TRS\student\register.php:39
-Stack trace:
-#0 C:\xampp1\htdocs\TRS\student\register.php(39): mysqli->query('INSERT INTO stu...')
-#1 {main}
-  thrown in C:\xampp1\htdocs\TRS\student\register.php on line 39

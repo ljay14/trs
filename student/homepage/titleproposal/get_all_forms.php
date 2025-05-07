@@ -1,11 +1,16 @@
 <?php
 include '../../../connection.php';
 
-$route1_id = $_GET['route1_id'] ?? '';
+$student_id = $_GET['student_id'] ?? '';
 
-if ($route1_id) {
-    $stmt = $conn->prepare("SELECT * FROM proposal_monitoring_form WHERE route1_id = ?");
-    $stmt->bind_param("s", $route1_id);
+if ($student_id) {
+    $stmt = $conn->prepare("
+        SELECT * FROM proposal_monitoring_form 
+        WHERE student_id = ?
+        AND (route1_id IS NOT NULL)
+        ORDER BY date_submitted ASC
+    ");
+    $stmt->bind_param("s", $student_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -13,8 +18,15 @@ if ($route1_id) {
     while ($row = $result->fetch_assoc()) {
         $forms[] = $row;
     }
-    header('Content-Type: application/json');
-    echo json_encode($forms);
+
+    // Debugging: Check the result array
+    if (empty($forms)) {
+        echo "No forms found for this student with route1_id or route2_id.";
+    } else {
+        // Output the forms array as JSON
+        header('Content-Type: application/json');
+        echo json_encode($forms);
+    }
 } else {
     echo json_encode([]);
 }
