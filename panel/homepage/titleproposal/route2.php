@@ -1094,6 +1094,7 @@ function viewFile(filePath, route2_id, student_id) {
                         <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
                         <div>
                             <button type="button" onclick="addFormRow()">Add Row</button>
+                            <button type="button" onclick="doneEditing('${student_id}', '${route2_id}', '${filePath}')" style="background-color: #28a745; color: white;">Done</button>
                             <button type="submit">Submit Routing Form</button>
                             <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Show less</button>
                         </div>
@@ -1142,6 +1143,48 @@ function viewFile(filePath, route2_id, student_id) {
         });
 }
 
+function doneEditing(student_id, route2_id, filePath) {
+    // Confirm the action
+    if (confirm("Are you sure you want to mark this as done? This will send an approval notification to the student.")) {
+        // Create a form data object
+        const formData = new FormData();
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Add a single entry with approval message
+        formData.append('dateSubmitted[]', today);
+        formData.append('chapter[]', 'All');
+        formData.append('feedback[]', 'Document approved. No additional comments.');
+        formData.append('paragraphNumber[]', '0');
+        formData.append('pageNumber[]', '0');
+        formData.append('panelName[]', panelName);
+        formData.append('dateReleased[]', today);
+        formData.append('routeNumber[]', 'Route 2');
+        formData.append('docuRoute2', filePath);
+        formData.append('route2_id', route2_id);
+        formData.append('student_id', student_id);
+        formData.append('status', 'Approved');
+        
+        // Submit the form data
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Document marked as approved. The student has been notified by email.');
+                window.location.reload();
+            } else {
+                throw new Error('Network response was not ok');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to mark document as done. Please try again.');
+        });
+    }
+}
+
 function closeModal() {
     document.getElementById("fileModal").style.display = "none";
 }
@@ -1186,64 +1229,65 @@ function loadAllForms(student_id) {
     const formDataContainer = document.getElementById("submittedFormsContainer");
     const noFormsMessage = document.getElementById("noFormsMessage");
     const toggleButton = document.getElementById("toggleFormsBtn");
+    const currentPanelId = "<?= $_SESSION['panel_id'] ?>"; // Get the current panel's ID
 
     // Show loading spinner
     formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
 
     // Fetch data
     fetch('route2get_all_forms.php?student_id=' + student_id)
-        .then(response => response.json())
-        .then(data => {
-            formDataContainer.innerHTML = ""; // Clear old content first
+                .then(response => response.json())
+                .then(data => {
+                    formDataContainer.innerHTML = ""; // Clear old content first
 
-            if (!data || data.length === 0) {
-                noFormsMessage.innerText = "No routing forms submitted yet.";
-                return;
-            }
+                    if (!data || data.length === 0) {
+                        noFormsMessage.innerText = "No routing forms submitted yet.";
+                        return;
+                    }
 
-            noFormsMessage.innerText = ""; // Clear message
+                    noFormsMessage.innerText = ""; // Clear message
 
-            data.forEach(form => {
-                const formId = form.id;
-                const statusValue = (form.status || 'Pending').trim();
+                    data.forEach(form => {
+                        const formId = form.id;
+                        const statusValue = (form.status || 'Pending').trim();
 
-                let submittedBy = 'N/A';
-                if (form.adviser_name) {
-                    submittedBy = `${form.adviser_name} - Adviser`;
-                } else if (form.panel_name) {
-                    submittedBy = `${form.panel_name} - Panel`;
-                }
+                        let submittedBy = 'N/A';
+                        if (form.adviser_name) {
+                            submittedBy = `${form.adviser_name} - Adviser`;
+                        } else if (form.panel_name) {
+                            submittedBy = `${form.panel_name} - Panel`;
+                        }
 
-                formDataContainer.innerHTML += `
-                    <div>${form.date_submitted}</div>
-                    <div>${form.chapter}</div>
-                    <div class="feedback-cell">${form.feedback}</div>
-                    <div>${form.paragraph_number}</div>
-                    <div>${form.page_number}</div>
-                    <div>${submittedBy}</div>
-                    <div>${form.date_released}</div>
-                    <div>${form.routeNumber}</div>
-                    <div>
-                        <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                            <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                        </select>
-                    </div>
-                    <div>
-                        <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
-                    </div>
-                `;
-            });
+                        formDataContainer.innerHTML += `
+                            <div>${form.date_submitted}</div>
+                            <div>${form.chapter}</div>
+                            <div class="feedback-cell">${form.feedback}</div>
+                            <div>${form.paragraph_number}</div>
+                            <div>${form.page_number}</div>
+                            <div>${submittedBy}</div>
+                            <div>${form.date_released}</div>
+                            <div>${form.routeNumber}</div>
+                            <div>
+                                <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
+                                    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+                                    <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
+                            </div>
+                        `;
+                    });
 
-            toggleButton.textContent = "Show less";
-            formsVisible = true;
-        })
-        .catch(error => {
-            console.error('Error fetching forms:', error);
-            noFormsMessage.innerText = "Failed to load forms.";
-        });
-}
+                    toggleButton.textContent = "Show less";
+                    formsVisible = true;
+                })
+                .catch(error => {
+                    console.error('Error fetching forms:', error);
+                    noFormsMessage.innerText = "Failed to load forms.";
+                });
+        }
 
 function autoGrow(textarea) {
     textarea.style.height = 'auto'; // Reset height
@@ -1251,27 +1295,54 @@ function autoGrow(textarea) {
 }
 
 function saveStatus(formId, event) {
-    event.preventDefault();
-    const status = document.getElementById(`statusSelect_${formId}`).value;
+    event.preventDefault();  // Prevent any form submission
+
+    const statusSelect = document.getElementById(`statusSelect_${formId}`);
+    const newStatus = statusSelect.value;
+
+    if (!newStatus) {
+        alert("Please select a status.");
+        return;
+    }
 
     fetch('update_form_status.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: formId, status: status })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Disable the save button once status is saved
-                document.getElementById(`saveButton_${formId}`).disabled = true;
-            } else {
-                alert(data.message || 'Failed to update.');
-            }
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            id: formId,
+            status: newStatus
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while saving the status.');
-        });
+    })
+    .then(response => {
+        // Check if response is ok (status code 200-299)
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Disable the save button once status is saved
+            document.getElementById(`saveButton_${formId}`).disabled = true;
+            
+            // Show a success message
+            const statusCell = statusSelect.parentElement;
+            statusCell.style.backgroundColor = '#e8f5e9';
+            
+            // If all forms are approved, show a special message
+            if (data.all_approved) {
+                alert("All your feedback forms for this student have been approved! An email notification has been sent to the student.");
+            }
+        } else {
+            alert(data.message || 'Failed to update status.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving the status.');
+    });
 }
 
 function enableSaveButton(formId) {

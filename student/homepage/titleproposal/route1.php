@@ -45,13 +45,13 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
 
         // Server settings
         $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
+        $mail->isSMTP();                                           
+        $mail->Host       = 'smtp.gmail.com';                    
+        $mail->SMTPAuth   = true;                                 
         $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
         $mail->Password   = 'appf rexr omgy ngjw';   // App password
         $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+        $mail->Port       = 587;                                    
         $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
         
         // Recommended Gmail-specific settings
@@ -70,10 +70,10 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
         // Sender and recipient settings
         $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
         $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($adviser_email, $adviser_name);
+        $mail->addAddress($adviser_email, $adviser_name);     
 
         // Content
-        $mail->isHTML(true);
+        $mail->isHTML(true);                                  
         $mail->Subject = 'New Thesis Document Submitted for Review';
         
         // Get server URL dynamically
@@ -197,12 +197,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute1"]) && iss
                     // Send email notification about reupload
                     if (!empty($adviser_email)) {
                         if (isValidEmail($adviser_email)) {
-                            $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
-                            if ($emailSent) {
-                                $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
+                        $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
+                        if ($emailSent) {
+                            $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
                                 error_log("Success: Notification email sent to adviser ($adviser_email) for file reupload.");
-                            } else {
-                                $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
+                        } else {
+                            $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
                                 error_log("Error: Failed to send notification email to adviser ($adviser_email) for file reupload.");
                             }
                         } else {
@@ -328,11 +328,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                             if ($adviser_email) {
                                 if (isValidEmail($adviser_email)) {
                                     $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
-                                    if ($emailSent) {
-                                        echo "<script>alert('File uploaded successfully and notification email sent to adviser.'); window.location.href = 'route1.php';</script>";
+                                if ($emailSent) {
+                                    echo "<script>alert('File uploaded successfully and notification email sent to adviser.'); window.location.href = 'route1.php';</script>";
                                         error_log("Success: Notification email sent to adviser ($adviser_email) for file upload.");
-                                    } else {
-                                        echo "<script>alert('File uploaded successfully but failed to send notification email to adviser.'); window.location.href = 'route1.php';</script>";
+                                } else {
+                                    echo "<script>alert('File uploaded successfully but failed to send notification email to adviser.'); window.location.href = 'route1.php';</script>";
                                         error_log("Error: Failed to send notification email to adviser ($adviser_email) for file upload.");
                                     }
                                 } else {

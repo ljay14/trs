@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $route1_id = $_POST['route1_id'];
     $student_id = $_POST['student_id'];
     $status = $_POST['status'];
-    $routeNumber = $_POST['routeNumber'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare the query
     $stmt = $conn->prepare("INSERT INTO final_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute1, route1_id, student_id, status, routeNumber) 

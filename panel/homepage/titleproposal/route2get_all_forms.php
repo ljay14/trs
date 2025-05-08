@@ -1,33 +1,48 @@
 <?php
 include '../../../connection.php';
 
-$student_id = $_GET['student_id'] ?? '';
+$student_id = $_GET['student_id'];
 
-if ($student_id) {
-    $stmt = $conn->prepare("
-        SELECT * FROM proposal_monitoring_form 
-        WHERE student_id = ?
-        AND (route1_id IS NOT NULL OR route2_id IS NOT NULL)
-        ORDER BY date_submitted ASC
-    ");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+// Get all forms for this student ID regardless of who submitted them
+$query = "
+    SELECT 
+        id,
+        date_submitted,
+        chapter,
+        feedback,
+        paragraph_number,
+        page_number,
+        adviser_name,
+        panel_name,
+        date_released,
+        status,
+        routeNumber,
+        adviser_id,
+        panel_id
+    FROM 
+        proposal_monitoring_form
+    WHERE 
+        student_id = ?
+    ORDER BY 
+        date_submitted DESC
+";
 
-    $forms = [];
-    while ($row = $result->fetch_assoc()) {
-        $forms[] = $row;
-    }
+$stmt = $conn->prepare($query);
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-    // Debugging: Check the result array
-    if (empty($forms)) {
-        echo "No forms found for this student with route1_id or route2_id.";
-    } else {
-        // Output the forms array as JSON
-        header('Content-Type: application/json');
-        echo json_encode($forms);
-    }
+$forms = [];
+while ($row = $result->fetch_assoc()) {
+    $forms[] = $row;
+}
+
+// Debugging: Check the result array
+if (empty($forms)) {
+    echo "No forms found for this student.";
 } else {
-    echo json_encode([]);
+    // Output the forms array as JSON
+    header('Content-Type: application/json');
+    echo json_encode($forms);
 }
 ?>

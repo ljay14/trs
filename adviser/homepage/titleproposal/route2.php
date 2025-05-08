@@ -1,6 +1,11 @@
 <?php
 session_start();
 
+// Import PHPMailer classes at the top of the file
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
 if (!isset($_SESSION['adviser_id'])) {
     header("Location: ../../../logout.php");
     exit;
@@ -68,7 +73,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         die("Error preparing the insert query: " . $conn->error);
     }
 
+    // Get student email for notification
+    $studentEmailStmt = $conn->prepare("SELECT email, fullname FROM student WHERE student_id = ?");
+    $studentEmailStmt->bind_param("s", $student_id);
+    $studentEmailStmt->execute();
+    $studentEmailResult = $studentEmailStmt->get_result();
+    $studentEmailData = $studentEmailResult->fetch_assoc();
+    $studentEmail = $studentEmailData['email'] ?? '';
+    $studentName = $studentEmailData['fullname'] ?? 'Student';
+    $studentEmailStmt->close();
+
+    // Summary of feedback for email notification
+    $feedbackSummary = "New feedback for chapters: " . implode(", ", array_slice($chapterArr, 0, 3));
+    if (count($chapterArr) > 3) {
+        $feedbackSummary .= " and " . (count($chapterArr) - 3) . " more";
+    }
+
     // Loop through the form data and insert each row
+    $insertSuccess = true;
     for ($i = 0; $i < count($chapterArr); $i++) {
         $dateSubmitted = $dateSubmittedArr[$i];
         $chapter = $chapterArr[$i];
@@ -100,12 +122,183 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         // Execute the statement
         if (!$stmt->execute()) {
             echo "<script>alert('Error on row $i: " . addslashes($stmt->error) . "');</script>";
+            $insertSuccess = false;
             break;
         }
     }
 
-    echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
-    exit;
+    // Send email notification to student if data was inserted successfully
+    if ($insertSuccess && !empty($studentEmail)) {
+        // Check if all adviser feedback items for this route are approved
+        $adviserStatusQuery = $conn->prepare("
+            SELECT COUNT(*) as total, 
+                   SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved 
+            FROM proposal_monitoring_form 
+            WHERE route2_id = ? AND adviser_id = ?
+        ");
+        $adviserStatusQuery->bind_param("ss", $route2_id, $adviser_id);
+        $adviserStatusQuery->execute();
+        $adviserResult = $adviserStatusQuery->get_result();
+        $adviserStatus = $adviserResult->fetch_assoc();
+        $allAdviserApproved = ($adviserStatus['total'] > 0 && $adviserStatus['total'] == $adviserStatus['approved']);
+        $adviserStatusQuery->close();
+        
+        if (isValidEmail($studentEmail) && $allAdviserApproved) {
+            $emailSent = sendStudentNotificationEmail($studentEmail, $studentName, $fullname, $feedbackSummary);
+            if ($emailSent) {
+                echo "<script>alert('Form submitted successfully and notification email sent to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            } else {
+                echo "<script>alert('Form submitted successfully but failed to send notification email to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            }
+        } else {
+            $message = 'Form submitted successfully.';
+            if (!isValidEmail($studentEmail)) {
+                $message .= ' Student email address is invalid.';
+            } else if (!$allAdviserApproved) {
+                $message .= ' Email will be sent when all your feedback is marked as Approved.';
+            }
+            echo "<script>alert('$message'); window.location.href=window.location.href;</script>";
+            exit;
+        }
+    } else if ($insertSuccess) {
+        echo "<script>alert('Form submitted successfully. No student email available for notification.'); window.location.href=window.location.href;</script>";
+        exit;
+    }
+}
+
+// Function to validate email address
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Custom error logging function for email issues
+function logEmailError($message) {
+    $logFile = __DIR__ . '/../../../email_debug.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[$timestamp] $message\n";
+    
+    // Also log to PHP error log
+    error_log($message);
+    
+    // Write to custom log file
+    file_put_contents($logFile, $logMessage, FILE_APPEND);
+}
+
+// Function to send email notification to student
+function sendStudentNotificationEmail($student_email, $student_name, $adviser_name, $feedback_summary) {
+    try {
+        // Validate email address first
+        if (!isValidEmail($student_email)) {
+            logEmailError("Invalid email address format: $student_email");
+            return false;
+        }
+        
+        // Check for Composer autoloader
+        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
+        
+        if (!file_exists($autoloader_path)) {
+            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
+            return false;
+        }
+        
+        // Include the autoloader
+        require_once $autoloader_path;
+        
+        // Create instance of PHPMailer
+        $mail = new PHPMailer(true);
+
+        // Server settings
+        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
+        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
+        $mail->Password   = 'appf rexr omgy ngjw';   // App password
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
+        
+        // Recommended Gmail-specific settings
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
+        
+        // Set Timeout values
+        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
+        $mail->SMTPKeepAlive = true; // SMTP keep alive
+
+        // Sender and recipient settings
+        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
+        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($student_email, $student_name);
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = "New Feedback Submitted - Thesis Routing System";
+        
+        // Get server URL dynamically
+        $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
+        $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
+        $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $base_url = $http_protocol . '://' . $server_name . $server_port;
+        
+        $login_url = $base_url . '/TRS/student/';
+        
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$student_name}</strong>,</p>
+                <p>Your adviser <strong>{$adviser_name}</strong> has submitted feedback on your thesis proposal.</p>
+                <p><strong>Feedback Summary:</strong> {$feedback_summary}</p>
+                <p>Please log in to the Thesis Routing System to review the detailed feedback.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                </div>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$student_name}, Your adviser {$adviser_name} has submitted feedback on your thesis proposal. Feedback Summary: {$feedback_summary}. Please login at: {$login_url} to review the detailed feedback.";
+
+        // Add additional headers that may help with deliverability
+        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
+        $mail->addCustomHeader('X-Priority', '3');
+
+        $mail->send();
+        error_log("Email sent successfully to student: $student_email using PHPMailer");
+        return true;
+    } catch (Exception $e) {
+        $errorMsg = "Email could not be sent to student: $student_email. ";
+        
+        if (isset($mail)) {
+            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
+            
+            // Log SMTP debug info for connection issues
+            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
+                $errorMsg .= ". Possible connection issue with SMTP server.";
+            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
+                $errorMsg .= ". Authentication issue - check username and password.";
+            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
+                $errorMsg .= ". Invalid email address format.";
+            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
+                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
+            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
+                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
+            }
+        } else {
+            $errorMsg .= "Exception: " . $e->getMessage();
+        }
+        
+        logEmailError($errorMsg);
+        return false;
+    }
 }
 ?>
 
@@ -980,6 +1173,7 @@ input[type="checkbox"] {
                 <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
                 <div>
                     <button type="button" onclick="addFormRow()">Add Row</button>
+                    <button type="button" onclick="doneEditing()" style="background-color: var(--success); color: white;">Done</button>
                     <button type="submit">Submit Routing Form</button>
                     <button type="button" id="toggleFormsBtn" onclick="toggleForms('${student_id}')">Hide Forms</button>
                 </div>
@@ -1012,7 +1206,7 @@ input[type="checkbox"] {
                     <div><input type="number" placeholder="Page No" name="pageNumber[]" required></div>
                     <div><input type="text" placeholder="Submitted By" name="adviserName[]" value="${adviserName}" readonly></div>
                     <div><input type="date" placeholder="Date Released" name="dateReleased[]" value="${today}" required></div>
-                    <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 1" required></div>
+                    <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 2" required></div>
                     
                 </div>
             </div>
@@ -1038,7 +1232,7 @@ function addFormRow() {
             <div><input type="number" name="pageNumber[]" required></div>
             <div><input type="text" name="adviserName[]" value="${adviserName}" readonly></div>
             <div><input type="text" name="dateReleased[]" value="${today}" required></div>
-             <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 1" required></div>
+             <div><input type="text" placeholder="Route Number" name="routeNumber[]" value="Route 2" required></div>
         </div>
     `;
     document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
@@ -1156,28 +1350,86 @@ function saveStatus(formId, event) {
             status: newStatus  // Update to status (changed from adviser_status)
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is ok (status code 200-299)
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
-        console.log("Response from update_form_status.php:", data);
         if (data.success) {
-            const saveButton = document.getElementById(`saveButton_${formId}`);
-            saveButton.disabled = true;
-            saveButton.textContent = "Saved ✔";
-            saveButton.style.backgroundColor = "green";
-            saveButton.style.color = "white";
+            // Disable the save button once status is saved
+            document.getElementById(`saveButton_${formId}`).disabled = true;
+            
+            // Show a success message
+            const statusCell = statusSelect.parentElement;
+            statusCell.style.backgroundColor = '#e8f5e9';
+            
+            // If all forms are approved, show a special message
+            if (data.all_approved) {
+                alert("All your feedback forms for this student have been approved! An email notification has been sent to the student.");
+            }
         } else {
-            alert("Failed to save status: " + data.message);
+            alert(data.message || 'Failed to update status.');
         }
     })
     .catch(error => {
-        alert("Error saving status.");
-        console.error(error);
+        console.error('Error:', error);
+        alert('An error occurred while saving the status.');
     });
 }
 
 function enableSaveButton(formId) {
     const saveButton = document.getElementById(`saveButton_${formId}`);
     saveButton.disabled = false;  // Enable the save button
+}
+
+function doneEditing() {
+    // Get the form elements
+    const form = document.querySelector('#routingForm form');
+    const student_id = form.querySelector('input[name="student_id"]').value;
+    const route2_id = form.querySelector('input[name="route2_id"]').value;
+    const docuRoute2 = form.querySelector('input[name="docuRoute2"]').value;
+    const adviserName = form.querySelector('input[name="adviserName[]"]').value;
+    
+    // Confirm the action
+    if (confirm("Are you sure you want to mark this as done? This will send an approval notification to the student.")) {
+        // Create a form data object
+        const formData = new FormData();
+        
+        // Add a single entry with "No comments" as feedback
+        formData.append('dateSubmitted[]', new Date().toISOString().split('T')[0]);
+        formData.append('chapter[]', 'All');
+        formData.append('feedback[]', 'Document approved. No additional comments.');
+        formData.append('paragraphNumber[]', '0');
+        formData.append('pageNumber[]', '0');
+        formData.append('adviserName[]', adviserName);
+        formData.append('dateReleased[]', new Date().toISOString().split('T')[0]);
+        formData.append('routeNumber[]', 'Route 2');
+        formData.append('docuRoute2', docuRoute2);
+        formData.append('route2_id', route2_id);
+        formData.append('student_id', student_id);
+        formData.append('status', 'Approved');
+        
+        // Submit the form data using fetch
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Document marked as approved. The student has been notified by email.');
+                window.location.reload();
+            } else {
+                throw new Error('Network response was not ok');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to mark document as done. Please try again.');
+        });
+    }
 }
 
 <?php if ($showModal): ?>
