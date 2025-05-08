@@ -295,7 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 --text-light: #777777;
 --radius: 8px;
 }
-
+.action-label {
+    text-align: center;
+}
 * {
     margin: 0;
     padding: 0;
@@ -945,7 +947,8 @@ input[type="checkbox"] {
                     group_number, 
                     controlNo, 
                     fullname, 
-                    title 
+                    title,
+                    minutes
                 FROM route1proposal_files 
                 WHERE adviser_id = ?";
 
@@ -964,7 +967,8 @@ input[type="checkbox"] {
                             <th>Leader</th>
                             <th>Group No.</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th>Minutes</th>
+                            <th class='action-label'>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -978,6 +982,9 @@ input[type="checkbox"] {
                     $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
                     $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                     $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                    $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                    
+                    $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                     echo "
                         <tr>
@@ -985,9 +992,15 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td style='text-align: center;'>
-                                <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
-                            </td>
+                                <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>";
+                                
+                    if ($minutes) {
+                        echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                    }
+                    
+                    echo "    </td>
                         </tr>
                     ";
                 }
@@ -1013,6 +1026,16 @@ input[type="checkbox"] {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minutes Modal Viewer -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">×</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1281,4 +1304,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+function viewMinutes(minutesPath) {
+    const modal = document.getElementById("minutesModal");
+    const contentArea = document.getElementById("minutesModalContent");
+
+    modal.style.display = "flex";
+    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+    
+    const extension = minutesPath.split('.').pop().toLowerCase();
+    if (extension === "pdf") {
+        contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+    } else {
+        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+    }
+}
+
+function closeMinutesModal() {
+    const modal = document.getElementById("minutesModal");
+    modal.style.display = "none";
+    document.getElementById("minutesModalContent").innerHTML = '';
+}
 </script>

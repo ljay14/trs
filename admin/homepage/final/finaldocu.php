@@ -329,7 +329,9 @@ if (isset($selectedDepartment)) {
         box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
         text-decoration: none;
     }
-
+    .action-label {
+    text-align: center;
+}
     .assignment-modal-close {
         color: #aaa;
         float: right;
@@ -627,7 +629,7 @@ if (isset($selectedDepartment)) {
                                 <th>Group No.</th>
                                 <th>Title</th>
                                 <th>Assigned</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <!-- Replace your existing table rows with this updated version -->

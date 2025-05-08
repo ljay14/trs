@@ -333,6 +333,9 @@ body {
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
 }
+.action-label {
+    text-align: center;
+}
 
 .sidebar ul {
     list-style: none;
@@ -858,17 +861,22 @@ input[type="checkbox"] {
             <?php
             $query = "
                 SELECT 
-                    docuRoute3, 
-                    department, 
-                    student_id, 
-                    route3_id, 
-                    controlNo, 
-                    fullname, 
-                    group_number,
-                    title
-                FROM route3proposal_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?)
-                " . ($selectedDepartment ? " AND department = ?" : "");
+                    r.docuRoute3, 
+                    r.department, 
+                    r.student_id, 
+                    r.route3_id, 
+                    r.controlNo, 
+                    r.fullname, 
+                    r.group_number,
+                    r.title,
+                    rf.minutes
+                FROM 
+                    route3proposal_files r
+                LEFT JOIN
+                    route1proposal_files rf ON r.student_id = rf.student_id
+                WHERE 
+                    (r.panel1_id = ? OR r.panel2_id = ? OR r.panel3_id = ? OR r.panel4_id = ? OR r.panel5_id = ?)
+                " . ($selectedDepartment ? " AND r.department = ?" : "");
 
             $stmt = $conn->prepare($query);
 
@@ -943,7 +951,8 @@ input[type="checkbox"] {
                             <th>Leader</th>
                             <th>Group No.</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th>Minutes</th>
+                            <th class='action-label'>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -958,6 +967,9 @@ input[type="checkbox"] {
                     $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
                     $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                     $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                    $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                    
+                    $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                     echo "
                         <tr>
@@ -965,9 +977,15 @@ input[type="checkbox"] {
                             <td>$fullname</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td style='text-align: center;'>
-                                <button class='view-button' onclick=\"viewFile('$filePath', '$route3_id', '$student_id')\">View</button>
-                            </td>
+                                <button class='view-button' onclick=\"viewFile('$filePath', '$route3_id', '$student_id')\">View</button>";
+                                
+                    if ($minutes) {
+                        echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                    }
+                    
+                    echo "    </td>
                         </tr>
                     ";
                 }
@@ -1001,6 +1019,16 @@ input[type="checkbox"] {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minutes Modal Viewer -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">×</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1285,6 +1313,46 @@ input[type="checkbox"] {
                         rows[i].style.display = "none";
                     }
                 }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add CSS animation for spinner
+            document.head.insertAdjacentHTML('beforeend', `
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            `);
+            
+            // For modal animation
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeModal();
+                    closeMinutesModal();
+                }
+            });
+        });
+
+        function closeMinutesModal() {
+            document.getElementById("minutesModal").style.display = "none";
+            document.getElementById("minutesModalContent").innerHTML = '';
+        }
+
+        function viewMinutes(minutesPath) {
+            const modal = document.getElementById("minutesModal");
+            const contentArea = document.getElementById("minutesModalContent");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+            
+            const extension = minutesPath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
             }
         }
     </script>

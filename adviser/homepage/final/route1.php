@@ -326,7 +326,9 @@ body {
     position: relative;
     overflow: auto;
 }
-
+.action-label {
+    text-align: center;
+}
 /* Table Styling */
 table {
     width: 100%;
@@ -804,7 +806,7 @@ input[type="checkbox"] {
                             <th>Leader</th>
                             <th>Group No.</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th class='action-label'>Action</th>
                         </tr>
                     </thead>
                     <tbody>

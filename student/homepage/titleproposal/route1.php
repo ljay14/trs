@@ -929,6 +929,7 @@ input[type="checkbox"] {
             </div>
             <div class="submit-button">
             <a href="#" id="submit-file-button">Submit File</a>
+            <a href="#" id="upload-minutes-button">Upload Minutes</a>
             </div>
                 
             </div>
@@ -1016,7 +1017,8 @@ input[type="checkbox"] {
                         controlNo, 
                         fullname, 
                         group_number,
-                        title
+                        title,
+                        minutes
                     FROM 
                         route1proposal_files
                     WHERE 
@@ -1036,6 +1038,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1049,17 +1052,22 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
-
+                        $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        
+                        $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                        
                         echo "
                         <tr>
                             <td>$controlNo</td>
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
                                     <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
                         </tr>
@@ -1107,6 +1115,16 @@ input[type="checkbox"] {
         </div>
     </div>
 
+    <!-- Modal for viewing minutes -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.getElementById("submit-file-button").addEventListener("click", function(e) {
             e.preventDefault();
@@ -1116,7 +1134,7 @@ input[type="checkbox"] {
         document.querySelector("#docuRoute1").addEventListener("change", function() {
             document.querySelector("#file-upload-form").submit();
         });
-
+        
         function viewFile(filePath, student_id, route1_id) {
             const modal = document.getElementById("fileModal");
             const contentArea = document.getElementById("fileModalContent");
@@ -1300,12 +1318,33 @@ input[type="checkbox"] {
                 contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type.</p></div>";
             }
         }
+        
+        function viewMinutes(minutesPath) {
+            const modal = document.getElementById("minutesModal");
+            const contentArea = document.getElementById("minutesModalContent");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+            
+            const extension = minutesPath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+            }
+        }
 
         function closeModal() {
             const modal = document.getElementById("fileModal");
             modal.style.display = "none";
             document.getElementById("fileModalContent").innerHTML = '';
             document.getElementById("routingForm").innerHTML = '';
+        }
+        
+        function closeMinutesModal() {
+            const modal = document.getElementById("minutesModal");
+            modal.style.display = "none";
+            document.getElementById("minutesModalContent").innerHTML = '';
         }
 
         function confirmDelete(filePath) {
@@ -1332,7 +1371,7 @@ input[type="checkbox"] {
             }
         }
         
-        document.getElementById("docuRoute1_reupload").addEventListener("change", function() {
+        document.querySelector("#docuRoute1_reupload").addEventListener("change", function() {
             document.getElementById("file-reupload-form").submit();
         });
         
@@ -1340,6 +1379,7 @@ input[type="checkbox"] {
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeMinutesModal();
             }
         });
         

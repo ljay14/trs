@@ -1029,16 +1029,19 @@ input[type="checkbox"] {
 
                 $stmt = $conn->prepare("
                     SELECT 
-                        docuRoute3, 
-                        route3_id, 
-                        controlNo, 
-                        fullname, 
-                        group_number,
-                        title
+                        r.docuRoute3, 
+                        r.route3_id, 
+                        r.controlNo, 
+                        r.fullname, 
+                        r.group_number,
+                        r.title,
+                        rf.minutes
                     FROM 
-                        route3proposal_files 
+                        route3proposal_files r
+                    LEFT JOIN
+                        route1proposal_files rf ON r.student_id = rf.student_id
                     WHERE 
-                        student_id = ?
+                        r.student_id = ?
                 ");
 
                 $stmt->bind_param("s", $student_id);
@@ -1054,6 +1057,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1067,6 +1071,9 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                        $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        
+                        $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                         echo "
                         <tr>
@@ -1074,10 +1081,12 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
                                     <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
                         </tr>
@@ -1121,6 +1130,16 @@ input[type="checkbox"] {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for viewing minutes -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1361,6 +1380,7 @@ input[type="checkbox"] {
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeMinutesModal();
             }
         });
         
@@ -1373,6 +1393,27 @@ input[type="checkbox"] {
                 }
             </style>
         `);
+        
+        function viewMinutes(minutesPath) {
+            const modal = document.getElementById("minutesModal");
+            const contentArea = document.getElementById("minutesModalContent");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+            
+            const extension = minutesPath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+            }
+        }
+        
+        function closeMinutesModal() {
+            const modal = document.getElementById("minutesModal");
+            modal.style.display = "none";
+            document.getElementById("minutesModalContent").innerHTML = '';
+        }
     </script>
 </body>
 </html>

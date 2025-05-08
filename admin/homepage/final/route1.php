@@ -346,7 +346,9 @@ if (isset($selectedDepartment)) {
         cursor: pointer;
         text-decoration: none;
     }
-
+    .action-label {
+    text-align: center;
+}
     .assignment-list {
         margin-top: 20px;
         text-decoration: none;
@@ -627,7 +629,7 @@ if (isset($selectedDepartment)) {
                                 <th>Group No.</th>
                                 <th>Title</th>
                                 <th>Assigned</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <!-- Replace your existing table rows with this updated version -->

@@ -384,7 +384,9 @@ button {
     font-weight: 500;
     transition: all 0.3s;
 }
-
+.action-label {
+    text-align: center;
+}
 .view-button {
     background-color: var(--accent);
     color: white;
@@ -923,7 +925,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <tbody>

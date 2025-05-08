@@ -290,7 +290,9 @@ body {
 .sidebar li {
     margin-bottom: 0.25rem;
 }
-
+.action-label {
+    text-align: center;
+}
 .sidebar a {
     display: block;
     padding: 0.75rem 1.5rem;
@@ -884,7 +886,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <tbody>

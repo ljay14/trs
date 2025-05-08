@@ -34,25 +34,37 @@ if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
 // Helper functions to get names from IDs
 function getPanelName($conn, $panel_id) {
     $stmt = $conn->prepare("SELECT fullname FROM panel WHERE panel_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing panel name statement: " . $conn->error);
+        return "";
+    }
     $stmt->bind_param("i", $panel_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        $stmt->close();
         return $row['fullname'];
     }
+    $stmt->close();
     return "";
 }
 
 function getAdviserName($conn, $adviser_id) {
     $stmt = $conn->prepare("SELECT fullname FROM adviser WHERE adviser_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing adviser name statement: " . $conn->error);
+        return "";
+    }
     $stmt->bind_param("i", $adviser_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        $stmt->close();
         return $row['fullname'];
     }
+    $stmt->close();
     return "";
 }
 
@@ -79,61 +91,85 @@ if (isset($_SESSION['selected_department'])) {
 
     // Fetch panel data
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
-    $panelStmt->bind_param("s", $selectedDepartment);
-    $panelStmt->execute();
-    $panelResult = $panelStmt->get_result();
-    while ($row = $panelResult->fetch_assoc()) {
-        $panel[$row['position']][] = $row['fullname'];
+    if ($panelStmt === false) {
+        echo "Error preparing panel statement: " . $conn->error;
+    } else {
+        $panelStmt->bind_param("s", $selectedDepartment);
+        $panelStmt->execute();
+        $panelResult = $panelStmt->get_result();
+        while ($row = $panelResult->fetch_assoc()) {
+            $panel[$row['position']][] = $row['fullname'];
+        }
+        $panelStmt->close();
     }
-    $panelStmt->close();
 
     // Fetch adviser data
     $adviserStmt = $conn->prepare("SELECT * FROM adviser WHERE department = ?");
-    $adviserStmt->bind_param("s", $selectedDepartment);
-    $adviserStmt->execute();
-    $adviserResult = $adviserStmt->get_result();
-    while ($row = $adviserResult->fetch_assoc()) {
-        $adviser[] = $row['fullname'];
+    if ($adviserStmt === false) {
+        echo "Error preparing adviser statement: " . $conn->error;
+    } else {
+        $adviserStmt->bind_param("s", $selectedDepartment);
+        $adviserStmt->execute();
+        $adviserResult = $adviserStmt->get_result();
+        while ($row = $adviserResult->fetch_assoc()) {
+            $adviser[] = $row['fullname'];
+        }
+        $adviserStmt->close();
     }
-    $adviserStmt->close();
 
     // Fetch files
     $fileStmt = $conn->prepare(
         "SELECT 
-            docuRoute2 AS filepath, 
-            docuRoute2 AS filename, 
-            date_submitted,
-            controlNo,
-            group_number,
-            fullname,
-            title,
-            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id
-         FROM route2proposal_files 
-         WHERE department = ?"
+            r2.docuRoute2 AS filepath, 
+            r2.docuRoute2 AS filename, 
+            r2.date_submitted,
+            r2.controlNo,
+            r2.group_number,
+            r2.fullname,
+            r2.title,
+            r2.student_id, 
+            r2.panel1_id, 
+            r2.panel2_id, 
+            r2.panel3_id, 
+            r2.panel4_id, 
+            r2.panel5_id, 
+            r2.adviser_id,
+            r2.route2_id,
+            r1.minutes
+         FROM route2proposal_files r2
+         LEFT JOIN route1proposal_files r1 ON r2.student_id = r1.student_id
+         WHERE r2.department = ?"
     );
     
-    $fileStmt->bind_param("s", $selectedDepartment);
-    $fileStmt->execute();
-    $fileResult = $fileStmt->get_result();
-    while ($row = $fileResult->fetch_assoc()) {
-        $files[] = [
-            'filepath' => $row['filepath'],
-            'filename' => $row['filename'],
-            'controlNo' => $row['controlNo'],
-            'group_number' => $row['group_number'],
-            'fullname' => $row['fullname'],
-            'student_id' => $row['student_id'],
-            'panel1_id' => $row['panel1_id'],
-            'panel2_id' => $row['panel2_id'],
-            'panel3_id' => $row['panel3_id'],
-            'panel4_id' => $row['panel4_id'],
-            'panel5_id' => $row['panel5_id'],
-            'adviser_id' => $row['adviser_id'],
-            'title' => $row['title']
-        ];
+    if ($fileStmt === false) {
+        // Handle prepare error
+        echo "Error preparing statement: " . $conn->error;
+    } else {
+        $fileStmt->bind_param("s", $selectedDepartment);
+        $fileStmt->execute();
+        $fileResult = $fileStmt->get_result();
+        while ($row = $fileResult->fetch_assoc()) {
+            $files[] = [
+                'filepath' => $row['filepath'],
+                'filename' => $row['filename'],
+                'controlNo' => $row['controlNo'],
+                'group_number' => $row['group_number'],
+                'fullname' => $row['fullname'],
+                'student_id' => $row['student_id'],
+                'panel1_id' => $row['panel1_id'],
+                'panel2_id' => $row['panel2_id'],
+                'panel3_id' => $row['panel3_id'],
+                'panel4_id' => $row['panel4_id'],
+                'panel5_id' => $row['panel5_id'],
+                'adviser_id' => $row['adviser_id'],
+                'title' => $row['title'],
+                'route2_id' => $row['route2_id'],
+                'minutes' => $row['minutes']
+            ];
+        }
+        
+        $fileStmt->close();
     }
-    
-    $fileStmt->close();
 }
 
 // Handle file submission for panelists and adviser
@@ -156,6 +192,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
 
             // Check if the file exists in DB
             $checkStmt = $conn->prepare("SELECT * FROM route2proposal_files WHERE docuRoute2 = ?");
+            if ($checkStmt === false) {
+                echo "<script>alert('Error preparing check statement: " . $conn->error . "');</script>";
+                continue;
+            }
             $checkStmt->bind_param("s", $fileName);
             $checkStmt->execute();
             $result = $checkStmt->get_result();
@@ -168,6 +208,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 $updatePanelStmt = $conn->prepare("UPDATE route2proposal_files 
                     SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
                     WHERE docuRoute2 = ?");
+                if ($updatePanelStmt === false) {
+                    echo "<script>alert('Error preparing update statement: " . $conn->error . "');</script>";
+                    continue;
+                }
                 $updatePanelStmt->bind_param("iiiiiss", $panel1, $panel2, $panel3, $panel4, $panel5, $dateNow, $fileName);
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
@@ -197,38 +241,56 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $updateStmt = $conn->prepare("UPDATE route2proposal_files 
         SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
         WHERE docuRoute2 = ?");
-    $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
     
-    if ($updateStmt->execute()) {
-        // Only show alert if not an AJAX request
+    if ($updateStmt === false) {
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Assignments updated successfully.');</script>";
+            echo "<script>alert('Error preparing update statement: " . $conn->error . "');</script>";
         } else {
-            // For AJAX requests, just return a success message that will be handled by JavaScript
+            // For AJAX requests
             if (!headers_sent()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                echo json_encode(['success' => false, 'message' => 'Error preparing update statement: ' . $conn->error]);
                 exit;
             }
         }
     } else {
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+        $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
+        
+        if ($updateStmt->execute()) {
+            // Only show alert if not an AJAX request
+            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+                echo "<script>alert('Assignments updated successfully.');</script>";
+            } else {
+                // For AJAX requests, just return a success message that will be handled by JavaScript
+                if (!headers_sent()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                    exit;
+                }
+            }
         } else {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
-                exit;
+            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+                echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+            } else {
+                if (!headers_sent()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
+                    exit;
+                }
             }
         }
+        $updateStmt->close();
     }
-    $updateStmt->close();
 }
 
 // Fetch advisers for dropdown
 function getAdvisers($conn, $department) {
     $advisers = [];
     $stmt = $conn->prepare("SELECT adviser_id, fullname FROM adviser WHERE department = ?");
+    if ($stmt === false) {
+        error_log("Error preparing advisers statement: " . $conn->error);
+        return $advisers;
+    }
     $stmt->bind_param("s", $department);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -285,6 +347,9 @@ if (isset($selectedDepartment)) {
             flex: 1;
             min-width: 120px;
             max-width: 200px;
+        }
+        .action-label {
+            text-align: center;
         }
 
         .action-buttons {
@@ -444,6 +509,21 @@ if (isset($selectedDepartment)) {
 /* Style to fix the panel buttons */
 .assignment-button {
     white-space: nowrap;
+}
+
+.action-label {
+    text-align: center;
+}
+
+.form-input-row textarea {
+    resize: vertical;
+    min-height: 40px;
+}
+
+/* CSS Animation for spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
     </style>
 </head>
@@ -626,8 +706,9 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th>Assigned</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <!-- Replace your existing table rows with this updated version -->
@@ -698,6 +779,12 @@ if (isset($selectedDepartment)) {
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
                     <td>
+                        <?php 
+                        $minutesStatus = $file['minutes'] ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                        echo $minutesStatus;
+                        ?>
+                    </td>
+                    <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
                                     <?= htmlspecialchars(json_encode($assignmentData), ENT_QUOTES) ?>, 
@@ -708,6 +795,9 @@ if (isset($selectedDepartment)) {
                     </td>
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['route2_id'] ?? '' ?>')">View</button>
+                        <?php if ($file['minutes']): ?>
+                        <button type="button" class="view-button" onclick="viewMinutes('<?= htmlspecialchars($file['minutes'], ENT_QUOTES) ?>')">View Minutes</button>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -738,6 +828,16 @@ if (isset($selectedDepartment)) {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minutes Modal Viewer -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">×</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1011,26 +1111,6 @@ if (isset($selectedDepartment)) {
         currentEditFile = null; // Clear current file data
     }
 
-    // Modify the existing showAssignmentDetails call in the HTML table generation
-    // You need to pass the full file data as the second parameter
-    // Update your function call in the PHP section to include file data:
-    /* Replace the existing onclick function with:
-    onclick="showAssignmentDetails(
-        <?= htmlspecialchars(json_encode([
-            'panels' => $assigned_panels,
-            'adviser' => $adviser_name
-        ]), ENT_QUOTES) ?>, 
-        <?= htmlspecialchars(json_encode([
-            'filepath' => $filepath,
-            'panel1_id' => $file['panel1_id'],
-            'panel2_id' => $file['panel2_id'],
-            'panel3_id' => $file['panel3_id'],
-            'panel4_id' => $file['panel4_id'],
-            'panel5_id' => $file['panel5_id'],
-            'adviser_id' => $file['adviser_id']
-        ]), ENT_QUOTES) ?>
-    )"
-    */
     function viewFile(filePath, student_id,route2_id) {
         const modal = document.getElementById("fileModal");
         const contentArea = document.getElementById("fileModalContent");
@@ -1405,5 +1485,26 @@ if (isset($selectedDepartment)) {
             });
         }
     });
+
+    function closeMinutesModal() {
+        const modal = document.getElementById("minutesModal");
+        modal.style.display = "none";
+        document.getElementById("minutesModalContent").innerHTML = '';
+    }
+
+    function viewMinutes(minutesPath) {
+        const modal = document.getElementById("minutesModal");
+        const contentArea = document.getElementById("minutesModalContent");
+
+        modal.style.display = "flex";
+        contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+        
+        const extension = minutesPath.split('.').pop().toLowerCase();
+        if (extension === "pdf") {
+            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+        } else {
+            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+        }
+    }
 </script>
 <script src="../sidebar.js"></script>

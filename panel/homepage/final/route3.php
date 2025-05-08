@@ -335,7 +335,9 @@ body {
     background-color: #e0e0e0;
     transform: translateY(-2px);
 }
-
+.action-label {
+    text-align: center;
+}
 .content {
     flex: 1;
     padding: 2rem;
@@ -921,7 +923,7 @@ input[type="checkbox"] {
                             <th>Leader</th>
                             <th>Group No.</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th class='action-label'>Action</th>
                         </tr>
                     </thead>
                     <tbody>

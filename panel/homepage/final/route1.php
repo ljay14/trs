@@ -337,7 +337,9 @@ body {
     font-weight: 500;
     transition: all 0.3s;
 }
-
+.action-label {
+    text-align: center;
+}
 .logout a:hover {
     background-color: #e0e0e0;
     transform: translateY(-2px);
@@ -1123,7 +1125,7 @@ input[type="checkbox"] {
                             <th>Leader</th>
                             <th>Group No.</th>
                             <th>Title</th>
-                            <th>Action</th>
+                            <th class='action-label'>Action</th>
                         </tr>
                     </thead>
                     <tbody>

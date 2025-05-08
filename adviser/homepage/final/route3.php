@@ -274,7 +274,9 @@ body {
 .sidebar ul {
     list-style: none;
 }
-
+.action-label {
+    text-align: center;
+}
 .sidebar li {
     margin-bottom: 0.25rem;
 }
@@ -835,7 +837,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Action</th>
+                                <th class='action-label'>Action</th>
                             </tr>
                         </thead>
                         <tbody>
