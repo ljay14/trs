@@ -19,18 +19,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $position = mysqli_real_escape_string($conn, $_POST['position']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
 
     // Check if password was provided; if not, don't update password
     if (empty($password)) {
         // Update panel without changing password
-        $sql = "UPDATE panel SET fullname = ?, department = ?, position = ? WHERE school_id = ?";
+        $sql = "UPDATE panel SET fullname = ?, department = ?, position = ?, email = ? WHERE school_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssss", $fullname, $department, $position, $school_id);
+        $stmt->bind_param("sssss", $fullname, $department, $position, $email, $school_id);
     } else {
         // Update panel including password
-        $sql = "UPDATE panel SET fullname = ?, department = ?, password = ?, position = ? WHERE school_id = ?";
+        $sql = "UPDATE panel SET fullname = ?, department = ?, password = ?, position = ?, email = ? WHERE school_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssss", $fullname, $department, $password, $position, $school_id);
+        $stmt->bind_param("ssssss", $fullname, $department, $password, $position, $email, $school_id);
     }
 
     if ($stmt->execute()) {

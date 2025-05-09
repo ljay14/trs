@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-$sql = "SELECT fullname, department, school_id, password, position FROM panel ORDER BY fullname ASC";
+$sql = "SELECT fullname, department, school_id, password, position, email FROM panel ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -301,6 +301,20 @@ $result = $conn->query($sql);
         }
         
         input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
+        }
+        
+        input[type="email"] {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        
+        input[type="email"]:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 2px rgba(74, 111, 209, 0.2);
@@ -998,6 +1012,7 @@ $result = $conn->query($sql);
                                     <th>Full Name</th>
                                     <th>Department</th>
                                     <th>School ID</th>
+                                    <th>Email</th>
                                     <th>Password</th>
                                     <th>Action</th>
                                 </tr>
@@ -1021,6 +1036,10 @@ $result = $conn->query($sql);
                                             <td>
                                                 <?= htmlspecialchars($row['school_id']) ?>
                                                 <input type="hidden" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
+                                            </td>
+                                            <td>
+                                                <span id="email_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['email']) ?></span>
+                                                <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>" id="email_input_<?= $row['school_id'] ?>" style="display:none;">
                                             </td>
                                             <td>
                                                 <span id="password_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['password']) ?></span>
@@ -1050,11 +1069,13 @@ $result = $conn->query($sql);
             document.getElementById('fullname_text_' + school_id).style.display = 'none';
             document.getElementById('department_text_' + school_id).style.display = 'none';
             document.getElementById('password_text_' + school_id).style.display = 'none';
+            document.getElementById('email_text_' + school_id).style.display = 'none';
 
             document.getElementById('position_input_' + school_id).style.display = 'inline';
             document.getElementById('fullname_input_' + school_id).style.display = 'inline';
             document.getElementById('department_input_' + school_id).style.display = 'inline';
             document.getElementById('password_input_' + school_id).style.display = 'inline';
+            document.getElementById('email_input_' + school_id).style.display = 'inline';
 
             document.getElementById('edit_btn_' + school_id).style.display = 'none';
             document.getElementById('save_btn_' + school_id).style.display = 'inline';
@@ -1066,11 +1087,13 @@ $result = $conn->query($sql);
             document.getElementById('fullname_text_' + school_id).style.display = 'inline';
             document.getElementById('department_text_' + school_id).style.display = 'inline';
             document.getElementById('password_text_' + school_id).style.display = 'inline';
+            document.getElementById('email_text_' + school_id).style.display = 'inline';
 
             document.getElementById('position_input_' + school_id).style.display = 'none';
             document.getElementById('fullname_input_' + school_id).style.display = 'none';
             document.getElementById('department_input_' + school_id).style.display = 'none';
             document.getElementById('password_input_' + school_id).style.display = 'none';
+            document.getElementById('email_input_' + school_id).style.display = 'none';
 
             document.getElementById('edit_btn_' + school_id).style.display = 'inline';
             document.getElementById('save_btn_' + school_id).style.display = 'none';

@@ -18,22 +18,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
     $password = mysqli_real_escape_string($conn, $_POST['password']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
 
-    // Update adviser in the database
-    $sql = "UPDATE adviser SET fullname = ?, department = ?, password = ? WHERE school_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $fullname, $department, $password, $school_id);
+    if (!empty($password)) {
+        // Update adviser with password
+        $sql = "UPDATE adviser SET fullname = ?, department = ?, password = ?, email = ? WHERE school_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sssss", $fullname, $department, $password, $email, $school_id);
+    } else {
+        // Update adviser without password
+        $sql = "UPDATE adviser SET fullname = ?, department = ?, email = ? WHERE school_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssss", $fullname, $department, $email, $school_id);
+    }
 
     if ($stmt->execute()) {
         // Redirect with success message
         header("Location: adviser_register.php?status=success");
+        exit;
     } else {
         echo "Error: " . $stmt->error;
         exit;
     }
-    
-    // Close the statement and connection
-    $stmt->close();
-    $conn->close();
 }
+
+// Close the connection
+$stmt->close();
+$conn->close();
 ?>

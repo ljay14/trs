@@ -17,34 +17,40 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = mysqli_real_escape_string($conn, $_POST['fullname']);
     $department = mysqli_real_escape_string($conn, $_POST['department']);
     $school_id = mysqli_real_escape_string($conn, $_POST['school_id']);
-    
-    // Check if password fields are filled
-    if (!empty($_POST['password']) && !empty($_POST['confirm_password'])) {
-        // If passwords are provided, update everything including passwords
-        $password = mysqli_real_escape_string($conn, $_POST['password']);
-        $confirm_password = mysqli_real_escape_string($conn, $_POST['confirm_password']);
-        
-        // Update with passwords
-        $sql = "UPDATE student SET fullname = ?, department = ?, password = ?, confirm_password = ? WHERE school_id = ?";
+    $password = mysqli_real_escape_string($conn, $_POST['password']);
+    $confirm_password = mysqli_real_escape_string($conn, $_POST['confirm_password']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+
+    // Check if passwords match
+    if ($password != $confirm_password) {
+        echo "Passwords do not match.";
+        exit;
+    }
+
+    // Check if password was provided
+    if (!empty($password)) {
+        // Update student with password
+        $sql = "UPDATE student SET fullname = ?, department = ?, password = ?, confirm_password = ?, email = ? WHERE school_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssss", $fullname, $department, $password, $confirm_password, $school_id);
+        $stmt->bind_param("ssssss", $fullname, $department, $password, $confirm_password, $email, $school_id);
     } else {
-        // If no passwords provided, update only fullname and department
-        $sql = "UPDATE student SET fullname = ?, department = ? WHERE school_id = ?";
+        // Update student without changing password
+        $sql = "UPDATE student SET fullname = ?, department = ?, email = ? WHERE school_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sss", $fullname, $department, $school_id);
+        $stmt->bind_param("ssss", $fullname, $department, $email, $school_id);
     }
 
     if ($stmt->execute()) {
         // Redirect with success message
         header("Location: student_register.php?status=success");
+        exit;
     } else {
         echo "Error: " . $stmt->error;
         exit;
     }
-    
-    // Close the statement and connection
-    $stmt->close();
-    $conn->close();
 }
+
+// Close the connection
+$stmt->close();
+$conn->close();
 ?>
