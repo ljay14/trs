@@ -19,25 +19,7 @@ if (!isset($_GET['route1_id'])) {
 $route1_id = $_GET['route1_id'];
 
 // Get all forms for this route1_id
-$query = "
-    SELECT 
-        id,
-        date_submitted,
-        chapter,
-        feedback,
-        paragraph_number,
-        page_number,
-        adviser_name,
-        panel_name,
-        date_released,
-        status,
-        routeNumber
-    FROM 
-        proposal_monitoring_form
-    WHERE 
-        route1_id = ?
-    ORDER BY 
-        date_submitted DESC
+$query = " SELECT id, date_submitted, chapter, feedback, paragraph_number, page_number, adviser_name, panel_name, date_released, status, routeNumber FROM proposal_monitoring_form WHERE route1_id = ? ORDER BY date_submitted DESC
 ";
 
 $stmt = $conn->prepare($query);
