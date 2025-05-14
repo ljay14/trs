@@ -95,6 +95,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
     exit;
 }
+
+// Add a function to check if all routes are approved for a student
+function checkAllRoutesApproved($conn, $student_id) {
+    // Check Route 1 status
+    $route1Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route1_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route1Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 2 status
+    $route2Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route2_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 3 status
+    $route3Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route3_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route3Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    return [
+        'route1' => $route1Approved,
+        'route2' => $route2Approved,
+        'route3' => $route3Approved,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved)
+    ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -800,6 +864,7 @@ input[type="checkbox"] {
                             <th>Group No.</th>
                             <th>Title</th>
                             <th>Minutes</th>
+                            <th>Status</th>
                             <th class='action-label'>Action</th>
                         </tr>
                     </thead>
@@ -818,6 +883,32 @@ input[type="checkbox"] {
 
                     $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
                     
+                    // Check all routes status
+                    $routeStatus = checkAllRoutesApproved($conn, $student_id);
+                    
+                    // Determine status label and color
+                    $statusLabel = '';
+                    $statusColor = '';
+                    
+                    if ($routeStatus['all_approved']) {
+                        $statusLabel = 'Complete';
+                        $statusColor = 'green';
+                    } else {
+                        // Show which routes are approved
+                        $approvedRoutes = [];
+                        if ($routeStatus['route1']) $approvedRoutes[] = 'Route 1';
+                        if ($routeStatus['route2']) $approvedRoutes[] = 'Route 2';
+                        if ($routeStatus['route3']) $approvedRoutes[] = 'Route 3';
+                        
+                        if (count($approvedRoutes) > 0) {
+                            $statusLabel = 'Approved: ' . implode(', ', $approvedRoutes);
+                            $statusColor = 'orange';
+                        } else {
+                            $statusLabel = 'Pending';
+                            $statusColor = 'red';
+                        }
+                    }
+                    
                     echo "
                         <tr>
                             <td>$controlNo</td>
@@ -825,6 +916,7 @@ input[type="checkbox"] {
                             <td>$groupNo</td>
                             <td>$title</td>
                             <td>$minutesStatus</td>
+                            <td><span style='color: $statusColor; font-weight: bold;'>$statusLabel</span></td>
                             <td style='text-align: center;'>
                                 <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>";
                     

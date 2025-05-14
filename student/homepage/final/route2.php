@@ -1142,6 +1142,40 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
+                        // Check if any route1 files have status "Approved"
+                        $route1StatusQuery = $conn->prepare("
+                            SELECT COUNT(*) as approved_count 
+                            FROM final_monitoring_form 
+                            WHERE student_id = ? AND status = 'Approved'
+                        ");
+                        $route1StatusQuery->bind_param("s", $student_id);
+                        $route1StatusQuery->execute();
+                        $route1StatusResult = $route1StatusQuery->get_result();
+                        $route1ApprovedCount = $route1StatusResult->fetch_assoc()['approved_count'];
+                        $route1StatusQuery->close();
+
+                        // Also check if any feedback forms exist for route2
+                        $route2FeedbackQuery = $conn->prepare("
+                            SELECT COUNT(*) as form_count 
+                            FROM final_monitoring_form 
+                            WHERE route2_id = ?
+                        ");
+                        $route2FeedbackQuery->bind_param("s", $route2_id);
+                        $route2FeedbackQuery->execute();
+                        $route2FeedbackResult = $route2FeedbackQuery->get_result();
+                        $route2FeedbackCount = $route2FeedbackResult->fetch_assoc()['form_count'];
+                        $route2FeedbackQuery->close();
+
+                        // Disable reupload if route1 is approved or if route2 has feedback
+                        $disableReupload = ($route1ApprovedCount > 0 || $route2FeedbackCount > 0) ? 'true' : 'false';
+                        $disableReason = '';
+                        
+                        if ($route1ApprovedCount > 0) {
+                            $disableReason = 'Route 1 has been approved';
+                        } else if ($route2FeedbackCount > 0) {
+                            $disableReason = 'Feedback has been submitted for this document';
+                        }
+
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1151,7 +1185,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    <button class='delete-button' onclick=\"confirmReupload('$filePath', $disableReupload, '$disableReason')\" data-disable-reupload=\"$disableReupload\" title=\"" . ($disableReupload === 'true' ? $disableReason : "Reupload file") . "\">Reupload</button>
                                 </div>
                             </td>
                         </tr>
@@ -1420,7 +1454,12 @@ input[type="checkbox"] {
             }
         }
         
-        function confirmReupload(filePath) {
+        function confirmReupload(filePath, disableReupload, disableReason) {
+            if (disableReupload === true) {
+                alert("Cannot reupload file. " + disableReason + ".");
+                return;
+            }
+            
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute2_reupload").click();
@@ -1444,6 +1483,12 @@ input[type="checkbox"] {
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
+                }
+                
+                button[data-disable-reupload="true"] {
+                    background-color: #cccccc !important;
+                    cursor: not-allowed !important;
+                    opacity: 0.7;
                 }
             </style>
         `);

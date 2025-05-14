@@ -171,6 +171,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
+    // Check for Route 1 approvals and Route 2 submissions
+    $route1ApprovalStmt = $conn->prepare("
+        SELECT 
+            (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND routeNumber = '1' AND status = 'approved') as route1_approvals,
+            (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND routeNumber = '2') as route2_submissions
+    ");
+    $route1ApprovalStmt->bind_param("ss", $student_id, $student_id);
+    $route1ApprovalStmt->execute();
+    $approvalResult = $route1ApprovalStmt->get_result();
+    $approvalRow = $approvalResult->fetch_assoc();
+    $route1ApprovalCount = (int)$approvalRow['route1_approvals'];
+    $route2SubmissionCount = (int)$approvalRow['route2_submissions'];
+    $route1ApprovalStmt->close();
+    
+    // Add debug information to error log
+    error_log("Route 2 Reupload Check: Student ID: $student_id, R1 Approvals: $route1ApprovalCount, R2 Submissions: $route2SubmissionCount");
+    
+    // Only block reupload if there are ACTUAL approvals or submissions
+    $blockReupload = false;
+    $blockReason = "";
+    
+    if ($route1ApprovalCount > 0) {
+        $blockReupload = true;
+        $blockReason = "Your file has already been approved in Route 1";
+    } elseif ($route2SubmissionCount > 0) {
+        $blockReupload = true;
+        $blockReason = "This file already has routing form submissions from adviser or panel members in Route 2";
+    }
+    
+    if ($blockReupload) {
+        $alertMessage = "Cannot reupload: $blockReason.";
+        $_SESSION['alert_message'] = $alertMessage;
+        header("Location: route2.php");
+        exit;
+    }
+    
+    // Continue with reupload if no approvals or submissions
+    
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT r.route2_id, r.title, r.fullname, r.adviser_id 
                            FROM route2proposal_files r 
@@ -978,6 +1016,36 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+.action-buttons button {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.file-content {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.success-alert {
+    padding: 10px 15px;
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.error-alert {
+    padding: 10px 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 <body>
@@ -1076,35 +1144,13 @@ input[type="checkbox"] {
                 </div>
             </nav>
             <div class="content" id="content-area">
-                <div class="workflow-info" style="background-color: #e6f7ff; border-left: 4px solid #1890ff; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                    <h4 style="margin-top: 0; color: #096dd9;">Review Process Information</h4>
-                    <p>After you submit your document for Route 2, the review process follows this order:</p>
-                    <ol style="margin-left: 20px; padding-left: 0;">
-                        <li><strong>Adviser Review:</strong> Your adviser must review the document first.</li>
-                        <li><strong>Panel Review:</strong> After your adviser has submitted feedback, panel members will be able to access and review your document.</li>
-                    </ol>
-                    <p>This sequential workflow ensures that you receive coordinated and consistent feedback.</p>
-                </div>
+
                 
                 <?php
                 $student_id = $_SESSION['student_id'];
 
-                $stmt = $conn->prepare("
-                    SELECT 
-                        r.docuRoute2, 
-                        r.route2_id, 
-                        r.controlNo, 
-                        r.fullname, 
-                        r.group_number,
-                        r.title,
-                        rf.minutes
-                    FROM 
-                        route2proposal_files r
-                    LEFT JOIN
-                        route1proposal_files rf ON r.student_id = rf.student_id
-                    WHERE 
-                        r.student_id = ?
-                ");
+                // Modified query to check both Route 1 approvals and Route 2 submissions
+                $stmt = $conn->prepare("\n                    SELECT \n                        r.docuRoute2, \n                        r.route2_id, \n                        r.controlNo, \n                        r.fullname, \n                        r.group_number, \n                        r.title,\n                        r.minutes,\n                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND routeNumber = '2') as route2_submissions,\n                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND routeNumber = '1' AND status = 'approved') as route1_approvals,\n                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND status = 'approved') as approved_count\n                    FROM \n                        route2proposal_files r\n                    WHERE \n                        r.student_id = ?\n                ");
 
                 $stmt->bind_param("s", $student_id);
                 $stmt->execute();
@@ -1134,8 +1180,35 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
                         $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        $route2Submissions = (int)$row['route2_submissions'];
+                        $route1Approvals = (int)$row['route1_approvals'];
+                        $approvedCount = (int)$row['approved_count'];
+                        
+                        // Add debug info
+                        echo "<!-- Debug: R2 Subs: $route2Submissions, R1 Approvals: $route1Approvals, Total Approved: $approvedCount -->";
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                        
+                        // Fix: Only disable if there are ACTUAL submissions or approvals
+                        $disableReupload = false;
+                        $reuploadTitle = "";
+                        
+                        // Only check for these if they actually have values
+                        if ($route2Submissions > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: File already has form submissions in Route 2";
+                        } else if ($route1Approvals > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: Your file has already been approved in Route 1";
+                        } else if ($approvedCount > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: One or more submissions have been approved";
+                        }
+                        
+                        $reuploadBtn = $disableReupload 
+                            ? "<button class='delete-button' style='opacity: 0.5; cursor: not-allowed;' title='$reuploadTitle'>Reupload</button>"
+                            : "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
+                        
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1146,7 +1219,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route2_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    $reuploadBtn
                                     " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
@@ -1427,7 +1500,24 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
-            if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
+            // Find the reupload button that was clicked
+            const reuploadButtons = document.querySelectorAll(".delete-button");
+            let isDisabled = false;
+            let message = "";
+            
+            // Check if button has disabled styling
+            for (let btn of reuploadButtons) {
+                if (btn.getAttribute("style") && btn.getAttribute("style").includes("opacity: 0.5")) {
+                    if (btn.title) {
+                        isDisabled = true;
+                        message = btn.title;
+                        alert(message);
+                        return;
+                    }
+                }
+            }
+            
+            if (!isDisabled && confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute2_reupload").click();
             }

@@ -420,7 +420,7 @@ $conn->close();
                 <div class="form-section">
                     <div class="form-section-title"><span>2</span>Account Information</div>
                     <div class="input-group">
-                        <label for="school_id">School ID</label>
+                        <label for="school_id">ID Number</label>
                         <input type="text" id="school_id" name="school_id" placeholder="Enter your ID number" required>
                     </div>
                     <div class="input-row">

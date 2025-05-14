@@ -172,6 +172,63 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute3"]) && iss
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
+    // Get the route3_id for this file path
+    $routeIdStmt = $conn->prepare("SELECT route3_id FROM route3proposal_files WHERE student_id = ? AND docuRoute3 = ?");
+    $routeIdStmt->bind_param("ss", $student_id, $oldFilePath);
+    $routeIdStmt->execute();
+    $routeIdResult = $routeIdStmt->get_result();
+    
+    if ($routeIdResult->num_rows > 0) {
+        $routeIdRow = $routeIdResult->fetch_assoc();
+        $route3_id = $routeIdRow['route3_id'];
+        
+        // Check for Route 2 approvals and Route 3 submissions
+        $checkStmt = $conn->prepare("
+            SELECT 
+                (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route3_id = ?) as route3_form_count,
+                (SELECT COUNT(*) FROM proposal_monitoring_form 
+                 INNER JOIN route2proposal_files r2 ON proposal_monitoring_form.route2_id = r2.route2_id 
+                 WHERE r2.student_id = ? AND proposal_monitoring_form.status = 'approved') as route2_approved_count
+        ");
+        $checkStmt->bind_param("is", $route3_id, $student_id);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result();
+        $checkRow = $checkResult->fetch_assoc();
+        $route3FormCount = (int)$checkRow['route3_form_count'];
+        $route2ApprovedCount = (int)$checkRow['route2_approved_count'];
+        $checkStmt->close();
+        
+        // Add debug information to error log
+        error_log("Route 3 Reupload Check: Student ID: $student_id, Route3 ID: $route3_id, R3 Form Count: $route3FormCount, R2 Approved: $route2ApprovedCount");
+        
+        // Only block reupload if route2 is approved OR there are route3 form submissions
+        $blockReupload = false;
+        $blockReason = "";
+        
+        if ($route2ApprovedCount > 0) {
+            $blockReupload = true;
+            $blockReason = "Your Route 2 submission has already been approved";
+        } elseif ($route3FormCount > 0) {
+            $blockReupload = true;
+            $blockReason = "This file already has routing monitoring form submissions";
+        }
+        
+        if ($blockReupload) {
+            $alertMessage = "Cannot reupload: $blockReason.";
+            $_SESSION['alert_message'] = $alertMessage;
+            header("Location: route3.php");
+            exit;
+        }
+    } else {
+        $alertMessage = "Error: Could not find the file record.";
+        $_SESSION['alert_message'] = $alertMessage;
+        header("Location: route3.php");
+        exit;
+    }
+    $routeIdStmt->close();
+    
+    // Continue with reupload if no restrictions
+    
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT r.route3_id, r.title, r.fullname, r.adviser_id 
                            FROM route3proposal_files r 
@@ -927,6 +984,36 @@ input[type="checkbox"] {
 .submit-button a{
     margin-left: 50px;
 }
+
+.action-buttons button {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.file-content {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.success-alert {
+    padding: 10px 15px;
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.error-alert {
+    padding: 10px 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 <body>
@@ -1025,6 +1112,15 @@ input[type="checkbox"] {
             </nav>
             <div class="content" id="content-area">
                 <?php
+                // Display alert message if set
+                if (isset($_SESSION['alert_message'])) {
+                    $message = $_SESSION['alert_message'];
+                    $messageClass = (strpos($message, 'Cannot') !== false || strpos($message, 'Error') !== false) ? 'error-alert' : 'success-alert';
+                    echo "<div class='$messageClass' style='margin-bottom: 15px;'>$message</div>";
+                    unset($_SESSION['alert_message']); // Clear the message after displaying it
+                }
+                ?>
+                <?php
                 $student_id = $_SESSION['student_id'];
 
                 $stmt = $conn->prepare("
@@ -1033,13 +1129,17 @@ input[type="checkbox"] {
                         r.route3_id, 
                         r.controlNo, 
                         r.fullname, 
-                        r.group_number,
+                        r.group_number, 
                         r.title,
-                        rf.minutes
+                        r.minutes,
+                        r.adviser_id,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route3_id = r.route3_id) as route3_form_count,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route3_id = r.route3_id AND adviser_id = r.adviser_id) as adviser_form_count,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form 
+                         INNER JOIN route2proposal_files r2 ON proposal_monitoring_form.route2_id = r2.route2_id 
+                         WHERE r2.student_id = r.student_id AND proposal_monitoring_form.status = 'approved') as route2_approved_count
                     FROM 
                         route3proposal_files r
-                    LEFT JOIN
-                        route1proposal_files rf ON r.student_id = rf.student_id
                     WHERE 
                         r.student_id = ?
                 ");
@@ -1072,9 +1172,32 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
                         $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        $adviser_id = $row['adviser_id'];
+                        $route3FormCount = (int)$row['route3_form_count'];
+                        $adviserFormCount = (int)$row['adviser_form_count'];
+                        $route2ApprovedCount = (int)$row['route2_approved_count'];
+                        
+                        // Add debug info to check counts
+                        echo "<!-- Debug: R3 Forms: $route3FormCount, Adviser Forms: $adviserFormCount, R2 Approved: $route2ApprovedCount -->";
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
-
+                        
+                        // Fix: Disable only if route2 has approved forms OR if adviser/panel submitted forms for route3
+                        $disableReupload = false;
+                        $reuploadTitle = "";
+                        
+                        if ($route2ApprovedCount > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: Your Route 2 submission has already been approved";
+                        } else if ($route3FormCount > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: This file already has routing monitoring form submissions";
+                        }
+                        
+                        $reuploadBtn = $disableReupload 
+                            ? "<button class='delete-button' style='opacity: 0.5; cursor: not-allowed;' title='$reuploadTitle'>Reupload</button>"
+                            : "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
+                        
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1085,7 +1208,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    $reuploadBtn
                                     " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
@@ -1366,6 +1489,29 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
+            // Find the specific reupload button for this file
+            const reuploadButtons = document.querySelectorAll(".delete-button");
+            let selectedButton = null;
+            
+            // Find the button associated with this file path
+            for (let btn of reuploadButtons) {
+                const onclick = btn.getAttribute("onclick");
+                if (onclick && onclick.includes(filePath)) {
+                    selectedButton = btn;
+                    break;
+                }
+            }
+            
+            // Check if button is disabled
+            if (selectedButton && 
+                selectedButton.getAttribute("style") && 
+                selectedButton.getAttribute("style").includes("opacity: 0.5")) {
+                const message = selectedButton.getAttribute("title") || "Cannot reupload this file";
+                alert(message);
+                return;
+            }
+            
+            // Proceed with reupload if button is not disabled
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute3_reupload").click();

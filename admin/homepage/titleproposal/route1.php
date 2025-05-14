@@ -290,8 +290,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     // Validation
     if (empty($selectedFiles)) {
         echo "<script>alert('Please select at least one file.');</script>";
-    } elseif (empty($panel1) && empty($panel2) && empty($panel3) && empty($panel4) && empty($panel5)) {
-        echo "<script>alert('Please select at least one panel.');</script>";
+    } elseif (empty($panel1) || empty($panel2) || empty($panel3) || empty($panel4) || empty($panel5)) {
+        echo "<script>alert('All 5 panel positions must be filled. Please select a panel member for each position.');</script>";
     } else {
         foreach ($selectedFiles as $filePath) {
             $fileName = $filePath; // Use the full path stored in the DB
@@ -363,6 +363,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $panel4 = $_POST['panel4'] ?? null;
     $panel5 = $_POST['panel5'] ?? null;
     $adviser_id = $_POST['adviser_id'] ?? null;
+
+    // Validate all panel positions are filled
+    if (empty($panel1) || empty($panel2) || empty($panel3) || empty($panel4) || empty($panel5)) {
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+            echo "<script>alert('All 5 panel positions must be filled. Please select a panel member for each position.');</script>";
+        } else {
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'All 5 panel positions must be filled. Please select a panel member for each position.']);
+                exit;
+            }
+        }
+        return;
+    }
 
     // Get student information
     $studentInfoStmt = $conn->prepare("SELECT fullname, title FROM route1proposal_files WHERE docuRoute1 = ?");
@@ -862,7 +876,7 @@ if (isset($selectedDepartment)) {
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                                 </svg>
                             </div>
-                            <span>Registered Account</span>
+                            <span>Accounts</span>
                             <div class="dropdown-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -892,7 +906,7 @@ if (isset($selectedDepartment)) {
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 1 members regardless of department
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel1'");
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
@@ -911,7 +925,7 @@ if (isset($selectedDepartment)) {
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 2 members regardless of department
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel2'");
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
@@ -931,7 +945,7 @@ if (isset($selectedDepartment)) {
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 3 members regardless of department
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel3'");
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
@@ -951,7 +965,7 @@ if (isset($selectedDepartment)) {
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 4 members regardless of department
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel4'");
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
@@ -971,7 +985,7 @@ if (isset($selectedDepartment)) {
         <?php
         if (isset($selectedDepartment)) {
             // Modified query to include all Panel 5 members regardless of department
-            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel5'");
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
             $panelStmt->execute();
             $panelResult = $panelStmt->get_result();
             while ($row = $panelResult->fetch_assoc()):
@@ -1365,10 +1379,9 @@ if (isset($selectedDepartment)) {
             return;
         }
 
-        // If at least one panelist is selected, proceed
-        const panelSelected = panel1 || panel2 || panel3 || panel4 || panel5;
-        if (!panelSelected) {
-            alert("Please select at least one panelist.");
+        // Check if all 5 panel positions are filled
+        if (!panel1 || !panel2 || !panel3 || !panel4 || !panel5) {
+            alert("All 5 panel positions must be filled. Please select a panel member for each position.");
             return;
         }
 
@@ -1702,6 +1715,18 @@ if (isset($selectedDepartment)) {
         if (updateForm) {
             updateForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                
+                // Check if all 5 panel positions are filled
+                const panel1 = document.getElementById('edit-panel1').value;
+                const panel2 = document.getElementById('edit-panel2').value;
+                const panel3 = document.getElementById('edit-panel3').value;
+                const panel4 = document.getElementById('edit-panel4').value;
+                const panel5 = document.getElementById('edit-panel5').value;
+                
+                if (!panel1 || !panel2 || !panel3 || !panel4 || !panel5) {
+                    alert("All 5 panel positions must be filled. Please select a panel member for each position.");
+                    return;
+                }
                 
                 // Create form data object
                 const formData = new FormData(this);

@@ -1093,6 +1093,40 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
+                        // Check if route2 has approved status
+                        $route2StatusQuery = $conn->prepare("
+                            SELECT COUNT(*) as approved_count 
+                            FROM final_monitoring_form 
+                            WHERE student_id = ? AND status = 'Approved' AND route2_id IS NOT NULL
+                        ");
+                        $route2StatusQuery->bind_param("s", $student_id);
+                        $route2StatusQuery->execute();
+                        $route2StatusResult = $route2StatusQuery->get_result();
+                        $route2ApprovedCount = $route2StatusResult->fetch_assoc()['approved_count'];
+                        $route2StatusQuery->close();
+
+                        // Check if forms have been submitted for route3
+                        $route3FormsQuery = $conn->prepare("
+                            SELECT COUNT(*) as form_count 
+                            FROM final_monitoring_form 
+                            WHERE route3_id = ?
+                        ");
+                        $route3FormsQuery->bind_param("i", $route3_id);
+                        $route3FormsQuery->execute();
+                        $route3FormsResult = $route3FormsQuery->get_result();
+                        $route3FormCount = $route3FormsResult->fetch_assoc()['form_count'];
+                        $route3FormsQuery->close();
+
+                        // Determine if reupload should be disabled
+                        $disableReupload = ($route2ApprovedCount > 0 || $route3FormCount > 0) ? 'true' : 'false';
+                        $disableReason = '';
+                        
+                        if ($route2ApprovedCount > 0) {
+                            $disableReason = 'Route 2 has been approved';
+                        } else if ($route3FormCount > 0) {
+                            $disableReason = 'Feedback has been submitted for this document';
+                        }
+
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1102,7 +1136,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    <button class='delete-button' onclick=\"confirmReupload('$filePath', $disableReupload, '$disableReason')\" data-disable-reupload=\"$disableReupload\" title=\"" . ($disableReupload === 'true' ? $disableReason : "Reupload file") . "\">Reupload</button>
                                 </div>
                             </td>
                         </tr>
@@ -1393,7 +1427,12 @@ input[type="checkbox"] {
             }
         }
         
-        function confirmReupload(filePath) {
+        function confirmReupload(filePath, disableReupload, disableReason) {
+            if (disableReupload === true) {
+                alert("Cannot reupload file. " + disableReason + ".");
+                return;
+            }
+            
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute3_reupload").click();
@@ -1417,6 +1456,12 @@ input[type="checkbox"] {
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
+                }
+                
+                button[data-disable-reupload="true"] {
+                    background-color: #cccccc !important;
+                    cursor: not-allowed !important;
+                    opacity: 0.7;
                 }
             </style>
         `);

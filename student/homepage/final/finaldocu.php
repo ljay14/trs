@@ -167,14 +167,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
 }
 
 // HANDLE REUPLOAD REQUEST
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuFinal"]) && isset($_POST['old_file_path'])) {
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isset($_POST['old_file_path'])) {
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
+    // Check if Route 3 is already approved
+    $route3_approved = false;
+    $checkStmt = $conn->prepare("
+        SELECT COUNT(*) FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND routeNumber = 'Route 3'
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    
+    if ($checkStmt) {
+        $checkStmt->bind_param("s", $student_id);
+        $checkStmt->execute();
+        $checkStmt->bind_result($approved_count);
+        $checkStmt->fetch();
+        $checkStmt->close();
+        
+        if ($approved_count > 0) {
+            $route3_approved = true;
+        }
+    }
+    
+    // Also check if any route3 entries are approved using the checkAllRoutesApproved function
+    $routeStatus = checkAllRoutesApproved($conn, $student_id);
+    if ($routeStatus['route3']) {
+        $route3_approved = true;
+    }
+    
+    // If Route 3 is approved, prevent reupload
+    if ($route3_approved) {
+        $_SESSION['alert_message'] = "Cannot reupload: Route 3 has already been approved.";
+        header("Location: finaldocu.php");
+        exit;
+    }
+    
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT f.finaldocu_id, f.title, f.fullname, f.adviser_id 
-                           FROM finaldocu_files f 
-                           WHERE f.student_id = ? AND f.docuFinal = ?");
+                           FROM finaldocufinal_files f 
+                           WHERE f.student_id = ? AND f.finaldocu = ?");
     $stmt->bind_param("ss", $student_id, $oldFilePath);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -202,8 +236,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuFinal"]) && isse
         $stmt->close();
         
         // Process the new file upload
-        $fileTmpPath = $_FILES["docuFinal"]["tmp_name"];
-        $fileName = $_FILES["docuFinal"]["name"];
+        $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
+        $fileName = $_FILES["finaldocu"]["name"];
         $uploadDir = "../../../uploads/";
         $newFilePath = $uploadDir . basename($fileName);
         
@@ -211,7 +245,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuFinal"]) && isse
             "application/pdf"
         ];
         
-        if (in_array($_FILES["docuFinal"]["type"], $allowedTypes)) {
+        if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
             // Delete old file if it exists
             if (file_exists($oldFilePath)) {
                 unlink($oldFilePath);
@@ -219,7 +253,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuFinal"]) && isse
             
             if (move_uploaded_file($fileTmpPath, $newFilePath)) {
                 // Update the database with the new file path
-                $updateStmt = $conn->prepare("UPDATE finaldocu_files SET docuFinal = ? WHERE finaldocu_id = ?");
+                $updateStmt = $conn->prepare("UPDATE finaldocufinal_files SET finaldocu = ? WHERE finaldocu_id = ?");
                 $updateStmt->bind_param("si", $newFilePath, $finaldocu_id);
                 
                 if ($updateStmt->execute()) {
@@ -262,175 +296,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuFinal"]) && isse
     exit;
 }
 
-// HANDLE UPLOAD
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
-    $student_id = $_POST["student_id"];
-
-    // Fetch the department from the student's account
-    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name, $adviser_email, $school_year);
-    $stmt->fetch();
-    $stmt->close();
-
-    if (!$department) {
-        echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
-        exit;
-    } else {
-        // Check Route 1 approval status by checking the status for the panels and adviser
-        $stmt = $conn->prepare("SELECT status, route3_id FROM final_monitoring_form WHERE student_id = ?");
-        if (!$stmt) {
-            die("Error preparing statement: " . $conn->error);
-        }
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $stmt->bind_result($status, $route3_id);
-
-        // Check
-        $allowUpload = true;
-        while ($stmt->fetch()) {
-            if ($status != 'Approved') {
-                if (empty($route3_id)) {
-                    // Meaning it's NOT Route 3, still pending => NOT allowed
-                    $allowUpload = false;
-                    break;
-                }
-            }
-        }
-        $stmt->close();
-
-        if (!$allowUpload) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
-            exit;
-        }
-        // Proceed with file upload if Route 1 is approved
-        if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
-            $fileName = $_FILES["finaldocu"]["name"];
-            $uploadDir = "../../../uploads/";
-            $filePath = $uploadDir . basename($fileName);
-
-            $allowedTypes = [
-                "application/pdf"
-            ];
-
-            if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-
-                // Check if the student already uploaded for Route 3
-                $stmt = $conn->prepare("SELECT COUNT(*) FROM finaldocufinal_files WHERE student_id = ? AND department = ?");
-                if (!$stmt) {
-                    die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
-                }
-                $stmt->bind_param("ss", $student_id, $department);
-                $stmt->execute();
-                $stmt->bind_result($count);
-                $stmt->fetch();
-                $stmt->close();
-
-                if ($count > 0) {
-                    echo "<script>alert('You can only upload one file for Route 3.'); window.history.back();</script>";
-                    exit;
-                } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
-                    // Fetch panel and adviser IDs from Route 1
-                    $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE student_id = ?");
-                    if (!$panelStmt) {
-                        die("Error preparing statement: " . $conn->error); // Output error if statement preparation fails
-                    }
-                    $panelStmt->bind_param("s", $student_id);
-                    $panelStmt->execute();
-                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id);
-                    $panelStmt->fetch();
-                    $panelStmt->close();
-
-                    if (!isset($panel1_id)) {
-                        echo "<script>alert('Route 1 and Route 2 information not found. Please complete Route 1 and Route 2 first.'); window.history.back();</script>";
-                        exit;
-                    }
-
-                    // Get current date/time
-                    $date_submitted = date("Y-m-d H:i:s");
-
-                    // Insert into Route 3 with date_submitted
-                    $stmt = $conn->prepare("INSERT INTO finaldocufinal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    if ($stmt) {
-                        $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
-                        if ($stmt->execute()) {
-                            // Send email notification to adviser if email is available
-                            if ($adviser_email) {
-                                if (isValidEmail($adviser_email)) {
-                                    $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
-                                    if ($emailSent) {
-                                        echo "<script>alert('File uploaded successfully and notification email sent to adviser.'); window.location.href = 'finaldocu.php';</script>";
-                                        error_log("Success: Notification email sent to adviser ($adviser_email) for Final Document file upload.");
-                                    } else {
-                                        echo "<script>alert('File uploaded successfully but failed to send notification email to adviser.'); window.location.href = 'finaldocu.php';</script>";
-                                        error_log("Error: Failed to send notification email to adviser ($adviser_email) for Final Document file upload.");
-                                    }
-                                } else {
-                                    echo "<script>alert('File uploaded successfully but adviser email address is invalid.'); window.location.href = 'finaldocu.php';</script>";
-                                    error_log("Error: Invalid adviser email address ($adviser_email) for Final Document file upload.");
-                                }
-                            } else {
-                                echo "<script>alert('File uploaded successfully. No adviser email available for notification.'); window.location.href = 'finaldocu.php';</script>";
-                                error_log("Warning: No adviser email available for notification during Final Document file upload.");
-                            }
-                        } else {
-                            echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
-                        }
-                        $stmt->close();
-                    }
-                } else {
-                    echo "<script>alert('Error moving the file.'); window.history.back();</script>";
-                }
-            } else {
-                echo "<script>alert('Invalid file type. Only PDF files are allowed.'); window.history.back();</script>";
-            }
-        } else {
-            echo "<script>alert('Error uploading file.'); window.history.back();</script>";
-        }
-    }
-}
-$student_id = $_SESSION['student_id'];
-
-$sql = "SELECT fullname, adviser, group_members FROM student WHERE student_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    $student = $result->fetch_assoc();
-
-    $fullname = $student['fullname'];
-    $adviser = $student['adviser'];
-    $groupMembers = $student['group_members'];
-
-    $groupMembersRaw = $student['group_members'];
-
-    // Convert JSON string to PHP array
-    $groupMembersArray = json_decode($groupMembersRaw, true);
-
-    // Check if decoding was successful
-    if (json_last_error() === JSON_ERROR_NONE && is_array($groupMembersArray)) {
-        $allStudentsArray = array_merge([$fullname], $groupMembersArray); // Combine arrays
-    } else {
-        // Fallback if decoding fails (treat as plain string)
-        $allStudentsArray = array_merge([$fullname], explode(',', $groupMembersRaw));
-    }
-    // Join names into one comma-separated string
-    $allStudents = implode(', ', $allStudentsArray);
-
-    // Combine main student name + group members
-    // Example: Pass this to your PDF generator
-
-} else {
-    echo "No student found.";
-}
-
 // Get the student's department
 $department = "";
 $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
@@ -444,6 +309,103 @@ $stmt->close();
 $is_computing_student = (strpos(strtolower($department), 'computing') !== false || 
                          strpos(strtolower($department), 'computer') !== false ||
                          strpos(strtolower($department), 'information') !== false);
+
+// Check if route3 is approved for this student
+$route3_is_approved = false;
+$stmt = $conn->prepare("SELECT finaldocu_id FROM finaldocufinal_files WHERE student_id = ?");
+$stmt->bind_param("s", $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $finaldocu_id = $row['finaldocu_id'];
+    
+    // Check if route3 is approved for this finaldocu_id
+    $checkRoute3 = $conn->prepare("
+        SELECT * FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND finaldocu_id = ? 
+        AND routeNumber = 'Route 3'
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $checkRoute3->bind_param("ss", $student_id, $finaldocu_id);
+    $checkRoute3->execute();
+    $route3Result = $checkRoute3->get_result();
+    $isRoute3Approved = $route3Result->num_rows > 0;
+    $route3_is_approved = $isRoute3Approved;
+    $checkRoute3->close();
+}
+$stmt->close();
+
+// Also check the route status using the checkAllRoutesApproved function
+$routeStatus = checkAllRoutesApproved($conn, $student_id);
+if ($routeStatus['route3']) {
+    $route3_is_approved = true;
+}
+
+// Add a function to check if all routes are approved for a student
+function checkAllRoutesApproved($conn, $student_id) {
+    // Check Route 1 status
+    $route1Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND routeNumber = 'Route 1'
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route1Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 2 status
+    $route2Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND routeNumber = 'Route 2'
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 3 status
+    $route3Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND routeNumber = 'Route 3'
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route3Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    return [
+        'route1' => $route1Approved,
+        'route2' => $route2Approved,
+        'route3' => $route3Approved,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved)
+    ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -1031,7 +993,11 @@ input[type="checkbox"] {
         <div class="navigation">
                 <a href="../homepage.php">Home Page</a>
                 <div class="submit-button">
+                <?php if ($route3_is_approved): ?>
+                <a href="#" style="opacity: 0.5; cursor: not-allowed;" title="Cannot submit: Route 3 already approved">Submit File</a>
+                <?php else: ?>
                 <a href="#" id="submit-file-button">Submit File</a>
+                <?php endif; ?>
                 </div>
                 
             </div>
@@ -1140,6 +1106,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Status</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1154,16 +1121,61 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
+                        // Check all routes status
+                        $routeStatus = checkAllRoutesApproved($conn, $student_id);
+                        
+                        // Check if route3 is approved for this finaldocu_id
+                        $checkRoute3 = $conn->prepare("
+                            SELECT * FROM final_monitoring_form 
+                            WHERE student_id = ? 
+                            AND finaldocu_id = ? 
+                            AND routeNumber = 'Route 3'
+                            AND (status = 'Approved' OR status = 'approved')
+                        ");
+                        $checkRoute3->bind_param("ss", $student_id, $finaldocu_id);
+                        $checkRoute3->execute();
+                        $route3Result = $checkRoute3->get_result();
+                        $isRoute3Approved = $route3Result->num_rows > 0;
+                        $checkRoute3->close();
+
+                        // Use both checks to determine if Route 3 is approved
+                        // This fixes the issue where reupload button was not being disabled
+                        $disabledAttr = ($isRoute3Approved || $routeStatus['route3']) ? 'disabled' : '';
+                        
+                        // Determine status label and color
+                        $statusLabel = '';
+                        $statusColor = '';
+                        
+                        if ($routeStatus['all_approved']) {
+                            $statusLabel = 'Complete';
+                            $statusColor = 'green';
+                        } else {
+                            // Show which routes are approved
+                            $approvedRoutes = [];
+                            if ($routeStatus['route1']) $approvedRoutes[] = 'Route 1';
+                            if ($routeStatus['route2']) $approvedRoutes[] = 'Route 2';
+                            if ($routeStatus['route3']) $approvedRoutes[] = 'Route 3';
+                            
+                            if (count($approvedRoutes) > 0) {
+                                $statusLabel = 'Approved: ' . implode(', ', $approvedRoutes);
+                                $statusColor = 'orange';
+                            } else {
+                                $statusLabel = 'Pending';
+                                $statusColor = 'red';
+                            }
+                        }
+                        
                         echo "
                         <tr>
                             <td>$controlNo</td>
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td><span style='color: $statusColor; font-weight: bold;'>$statusLabel</span></td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\" $disabledAttr>Reupload</button>
                                 </div>
                             </td>
                         </tr>
@@ -1260,6 +1272,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <script>
+<?php if (!$route3_is_approved): ?>
 document.getElementById("submit-file-button").addEventListener("click", function(e) {
             e.preventDefault();
             document.querySelector("#finaldocu").click();
@@ -1268,6 +1281,7 @@ document.getElementById("submit-file-button").addEventListener("click", function
         document.querySelector("#finaldocu").addEventListener("change", function() {
             document.querySelector("#file-upload-form").submit();
         });
+<?php endif; ?>
 
         function viewFile(filePath, student_id, finaldocu_id) {
             const modal = document.getElementById("fileModal");
@@ -1503,6 +1517,15 @@ document.getElementById("submit-file-button").addEventListener("click", function
         }
         
         function confirmReupload(filePath) {
+            // Get button reference
+            const button = event.target;
+            
+            // Check if button is disabled
+            if (button.hasAttribute('disabled')) {
+                alert("You cannot reupload this file because Route 3 has been approved.");
+                return;
+            }
+            
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("finaldocu_reupload").click();
@@ -1526,6 +1549,11 @@ document.getElementById("submit-file-button").addEventListener("click", function
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
+                }
+                
+                button[disabled] {
+                    opacity: 0.6;
+                    cursor: not-allowed;
                 }
             </style>
         `);

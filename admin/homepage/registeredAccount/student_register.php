@@ -966,7 +966,7 @@ $result = $conn->query($sql);
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
                 </div>
-                <span>Registered Account</span>
+                <span> Accounts</span>
                 <div class="dropdown-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
@@ -987,9 +987,14 @@ $result = $conn->query($sql);
             <div class="content">
                 <div class="form-container">
                     <h1>List of Registered Students</h1>
-
+                    <button onclick="window.location.href='student.php'" class="add-student-button">Add Student</button>
                     <div id="success-alert" class="success-alert">
                         <strong>Success!</strong> Student updated successfully!
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div class="search-container" style="margin: 20px 0; text-align: right;">
+                        <input type="text" id="searchInput" placeholder="Search by name..." style="padding: 8px; width: 250px; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
 
                     <?php if ($result->num_rows > 0): ?>
@@ -1055,63 +1060,94 @@ $result = $conn->query($sql);
 
     <script>
        function enableEdit(school_id) {
-    document.getElementById('fullname_text_' + school_id).style.display = 'none';
-    document.getElementById('department_text_' + school_id).style.display = 'none';
-    document.getElementById('password_text_' + school_id).style.display = 'none';
-    document.getElementById('email_text_' + school_id).style.display = 'none';
+            document.getElementById('fullname_text_' + school_id).style.display = 'none';
+            document.getElementById('department_text_' + school_id).style.display = 'none';
+            document.getElementById('password_text_' + school_id).style.display = 'none';
+            document.getElementById('email_text_' + school_id).style.display = 'none';
 
-    document.getElementById('fullname_input_' + school_id).style.display = 'inline';
-    document.getElementById('department_input_' + school_id).style.display = 'inline';
-    document.getElementById('password_inputs_' + school_id).style.display = 'block';
-    document.getElementById('email_input_' + school_id).style.display = 'inline';
+            document.getElementById('fullname_input_' + school_id).style.display = 'inline';
+            document.getElementById('department_input_' + school_id).style.display = 'inline';
+            document.getElementById('password_inputs_' + school_id).style.display = 'block';
+            document.getElementById('email_input_' + school_id).style.display = 'inline';
 
-    document.getElementById('edit_btn_' + school_id).style.display = 'none';
-    document.getElementById('save_btn_' + school_id).style.display = 'inline';
-    document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
-    
-    // Enable save button by default (will be disabled if passwords are entered and don't match)
-    document.getElementById('save_btn_' + school_id).disabled = false;
-}
-
-function cancelEdit(school_id) {
-    document.getElementById('fullname_text_' + school_id).style.display = 'inline';
-    document.getElementById('department_text_' + school_id).style.display = 'inline';
-    document.getElementById('password_text_' + school_id).style.display = 'inline';
-    document.getElementById('email_text_' + school_id).style.display = 'inline';
-
-    document.getElementById('fullname_input_' + school_id).style.display = 'none';
-    document.getElementById('department_input_' + school_id).style.display = 'none';
-    document.getElementById('password_inputs_' + school_id).style.display = 'none';
-    document.getElementById('email_input_' + school_id).style.display = 'none';
-
-    document.getElementById('edit_btn_' + school_id).style.display = 'inline';
-    document.getElementById('save_btn_' + school_id).style.display = 'none';
-    document.getElementById('cancel_btn_' + school_id).style.display = 'none';
-
-    document.getElementById('mismatch_' + school_id).style.display = 'none';
-}
-
-function checkPasswordMatch(school_id) {
-    var password = document.getElementById('password_input_' + school_id).value;
-    var confirm_password = document.getElementById('confirm_password_input_' + school_id).value;
-    var mismatchText = document.getElementById('mismatch_' + school_id);
-    var saveBtn = document.getElementById('save_btn_' + school_id);
-
-    // Only validate if both password fields have content
-    if (password !== "" || confirm_password !== "") {
-        if (password !== confirm_password) {
-            mismatchText.style.display = 'block';
-            saveBtn.disabled = true;
-        } else {
-            mismatchText.style.display = 'none';
-            saveBtn.disabled = false;
+            document.getElementById('edit_btn_' + school_id).style.display = 'none';
+            document.getElementById('save_btn_' + school_id).style.display = 'inline';
+            document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
+            
+            // Enable save button by default (will be disabled if passwords are entered and don't match)
+            document.getElementById('save_btn_' + school_id).disabled = false;
         }
-    } else {
-        // If both password fields are empty, enable the save button
-        mismatchText.style.display = 'none';
-        saveBtn.disabled = false;
-    }
-}
+
+        function cancelEdit(school_id) {
+            document.getElementById('fullname_text_' + school_id).style.display = 'inline';
+            document.getElementById('department_text_' + school_id).style.display = 'inline';
+            document.getElementById('password_text_' + school_id).style.display = 'inline';
+            document.getElementById('email_text_' + school_id).style.display = 'inline';
+
+            document.getElementById('fullname_input_' + school_id).style.display = 'none';
+            document.getElementById('department_input_' + school_id).style.display = 'none';
+            document.getElementById('password_inputs_' + school_id).style.display = 'none';
+            document.getElementById('email_input_' + school_id).style.display = 'none';
+
+            document.getElementById('edit_btn_' + school_id).style.display = 'inline';
+            document.getElementById('save_btn_' + school_id).style.display = 'none';
+            document.getElementById('cancel_btn_' + school_id).style.display = 'none';
+
+            document.getElementById('mismatch_' + school_id).style.display = 'none';
+        }
+
+        function checkPasswordMatch(school_id) {
+            var password = document.getElementById('password_input_' + school_id).value;
+            var confirm_password = document.getElementById('confirm_password_input_' + school_id).value;
+            var mismatchText = document.getElementById('mismatch_' + school_id);
+            var saveBtn = document.getElementById('save_btn_' + school_id);
+
+            // Only validate if both password fields have content
+            if (password !== "" || confirm_password !== "") {
+                if (password !== confirm_password) {
+                    mismatchText.style.display = 'block';
+                    saveBtn.disabled = true;
+                } else {
+                    mismatchText.style.display = 'none';
+                    saveBtn.disabled = false;
+                }
+            } else {
+                // If both password fields are empty, enable the save button
+                mismatchText.style.display = 'none';
+                saveBtn.disabled = false;
+            }
+        }
+
+        window.onload = function() {
+            // Show success message if status is success
+            var status = new URLSearchParams(window.location.search).get('status');
+            if (status === 'success') {
+                document.getElementById('success-alert').style.display = 'block';
+                
+                // Auto-hide the success message after 5 seconds
+                setTimeout(function() {
+                    document.getElementById('success-alert').style.display = 'none';
+                }, 5000);
+            }
+            
+            // Add search functionality
+            document.getElementById('searchInput').addEventListener('keyup', function() {
+                var searchValue = this.value.toLowerCase();
+                var rows = document.querySelectorAll('tbody tr');
+                
+                rows.forEach(function(row) {
+                    var fullnameSpan = row.querySelector('span[id^="fullname_text_"]');
+                    if (fullnameSpan) {
+                        var fullname = fullnameSpan.textContent.toLowerCase();
+                        if (fullname.includes(searchValue)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        }
     </script>
 </body>
 </html>

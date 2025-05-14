@@ -1089,6 +1089,17 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
 
+                        // Check if any feedback forms exist for this file
+                        $feedbackStmt = $conn->prepare("SELECT COUNT(*) as form_count FROM final_monitoring_form WHERE route1_id = ?");
+                        $feedbackStmt->bind_param("s", $route1_id);
+                        $feedbackStmt->execute();
+                        $feedbackResult = $feedbackStmt->get_result();
+                        $feedbackCount = $feedbackResult->fetch_assoc()['form_count'];
+                        $feedbackStmt->close();
+
+                        // Set a data attribute to indicate if reupload should be disabled
+                        $disableReupload = $feedbackCount > 0 ? 'true' : 'false';
+
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1098,7 +1109,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    <button class='delete-button' onclick=\"confirmReupload('$filePath', $disableReupload)\" data-disable-reupload=\"$disableReupload\">Reupload</button>
                                 </div>
                             </td>
                         </tr>
@@ -1365,7 +1376,12 @@ input[type="checkbox"] {
             }
         }
         
-        function confirmReupload(filePath) {
+        function confirmReupload(filePath, disableReupload) {
+            if (disableReupload === true) {
+                alert("Cannot reupload file. A routing form has already been submitted by an adviser or panel member.");
+                return;
+            }
+            
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute1_reupload").click();
@@ -1392,6 +1408,29 @@ input[type="checkbox"] {
                 }
             </style>
         `);
+        
+        // Add styles for disabled buttons
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                button[data-disable-reupload="true"] {
+                    background-color: #cccccc !important;
+                    cursor: not-allowed !important;
+                    opacity: 0.7;
+                }
+            </style>
+        `);
+        
+        // Disable reupload buttons that have feedback forms
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('button[data-disable-reupload="true"]').forEach(button => {
+                button.title = "Cannot reupload - feedback form submitted";
+            });
+        });
     </script>
 </body>
 </html>

@@ -137,11 +137,106 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
 
 $alertMessage = "";
 
+// HANDLE MINUTES UPLOAD REQUEST
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["minutesFile"]) && isset($_POST['route1_id'])) {
+    $student_id = $_SESSION['student_id'];
+    $route1_id = $_POST['route1_id'];
+    
+    // Verify the route1_id belongs to this student
+    $stmt = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ? AND route1_id = ?");
+    $stmt->bind_param("si", $student_id, $route1_id);
+    $stmt->execute();
+    $stmt->store_result();
+    
+    if ($stmt->num_rows > 0) {
+        // Process the minutes file upload
+        $fileTmpPath = $_FILES["minutesFile"]["tmp_name"];
+        $fileName = $_FILES["minutesFile"]["name"];
+        $uploadDir = "../../../uploads/minutes/";
+        $filePath = $uploadDir . basename($fileName);
+        
+        $allowedTypes = [
+            "application/pdf"
+        ];
+        
+        if (in_array($_FILES["minutesFile"]["type"], $allowedTypes)) {
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            
+            if (move_uploaded_file($fileTmpPath, $filePath)) {
+                // Update the database with the minutes file path
+                $updateStmt = $conn->prepare("UPDATE route1proposal_files SET minutes = ? WHERE route1_id = ?");
+                $updateStmt->bind_param("si", $filePath, $route1_id);
+                
+                if ($updateStmt->execute()) {
+                    $alertMessage = "Minutes file uploaded successfully.";
+                } else {
+                    $alertMessage = "Error updating database: " . $updateStmt->error;
+                }
+                $updateStmt->close();
+            } else {
+                $alertMessage = "Error moving the uploaded file.";
+            }
+        } else {
+            $alertMessage = "Invalid file type. Only PDF files are allowed.";
+        }
+    } else {
+        $alertMessage = "Record not found or you don't have permission.";
+    }
+    $stmt->close();
+    
+    $_SESSION['alert_message'] = $alertMessage;
+    header("Location: route1.php");
+    exit;
+}
+
 // HANDLE REUPLOAD REQUEST
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute1"]) && isset($_POST['old_file_path'])) {
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
+    // Check if there are any form submissions for this file
+    $formSubmissionStmt = $conn->prepare("SELECT COUNT(*) as submission_count FROM proposal_monitoring_form WHERE student_id = ? AND routeNumber = '1'");
+    $formSubmissionStmt->bind_param("s", $student_id);
+    $formSubmissionStmt->execute();
+    $formSubmissionResult = $formSubmissionStmt->get_result();
+    $submissionRow = $formSubmissionResult->fetch_assoc();
+    $submissionCount = (int)$submissionRow['submission_count'];
+    $formSubmissionStmt->close();
+    
+    // Check for any approved submissions
+    $approvalStmt = $conn->prepare("SELECT COUNT(*) as approval_count FROM proposal_monitoring_form WHERE student_id = ? AND status = 'approved'");
+    $approvalStmt->bind_param("s", $student_id);
+    $approvalStmt->execute();
+    $approvalResult = $approvalStmt->get_result();
+    $approvalRow = $approvalResult->fetch_assoc();
+    $approvalCount = (int)$approvalRow['approval_count'];
+    $approvalStmt->close();
+    
+    // Add debug information to error log
+    error_log("Route 1 Reupload Check: Student ID: $student_id, Submissions: $submissionCount, Approvals: $approvalCount");
+    
+    // Only block reupload if there are ACTUAL submissions or approvals
+    $blockReupload = false;
+    $blockReason = "";
+    
+    if ($submissionCount > 0) {
+        $blockReupload = true;
+        $blockReason = "This file already has routing form submissions from adviser or panel members";
+    } elseif ($approvalCount > 0) {
+        $blockReupload = true;
+        $blockReason = "This file already has approved submissions";
+    }
+    
+    if ($blockReupload) {
+        $alertMessage = "Cannot reupload: $blockReason.";
+        $_SESSION['alert_message'] = $alertMessage;
+        header("Location: route1.php");
+        exit;
+    }
+    
+    // Continue with reupload if no form submissions
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT r.route1_id, r.title, r.fullname, r.adviser_id 
                            FROM route1proposal_files r 
@@ -905,6 +1000,36 @@ input[type="checkbox"] {
     transition: all 0.3s;
 }
 
+.action-buttons button {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.file-content {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.success-alert {
+    padding: 10px 15px;
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.error-alert {
+    padding: 10px 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
     </style>
 </head>
 <body>
@@ -1008,21 +1133,33 @@ input[type="checkbox"] {
             </nav>
             <div class="content" id="content-area">
                 <?php
+                // Display alert message if set
+                if (isset($_SESSION['alert_message'])) {
+                    $message = $_SESSION['alert_message'];
+                    $messageClass = (strpos($message, 'Cannot') !== false || strpos($message, 'Error') !== false) ? 'error-alert' : 'success-alert';
+                    echo "<div class='$messageClass' style='margin-bottom: 15px;'>$message</div>";
+                    unset($_SESSION['alert_message']); // Clear the message after displaying it
+                }
+                ?>
+
+                <?php
                 $student_id = $_SESSION['student_id'];
 
                 $stmt = $conn->prepare("
                     SELECT 
-                        docuRoute1, 
-                        route1_id, 
-                        controlNo, 
-                        fullname, 
-                        group_number,
-                        title,
-                        minutes
+                        r.docuRoute1, 
+                        r.route1_id, 
+                        r.controlNo, 
+                        r.fullname, 
+                        r.group_number,
+                        r.title,
+                        r.minutes,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND routeNumber = '1') as form_count,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND status = 'approved') as approved_count
                     FROM 
-                        route1proposal_files
+                        route1proposal_files r
                     WHERE 
-                        student_id = ?
+                        r.student_id = ?
                 ");
 
                 $stmt->bind_param("s", $student_id);
@@ -1053,8 +1190,30 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
                         $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        $form_count = (int)$row['form_count'];
+                        $approved_count = (int)$row['approved_count'];
+                        
+                        // Add debug info
+                        echo "<!-- Debug: Form Count: $form_count, Approved: $approved_count -->";
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+
+                        // Fix: Only disable if there are ACTUAL submissions or approvals
+                        $disableReupload = false;
+                        $reuploadTitle = "";
+                        
+                        // Only check for these if they actually have values
+                        if ($form_count > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: File already has routing form submissions";
+                        } else if ($approved_count > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: One or more submissions have been approved";
+                        }
+                        
+                        $reuploadBtn = $disableReupload 
+                            ? "<button class='delete-button' style='opacity: 0.5; cursor: not-allowed;' title='$reuploadTitle'>Reupload</button>"
+                            : "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
                         
                         echo "
                         <tr>
@@ -1066,7 +1225,7 @@ input[type="checkbox"] {
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>
+                                    $reuploadBtn
                                     " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
@@ -1105,6 +1264,13 @@ input[type="checkbox"] {
         <input type="file" name="docuRoute1" id="docuRoute1_reupload" accept=".pdf" required>
     </form>
 
+    <!-- Form for minutes upload -->
+    <form action="route1.php" method="POST" enctype="multipart/form-data" id="minutes-upload-form" style="display: none;">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+        <input type="hidden" name="route1_id" id="minutes_route1_id">
+        <input type="file" name="minutesFile" id="minutesFile" accept=".pdf" required>
+    </form>
+
     <div id="fileModal" class="modal">
         <div class="modal-content">
             <span class="close-button" onclick="closeModal()">&times;</span>
@@ -1133,6 +1299,36 @@ input[type="checkbox"] {
         
         document.querySelector("#docuRoute1").addEventListener("change", function() {
             document.querySelector("#file-upload-form").submit();
+        });
+        
+        // Add event listener for minutes upload button
+        document.getElementById("upload-minutes-button").addEventListener("click", function(e) {
+            e.preventDefault();
+            
+            // Check if there's an uploaded thesis file first
+            <?php
+            $student_id = $_SESSION['student_id'];
+            $checkStmt = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ? LIMIT 1");
+            $checkStmt->bind_param("s", $student_id);
+            $checkStmt->execute();
+            $checkStmt->store_result();
+            
+            if ($checkStmt->num_rows > 0) {
+                $checkStmt->bind_result($route1_id);
+                $checkStmt->fetch();
+                echo "document.getElementById('minutes_route1_id').value = " . $route1_id . ";";
+                echo "document.querySelector('#minutesFile').click();";
+            } else {
+                echo "alert('You need to upload a thesis document first before uploading minutes.');";
+            }
+            $checkStmt->close();
+            ?>
+        });
+        
+        document.querySelector("#minutesFile").addEventListener("change", function() {
+            if (this.files.length > 0) {
+                document.querySelector("#minutes-upload-form").submit();
+            }
         });
         
         function viewFile(filePath, student_id, route1_id) {
@@ -1365,7 +1561,24 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
-            if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
+            // Find the reupload button that was clicked
+            const reuploadButtons = document.querySelectorAll(".delete-button");
+            let isDisabled = false;
+            let message = "";
+            
+            // Check if button has disabled styling
+            for (let btn of reuploadButtons) {
+                if (btn.getAttribute("style") && btn.getAttribute("style").includes("opacity: 0.5")) {
+                    if (btn.title) {
+                        isDisabled = true;
+                        message = btn.title;
+                        alert(message);
+                        return;
+                    }
+                }
+            }
+            
+            if (!isDisabled && confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute1_reupload").click();
             }

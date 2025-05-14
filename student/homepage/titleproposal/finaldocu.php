@@ -171,6 +171,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
+    // Check if Route 3 is already approved
+    $route3_approved = false;
+    $checkStmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL AND status = 'Approved'");
+    if ($checkStmt) {
+        $checkStmt->bind_param("s", $student_id);
+        $checkStmt->execute();
+        $checkStmt->bind_result($approved_count);
+        $checkStmt->fetch();
+        $checkStmt->close();
+        
+        // Check total count of route3 records
+        $totalStmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL");
+        $totalStmt->bind_param("s", $student_id);
+        $totalStmt->execute();
+        $totalStmt->bind_result($total_count);
+        $totalStmt->fetch();
+        $totalStmt->close();
+        
+        if ($approved_count > 0 && $approved_count == $total_count && $total_count > 0) {
+            $route3_approved = true;
+        }
+    }
+    
+    // If Route 3 is approved, prevent reupload
+    if ($route3_approved) {
+        $_SESSION['alert_message'] = "Cannot reupload: Route 3 has already been approved.";
+        header("Location: finaldocu.php");
+        exit;
+    }
+    
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT f.finaldocu_id, f.title, f.fullname, f.adviser_id 
                            FROM finaldocuproposal_files f 
@@ -265,6 +295,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
 // HANDLE UPLOAD
 if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
     $student_id = $_POST["student_id"];
+
+    // Check if Route 3 is already approved
+    $route3_approved = false;
+    $checkStmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL AND status = 'Approved'");
+    if ($checkStmt) {
+        $checkStmt->bind_param("s", $student_id);
+        $checkStmt->execute();
+        $checkStmt->bind_result($approved_count);
+        $checkStmt->fetch();
+        $checkStmt->close();
+        
+        // Check total count of route3 records
+        $totalStmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL");
+        $totalStmt->bind_param("s", $student_id);
+        $totalStmt->execute();
+        $totalStmt->bind_result($total_count);
+        $totalStmt->fetch();
+        $totalStmt->close();
+        
+        if ($approved_count > 0 && $approved_count == $total_count && $total_count > 0) {
+            $route3_approved = true;
+        }
+    }
+    
+    // If Route 3 is approved, prevent upload
+    if ($route3_approved) {
+        echo "<script>alert('Cannot upload: Route 3 has already been approved.'); window.location.href = 'finaldocu.php';</script>";
+        exit;
+    }
 
     // Fetch the department and adviser details from the student's account
     $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
@@ -448,6 +507,93 @@ $stmt->close();
 $is_computing_student = (strpos(strtolower($department), 'computing') !== false || 
                          strpos(strtolower($department), 'computer') !== false ||
                          strpos(strtolower($department), 'information') !== false);
+
+// Check if route3 is approved for this student
+$route3_is_approved = false;
+$stmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL AND status = 'Approved'");
+if ($stmt) {
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($approved_count);
+    $stmt->fetch();
+    $stmt->close();
+    
+    // Check if all panels have approved the route3 submission
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = ? AND route3_id IS NOT NULL");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($total_count);
+    $stmt->fetch();
+    $stmt->close();
+    
+    if ($approved_count > 0 && $approved_count == $total_count && $total_count > 0) {
+        $route3_is_approved = true;
+    }
+}
+
+// Add a function to check if all routes are approved for a student
+function checkAllRoutesApproved($conn, $student_id) {
+    // Check Route 1 status
+    $route1Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route1_id IS NOT NULL
+        AND status = 'Approved'
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route1Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 2 status
+    $route2Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route2_id IS NOT NULL
+        AND status = 'Approved'
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    // Check Route 3 status
+    $route3Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route3_id IS NOT NULL
+        AND status = 'Approved'
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route3Approved = ((int)$row['approved_count'] > 0);
+    }
+    $stmt->close();
+
+    return [
+        'route1' => $route1Approved,
+        'route2' => $route2Approved,
+        'route3' => $route3Approved,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved)
+    ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -1009,7 +1155,11 @@ input[type="checkbox"] {
             <div class="navigation">
                 <a href="../homepage.php">Home Page</a>
                 <div class="submit-button">
+                <?php if ($route3_is_approved): ?>
+                <a href="#" style="opacity: 0.5; cursor: not-allowed;" title="Cannot submit: Route 3 already approved">Submit File</a>
+                <?php else: ?>
                 <a href="#" id="submit-file-button">Submit File</a>
+                <?php endif; ?>
                 </div>
                 
             </div>
@@ -1125,6 +1275,7 @@ input[type="checkbox"] {
                                 <th>Group No.</th>
                                 <th>Title</th>
                                 <th>Minutes</th>
+                                <th>Status</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1142,6 +1293,32 @@ input[type="checkbox"] {
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
+                        // Check all routes status
+                        $routeStatus = checkAllRoutesApproved($conn, $student_id);
+                        
+                        // Determine status label and color
+                        $statusLabel = '';
+                        $statusColor = '';
+                        
+                        if ($routeStatus['all_approved']) {
+                            $statusLabel = 'Complete';
+                            $statusColor = 'green';
+                        } else {
+                            // Show which routes are approved
+                            $approvedRoutes = [];
+                            if ($routeStatus['route1']) $approvedRoutes[] = 'Route 1';
+                            if ($routeStatus['route2']) $approvedRoutes[] = 'Route 2';
+                            if ($routeStatus['route3']) $approvedRoutes[] = 'Route 3';
+                            
+                            if (count($approvedRoutes) > 0) {
+                                $statusLabel = 'Approved: ' . implode(', ', $approvedRoutes);
+                                $statusColor = 'orange';
+                            } else {
+                                $statusLabel = 'Pending';
+                                $statusColor = 'red';
+                            }
+                        }
+
                         echo "
                         <tr>
                             <td>$controlNo</td>
@@ -1149,16 +1326,23 @@ input[type="checkbox"] {
                             <td>$groupNo</td>
                             <td>$title</td>
                             <td>$minutesStatus</td>
+                            <td><span style='color: $statusColor; font-weight: bold;'>$statusLabel</span></td>
                             <td>
                                 <div class='action-buttons'>
-                                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id')\">View</button>
-                                    <button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
+                                    <button class='view-button' onclick=\"viewFile('$filePath', '$student_id')\">View</button>";
+                        
+                        // Only show reupload button if Route 3 is not approved
+                        if (!$route3_is_approved) {
+                            echo "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
+                        } else {
+                            echo "<button class='delete-button' disabled style='opacity: 0.5; cursor: not-allowed;' title='Cannot reupload: Route 3 already approved'>Reupload</button>";
+                        }
                                     
-                                    if ($minutes) {
-                                        echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
-                                    }
+                        if ($minutes) {
+                            echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                        }
 
-                                    echo "
+                        echo "
                                 </div>
                             </td>
                         </tr>
@@ -1217,6 +1401,7 @@ input[type="checkbox"] {
     </div>
 
     <script>
+        <?php if (!$route3_is_approved): ?>
         document.getElementById("submit-file-button").addEventListener("click", function(e) {
             e.preventDefault();
             document.querySelector("#finaldocu").click();
@@ -1225,6 +1410,7 @@ input[type="checkbox"] {
         document.querySelector("#finaldocu").addEventListener("change", function() {
             document.querySelector("#file-upload-form").submit();
         });
+        <?php endif; ?>
 
         function viewFile(filePath, student_id) {
             const modal = document.getElementById("fileModal");
@@ -1438,10 +1624,14 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
+            <?php if ($route3_is_approved): ?>
+            alert("You cannot reupload files because Route 3 has already been approved.");
+            <?php else: ?>
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("finaldocu_reupload").click();
             }
+            <?php endif; ?>
         }
         
         document.getElementById("finaldocu_reupload").addEventListener("change", function() {

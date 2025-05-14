@@ -246,6 +246,76 @@ $advisers = [];
 if (isset($selectedDepartment)) {
     $advisers = getAdvisers($conn, $selectedDepartment);
 }
+
+// Add a function to check if all routes are approved for a student
+function checkAllRoutesApproved($conn, $student_id) {
+    // Check Route 1 status
+    $route1Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND route1_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route1Approved = ((int)$row['approved_count'] > 0);
+    }
+    
+    // Check Route 2 status
+    $route2Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND route2_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2Approved = ((int)$row['approved_count'] > 0);
+    }
+    
+    // Check Route 3 status
+    $route3Approved = false;
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND route3_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route3Approved = ((int)$row['approved_count'] > 0);
+    }
+    
+    // Create array of approved routes for status display
+    $approvedRoutes = [];
+    if ($route1Approved) $approvedRoutes[] = "Route 1";
+    if ($route2Approved) $approvedRoutes[] = "Route 2";
+    if ($route3Approved) $approvedRoutes[] = "Route 3";
+    
+    // Return results
+    return [
+        'route1_approved' => $route1Approved,
+        'route2_approved' => $route2Approved,
+        'route3_approved' => $route3Approved,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
+        'approved_routes' => $approvedRoutes,
+        'approved_count' => count($approvedRoutes)
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -591,7 +661,7 @@ if (isset($selectedDepartment)) {
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                                 </svg>
                             </div>
-                            <span>Registered Account</span>
+                            <span>Accounts</span>
                             <div class="dropdown-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -629,6 +699,7 @@ if (isset($selectedDepartment)) {
                                 <th>Group No.</th>
                                 <th>Title</th>
                                 <th>Assigned</th>
+                                <th>Status</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -640,10 +711,28 @@ if (isset($selectedDepartment)) {
                     $filepath = htmlspecialchars($file['filepath'], ENT_QUOTES);
                     $filename = htmlspecialchars(basename($file['filename']), ENT_QUOTES);
                     $controlNo = htmlspecialchars($file['controlNo'] ?? '', ENT_QUOTES);
-                    $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
                     $group_number = htmlspecialchars($file['group_number'] ?? '', ENT_QUOTES);
+                    $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
                     $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
                     $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
+                    
+                    // Check the approval status of all routes
+                    $routeStatus = checkAllRoutesApproved($conn, $student_id);
+                    
+                    // Determine status label and color
+                    $statusLabel = '';
+                    $statusColor = '';
+                    
+                    if ($routeStatus['all_approved']) {
+                        $statusLabel = 'Complete';
+                        $statusColor = 'green';
+                    } elseif ($routeStatus['approved_count'] > 0) {
+                        $statusLabel = 'Approved: ' . implode(', ', $routeStatus['approved_routes']);
+                        $statusColor = 'orange';
+                    } else {
+                        $statusLabel = 'Pending';
+                        $statusColor = 'red';
+                    }
                     
                     // Panel and adviser information
                     $assigned_panels = [];
@@ -707,6 +796,11 @@ if (isset($selectedDepartment)) {
                                 )">
                             <?= $assignment_status ?>
                         </button>
+                    </td>
+                    <td>
+                        <span style="color: <?= $statusColor ?>; font-weight: bold;">
+                            <?= $statusLabel ?>
+                        </span>
                     </td>
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['finaldocu_id'] ?? '' ?>')">View</button>

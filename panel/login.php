@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Validate input
     if (empty($school_id) || empty($password)) {
-        echo "<script>alert('School ID and Password are required!'); window.history.back();</script>";
+        echo "<script>alert('ID Number and Password are required!'); window.history.back();</script>";
     } else {
         // Prepare SQL query
         $stmt = $conn->prepare("SELECT * FROM panel WHERE school_id = ?");
