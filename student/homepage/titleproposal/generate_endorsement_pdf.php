@@ -7,8 +7,8 @@ use Fpdf\Fpdf;
 
 // Initialize session variables
 $adviserName = $_GET['adviserName'] ?? 'Unknown Adviser';
-$studentNames = isset($_GET['student']) ? explode(',', $_GET['student']) : [];
-$studentNames = array_map('trim', $studentNames); // Remove extra spaces
+$studentNames = isset($_GET['student']) ? explode(',', urldecode($_GET['student'])) : [];
+$studentNames = array_filter(array_map('trim', $studentNames)); // Remove empty entries and trim spaces
 
 // Database connection
 

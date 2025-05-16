@@ -470,25 +470,27 @@ if ($result->num_rows > 0) {
 
     $fullname = $student['fullname'];
     $adviser = $student['adviser'];
-    $groupMembers = $student['group_members'];
-
     $groupMembersRaw = $student['group_members'];
 
-    // Convert JSON string to PHP array
+    // Process group members data
+    $groupMembersStr = '';
+    
+    // Try to decode as JSON first
     $groupMembersArray = json_decode($groupMembersRaw, true);
-
-    // Check if decoding was successful
+    
     if (json_last_error() === JSON_ERROR_NONE && is_array($groupMembersArray)) {
-        $allStudentsArray = array_merge([$fullname], $groupMembersArray); // Combine arrays
+        // Successfully decoded JSON
+        $groupMembersStr = implode(',', $groupMembersArray);
     } else {
-        // Fallback if decoding fails (treat as plain string)
-        $allStudentsArray = array_merge([$fullname], explode(',', $groupMembersRaw));
+        // Not JSON or error decoding, use as plain text
+        $groupMembersStr = $groupMembersRaw;
     }
-    // Join names into one comma-separated string
-    $allStudents = implode(', ', $allStudentsArray);
-
-    // Combine main student name + group members
-    // Example: Pass this to your PDF generator
+    
+    // Prepare the student parameter string for the certificate
+    $studentParam = urlencode($fullname);
+    if (!empty($groupMembersStr)) {
+        $studentParam .= ',' . urlencode($groupMembersStr);
+    }
 
 } else {
     echo "No student found.";
@@ -1165,7 +1167,7 @@ input[type="checkbox"] {
             </div>
             <div class="user-info">
                 <?php if ($is_computing_student): ?>
-                <a href='generate_endorsement_pdf.php?adviserName=<?= urlencode($adviser) ?>&student=<?= urlencode($fullname . ($groupMembersRaw ? ',' . $groupMembersRaw : '')) ?>' class='cert-button' style='background-color: #28a745; color: white; margin-right: 15px; text-decoration: none; display: inline-block; padding: 0.5rem 1rem; border-radius: 4px;'>Download Endorsement Certificate</a>
+                <a href='generate_endorsement_pdf.php?adviserName=<?= urlencode($adviser) ?>&student=<?= $studentParam ?>' class='cert-button' style='background-color: #28a745; color: white; margin-right: 15px; text-decoration: none; display: inline-block; padding: 0.5rem 1rem; border-radius: 4px;'>Download Endorsement Certificate</a>
                 <?php endif; ?>
 
                 <div class="routeNo" style="margin-right: 20px;">Proposal - Final Document</div>

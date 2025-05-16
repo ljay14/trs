@@ -1133,6 +1133,7 @@ input[type="checkbox"] {
                         r.title,
                         r.minutes,
                         r.adviser_id,
+                        (SELECT minutes FROM route1proposal_files WHERE student_id = r.student_id) as route1_minutes,
                         (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route3_id = r.route3_id) as route3_form_count,
                         (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route3_id = r.route3_id AND adviser_id = r.adviser_id) as adviser_form_count,
                         (SELECT COUNT(*) FROM proposal_monitoring_form 
@@ -1171,16 +1172,30 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
-                        $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        
+                        // Get minutes from either route3 or route1
+                        $minutes = '';
+                        $minutesSource = '';
+                        if (!empty($row['minutes'])) {
+                            $minutes = htmlspecialchars($row['minutes'], ENT_QUOTES);
+                            $minutesSource = 'route3';
+                        } else if (!empty($row['route1_minutes'])) {
+                            $minutes = htmlspecialchars($row['route1_minutes'], ENT_QUOTES);
+                            $minutesSource = 'route1';
+                        }
+                        
                         $adviser_id = $row['adviser_id'];
                         $route3FormCount = (int)$row['route3_form_count'];
                         $adviserFormCount = (int)$row['adviser_form_count'];
                         $route2ApprovedCount = (int)$row['route2_approved_count'];
                         
                         // Add debug info to check counts
-                        echo "<!-- Debug: R3 Forms: $route3FormCount, Adviser Forms: $adviserFormCount, R2 Approved: $route2ApprovedCount -->";
+                        echo "<!-- Debug: R3 Forms: $route3FormCount, Adviser Forms: $adviserFormCount, R2 Approved: $route2ApprovedCount, Minutes Source: $minutesSource -->";
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                        if ($minutes && $minutesSource == 'route1') {
+                            $minutesStatus = '<span style="color: green;">Available (from Route 1)</span>';
+                        }
                         
                         // Fix: Disable only if route2 has approved forms OR if adviser/panel submitted forms for route3
                         $disableReupload = false;
@@ -1221,10 +1236,57 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
-                    <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
-                    <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
-                  </div>";
+                    // Check if minutes exist in route1proposal_files even if no route3 file exists yet
+                    $route1MinutesStmt = $conn->prepare("SELECT r1.minutes, r1.controlNo, r1.fullname, r1.group_number, r1.title 
+                                                         FROM route1proposal_files r1 
+                                                         WHERE r1.student_id = ? AND r1.minutes IS NOT NULL AND r1.minutes != ''");
+                    $route1MinutesStmt->bind_param("s", $student_id);
+                    $route1MinutesStmt->execute();
+                    $route1MinutesResult = $route1MinutesStmt->get_result();
+                    
+                    if ($route1MinutesResult->num_rows > 0) {
+                        $route1MinutesRow = $route1MinutesResult->fetch_assoc();
+                        $minutes = htmlspecialchars($route1MinutesRow['minutes'], ENT_QUOTES);
+                        $controlNo = htmlspecialchars($route1MinutesRow['controlNo'], ENT_QUOTES);
+                        $fullName = htmlspecialchars($route1MinutesRow['fullname'], ENT_QUOTES);
+                        $groupNo = htmlspecialchars($route1MinutesRow['group_number'], ENT_QUOTES);
+                        $title = htmlspecialchars($route1MinutesRow['title'], ENT_QUOTES);
+                        
+                        echo "
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Control No.</th>
+                                    <th>Leader</th>
+                                    <th>Group No.</th>
+                                    <th>Title</th>
+                                    <th>Minutes</th>
+                                    <th class='action-label'>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>$controlNo</td>
+                                    <td>$fullName</td>
+                                    <td>$groupNo</td>
+                                    <td>$title</td>
+                                    <td><span style='color: green;'>Available (from Route 1)</span></td>
+                                    <td>
+                                        <div class='action-buttons'>
+                                            <button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        ";
+                    } else {
+                        echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                                <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                                <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
+                              </div>";
+                    }
+                    $route1MinutesStmt->close();
                 }
 
                 $stmt->close();
@@ -1547,12 +1609,36 @@ input[type="checkbox"] {
             modal.style.display = "flex";
             contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
             
-            const extension = minutesPath.split('.').pop().toLowerCase();
-            if (extension === "pdf") {
-                contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
-            } else {
-                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
-            }
+            // Check if the file exists using a fetch call with HEAD method
+            fetch(minutesPath, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        const extension = minutesPath.split('.').pop().toLowerCase();
+                        if (extension === "pdf") {
+                            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                        } else {
+                            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+                        }
+                    } else {
+                        // If fetch fails, try to display the file directly anyway
+                        const extension = minutesPath.split('.').pop().toLowerCase();
+                        if (extension === "pdf") {
+                            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                        } else {
+                            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking minutes file:', error);
+                    // Even if fetch fails, try to display the file anyway
+                    const extension = minutesPath.split('.').pop().toLowerCase();
+                    if (extension === "pdf") {
+                        contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                    } else {
+                        contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+                    }
+                });
         }
         
         function closeMinutesModal() {
