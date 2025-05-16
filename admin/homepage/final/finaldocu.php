@@ -21,232 +21,6 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
-// Fetch school years
-$schoolYears = [];
-$schoolYearQuery = "SELECT DISTINCT school_year FROM finaldocufinal_files ORDER BY school_year DESC";
-$schoolYearResult = $conn->query($schoolYearQuery);
-if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
-    while ($row = $schoolYearResult->fetch_assoc()) {
-        $schoolYears[] = $row['school_year'];
-    }
-}
-
-// Helper functions to get names from IDs
-function getPanelName($conn, $panel_id) {
-    $stmt = $conn->prepare("SELECT fullname FROM panel WHERE panel_id = ?");
-    $stmt->bind_param("i", $panel_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['fullname'];
-    }
-    return "";
-}
-
-function getAdviserName($conn, $adviser_id) {
-    $stmt = $conn->prepare("SELECT fullname FROM adviser WHERE adviser_id = ?");
-    $stmt->bind_param("i", $adviser_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return $row['fullname'];
-    }
-    return "";
-}
-
-// Initialize variables
-$panel = [];
-$adviser = [];
-$files = [];
-
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
-    $selectedDepartment = $_POST['department'];
-    $_SESSION['selected_department'] = $selectedDepartment;
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit;
-}
-
-// Load data for selected department
-if (isset($_SESSION['selected_department'])) {
-    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
-    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
-    
-    $_SESSION['selected_department'] = $selectedDepartment;
-    $_SESSION['selected_school_year'] = $selectedSchoolYear;
-
-    // Fetch panel data
-    $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
-    $panelStmt->bind_param("s", $selectedDepartment);
-    $panelStmt->execute();
-    $panelResult = $panelStmt->get_result();
-    while ($row = $panelResult->fetch_assoc()) {
-        $panel[$row['position']][] = $row['fullname'];
-    }
-    $panelStmt->close();
-
-    // Fetch adviser data
-    $adviserStmt = $conn->prepare("SELECT * FROM adviser WHERE department = ?");
-    $adviserStmt->bind_param("s", $selectedDepartment);
-    $adviserStmt->execute();
-    $adviserResult = $adviserStmt->get_result();
-    while ($row = $adviserResult->fetch_assoc()) {
-        $adviser[] = $row['fullname'];
-    }
-    $adviserStmt->close();
-
-    // Fetch files
-    $fileStmt = $conn->prepare(
-        "SELECT 
-            finaldocu AS filepath, 
-            finaldocu AS filename, 
-            date_submitted,
-            controlNo,
-            group_number,
-            fullname,
-            title,
-            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id
-         FROM finaldocufinal_files 
-         WHERE department = ?"
-    );
-    
-    $fileStmt->bind_param("s", $selectedDepartment);
-    $fileStmt->execute();
-    $fileResult = $fileStmt->get_result();
-    while ($row = $fileResult->fetch_assoc()) {
-        $files[] = [
-            'filepath' => $row['filepath'],
-            'filename' => $row['filename'],
-            'controlNo' => $row['controlNo'],
-            'group_number' => $row['group_number'],
-            'fullname' => $row['fullname'],
-            'student_id' => $row['student_id'],
-            'panel1_id' => $row['panel1_id'],
-            'panel2_id' => $row['panel2_id'],
-            'panel3_id' => $row['panel3_id'],
-            'panel4_id' => $row['panel4_id'],
-            'panel5_id' => $row['panel5_id'],
-            'adviser_id' => $row['adviser_id'],
-            'title' => $row['title']
-        ];
-    }
-    
-    $fileStmt->close();
-}
-
-// Handle file submission for panelists and adviser
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
-    $selectedFiles = $_POST['selected_files'];
-    $panel1 = $_POST['panel1'] ?? null;
-    $panel2 = $_POST['panel2'] ?? null;
-    $panel3 = $_POST['panel3'] ?? null;
-    $panel4 = $_POST['panel4'] ?? null;
-    $panel5 = $_POST['panel5'] ?? null;
-
-    // Validation
-    if (empty($selectedFiles)) {
-        echo "<script>alert('Please select at least one file.');</script>";
-    } elseif (empty($panel1) && empty($panel2) && empty($panel3) && empty($panel4) && empty($panel5)) {
-        echo "<script>alert('Please select at least one panel.');</script>";
-    } else {
-        foreach ($selectedFiles as $filePath) {
-            $fileName = $filePath; // Use the full path stored in the DB
-
-            // Check if the file exists in DB
-            $checkStmt = $conn->prepare("SELECT * FROM finaldocufinal_files WHERE finaldocu = ?");
-            $checkStmt->bind_param("s", $fileName);
-            $checkStmt->execute();
-            $result = $checkStmt->get_result();
-            $fileExists = $result->num_rows > 0;
-            $checkStmt->close();
-
-            if ($fileExists) {
-                // Update panel IDs and set date_submitted
-                $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
-                $updatePanelStmt = $conn->prepare("UPDATE finaldocufinal_files 
-                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
-                    WHERE finaldocu = ?");
-                $updatePanelStmt->bind_param("iiiiiss", $panel1, $panel2, $panel3, $panel4, $panel5, $dateNow, $fileName);
-                $updatePanelStmt->execute();
-                $updatePanelStmt->close();
-
-                echo "<script>alert('Successfully Submitted.');</script>";
-            } else {
-                echo "<script>alert('File $fileName not found in the database.');</script>";
-            }
-        }
-    }
-}
-
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])) {
-    $filepath = $_POST['filepath'];
-    $panel1 = $_POST['panel1'] ?? null;
-    $panel2 = $_POST['panel2'] ?? null;
-    $panel3 = $_POST['panel3'] ?? null;
-    $panel4 = $_POST['panel4'] ?? null;
-    $panel5 = $_POST['panel5'] ?? null;
-    
-    // Reopen the database connection if closed
-    if (!isset($conn) || $conn->connect_error) {
-        include '../../../connection.php';
-    }
-    
-    // Update panel IDs in the database
-    $updateStmt = $conn->prepare("UPDATE finaldocufinal_files 
-        SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
-        WHERE finaldocu = ?");
-    $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
-    
-    if ($updateStmt->execute()) {
-        // Only show alert if not an AJAX request
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Assignments updated successfully.');</script>";
-        } else {
-            // For AJAX requests, just return a success message that will be handled by JavaScript
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
-                exit;
-            }
-        }
-    } else {
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
-        } else {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
-                exit;
-            }
-        }
-    }
-    $updateStmt->close();
-}
-
-// Fetch advisers for dropdown
-function getAdvisers($conn, $department) {
-    $advisers = [];
-    $stmt = $conn->prepare("SELECT adviser_id, fullname FROM adviser WHERE department = ?");
-    $stmt->bind_param("s", $department);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    while ($row = $result->fetch_assoc()) {
-        $advisers[] = $row;
-    }
-    
-    $stmt->close();
-    return $advisers;
-}
-
-// If department is selected, fetch advisers
-$advisers = [];
-if (isset($selectedDepartment)) {
-    $advisers = getAdvisers($conn, $selectedDepartment);
-}
-
 // Add a function to check if all routes are approved for a student
 function checkAllRoutesApproved($conn, $student_id) {
     // Check Route 1 status
@@ -316,6 +90,374 @@ function checkAllRoutesApproved($conn, $student_id) {
         'approved_count' => count($approvedRoutes)
     ];
 }
+
+// Fetch school years
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM finaldocufinal_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
+
+// Fetch semesters
+$semesters = [];
+$semesterQuery = "SELECT DISTINCT semester FROM student WHERE semester IS NOT NULL AND semester != ''";
+$semesterResult = $conn->query($semesterQuery);
+if ($semesterResult && $semesterResult->num_rows > 0) {
+    while ($row = $semesterResult->fetch_assoc()) {
+        // Store original value with original case and formatting
+        $semesters[] = $row['semester'];
+    }
+}
+
+// Make sure all standard semesters are included regardless of database values
+$standardSemesters = ['First semester', 'Second semester', 'Summer'];
+
+// Create a normalized array for comparison (lowercase and trimmed)
+$normalizedSemesters = array_map(function($sem) {
+    return strtolower(trim($sem));
+}, $semesters);
+
+// Add standard semesters only if they don't exist (case-insensitive check)
+foreach ($standardSemesters as $stdSemester) {
+    $normalizedStdSemester = strtolower(trim($stdSemester));
+    if (!in_array($normalizedStdSemester, $normalizedSemesters)) {
+        $semesters[] = $stdSemester;
+        $normalizedSemesters[] = $normalizedStdSemester;
+    }
+}
+
+// Remove duplicates (case-insensitive)
+$uniqueSemesters = [];
+$uniqueNormalizedSemesters = [];
+foreach ($semesters as $semester) {
+    $normalizedSemester = strtolower(trim($semester));
+    if (!in_array($normalizedSemester, $uniqueNormalizedSemesters)) {
+        $uniqueSemesters[] = $semester;
+        $uniqueNormalizedSemesters[] = $normalizedSemester;
+    }
+}
+$semesters = $uniqueSemesters;
+
+// Sort them in logical order
+usort($semesters, function($a, $b) {
+    $order = ['first semester' => 1, 'second semester' => 2, 'summer' => 3];
+    $aOrder = isset($order[strtolower(trim($a))]) ? $order[strtolower(trim($a))] : 999;
+    $bOrder = isset($order[strtolower(trim($b))]) ? $order[strtolower(trim($b))] : 999;
+    return $aOrder - $bOrder;
+});
+
+// Helper functions to get names from IDs
+function getPanelName($conn, $panel_id) {
+    $stmt = $conn->prepare("SELECT fullname FROM panel WHERE panel_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing panel name statement: " . $conn->error);
+        return "";
+    }
+    $stmt->bind_param("i", $panel_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        return $row['fullname'];
+    }
+    $stmt->close();
+    return "";
+}
+
+function getAdviserName($conn, $adviser_id) {
+    $stmt = $conn->prepare("SELECT fullname FROM adviser WHERE adviser_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing adviser name statement: " . $conn->error);
+        return "";
+    }
+    $stmt->bind_param("i", $adviser_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        return $row['fullname'];
+    }
+    $stmt->close();
+    return "";
+}
+
+// Initialize variables
+$panel = [];
+$adviser = [];
+$files = [];
+
+// Handle form submission
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
+    $selectedDepartment = $_POST['department'];
+    $_SESSION['selected_department'] = $selectedDepartment;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['school_year'])) {
+    $selectedSchoolYear = $_POST['school_year'];
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['semester'])) {
+    $selectedSemester = $_POST['semester'];
+    $_SESSION['selected_semester'] = $selectedSemester;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Load data for selected department
+if (isset($_SESSION['selected_department'])) {
+    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
+    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+    $selectedSemester = $_POST['semester'] ?? $_SESSION['selected_semester'] ?? '';
+    
+    $_SESSION['selected_department'] = $selectedDepartment;
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
+    $_SESSION['selected_semester'] = $selectedSemester;
+
+    // Fetch panel data
+    $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
+    if ($panelStmt === false) {
+        echo "Error preparing panel statement: " . $conn->error;
+    } else {
+        $panelStmt->bind_param("s", $selectedDepartment);
+        $panelStmt->execute();
+        $panelResult = $panelStmt->get_result();
+        while ($row = $panelResult->fetch_assoc()) {
+            $panel[$row['position']][] = $row['fullname'];
+        }
+        $panelStmt->close();
+    }
+
+    // Fetch adviser data
+    $adviserStmt = $conn->prepare("SELECT * FROM adviser WHERE department = ?");
+    if ($adviserStmt === false) {
+        echo "Error preparing adviser statement: " . $conn->error;
+    } else {
+        $adviserStmt->bind_param("s", $selectedDepartment);
+        $adviserStmt->execute();
+        $adviserResult = $adviserStmt->get_result();
+        while ($row = $adviserResult->fetch_assoc()) {
+            $adviser[] = $row['fullname'];
+        }
+        $adviserStmt->close();
+    }
+
+    // Fetch files
+    $sqlQuery = "SELECT 
+            fd.finaldocu AS filepath, 
+            fd.finaldocu AS filename, 
+            fd.date_submitted,
+            fd.controlNo,
+            fd.group_number,
+            fd.fullname,
+            fd.title,
+            fd.student_id, 
+            fd.panel1_id, 
+            fd.panel2_id, 
+            fd.panel3_id, 
+            fd.panel4_id, 
+            fd.panel5_id, 
+            fd.adviser_id,
+            fd.finaldocu_id
+         FROM finaldocufinal_files fd
+         LEFT JOIN route1final_files r1 ON fd.student_id = r1.student_id
+         WHERE fd.department = ?";
+
+    // Create array of parameters (must be variables, not direct values)
+    $types = "s";
+    $params = [$selectedDepartment];
+
+    // Add school year filter if selected
+    if (!empty($selectedSchoolYear)) {
+        $sqlQuery .= " AND fd.school_year = ?";
+        $types .= "s";
+        $params[] = $selectedSchoolYear;
+    }
+
+    // Add semester filter if selected
+    if (!empty($selectedSemester)) {
+        $sqlQuery .= " AND fd.student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+        $types .= "s";
+        $params[] = $selectedSemester;
+    }
+    
+    $fileStmt = $conn->prepare($sqlQuery);
+    
+    if ($fileStmt === false) {
+        // Handle prepare error
+        echo "Error preparing statement: " . $conn->error;
+    } else {
+        // Correctly bind parameters by reference
+        if (!empty($params)) {
+            $bind_params = array();
+            $bind_params[] = &$types; // First parameter is always the types string
+            
+            // Add references to each parameter
+            for ($i = 0; $i < count($params); $i++) {
+                $bind_params[] = &$params[$i];
+            }
+            
+            // Call bind_param with references
+            call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
+        }
+        
+        $fileStmt->execute();
+        $fileResult = $fileStmt->get_result();
+        while ($row = $fileResult->fetch_assoc()) {
+            $files[] = [
+                'filepath' => $row['filepath'],
+                'filename' => $row['filename'],
+                'controlNo' => $row['controlNo'],
+                'group_number' => $row['group_number'],
+                'fullname' => $row['fullname'],
+                'student_id' => $row['student_id'],
+                'panel1_id' => $row['panel1_id'],
+                'panel2_id' => $row['panel2_id'],
+                'panel3_id' => $row['panel3_id'],
+                'panel4_id' => $row['panel4_id'],
+                'panel5_id' => $row['panel5_id'],
+                'adviser_id' => $row['adviser_id'],
+                'title' => $row['title'],
+                'finaldocu_id' => $row['finaldocu_id']
+                
+            ];
+        }
+        
+        $fileStmt->close();
+    }
+}
+
+// Handle file submission for panelists and adviser
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
+    $selectedFiles = $_POST['selected_files'];
+    $panel1 = $_POST['panel1'] ?? null;
+    $panel2 = $_POST['panel2'] ?? null;
+    $panel3 = $_POST['panel3'] ?? null;
+    $panel4 = $_POST['panel4'] ?? null;
+    $panel5 = $_POST['panel5'] ?? null;
+
+    // Validation
+    if (empty($selectedFiles)) {
+        echo "<script>alert('Please select at least one file.');</script>";
+    } elseif (empty($panel1) && empty($panel2) && empty($panel3) && empty($panel4) && empty($panel5)) {
+        echo "<script>alert('Please select at least one panel.');</script>";
+    } else {
+        foreach ($selectedFiles as $filePath) {
+            $fileName = $filePath; // Use the full path stored in the DB
+
+            // Check if the file exists in DB
+            $checkStmt = $conn->prepare("SELECT * FROM finaldocufinal_files WHERE finaldocu = ?");
+            if ($checkStmt === false) {
+                echo "<script>alert('Error preparing check statement: " . $conn->error . "');</script>";
+                continue;
+            }
+            $checkStmt->bind_param("s", $fileName);
+            $checkStmt->execute();
+            $result = $checkStmt->get_result();
+            $fileExists = $result->num_rows > 0;
+            $checkStmt->close();
+
+            if ($fileExists) {
+                // Update panel IDs and set date_submitted
+                $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
+                $updatePanelStmt = $conn->prepare("UPDATE finaldocufinal_files 
+                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
+                    WHERE finaldocu = ?");
+                if ($updatePanelStmt === false) {
+                    echo "<script>alert('Error preparing update statement: " . $conn->error . "');</script>";
+                    continue;
+                }
+                $updatePanelStmt->bind_param("iiiiiss", $panel1, $panel2, $panel3, $panel4, $panel5, $dateNow, $fileName);
+                $updatePanelStmt->execute();
+                $updatePanelStmt->close();
+
+                echo "<script>alert('Successfully Submitted.');</script>";
+            } else {
+                echo "<script>alert('File $fileName not found in the database.');</script>";
+            }
+        }
+    }
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])) {
+    $filepath = $_POST['filepath'];
+    $panel1 = $_POST['panel1'] ?? null;
+    $panel2 = $_POST['panel2'] ?? null;
+    $panel3 = $_POST['panel3'] ?? null;
+    $panel4 = $_POST['panel4'] ?? null;
+    $panel5 = $_POST['panel5'] ?? null;
+    
+    // Reopen the database connection if closed
+    if (!isset($conn) || $conn->connect_error) {
+        include '../../../connection.php';
+    }
+    
+    // Update panel IDs in the database
+    $updateStmt = $conn->prepare("UPDATE finaldocufinal_files 
+        SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
+        WHERE finaldocu = ?");
+    $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
+    
+    if ($updateStmt->execute()) {
+        // Only show alert if not an AJAX request
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+            echo "<script>alert('Assignments updated successfully.');</script>";
+        } else {
+            // For AJAX requests, just return a success message that will be handled by JavaScript
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                exit;
+            }
+        }
+    } else {
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+            echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+        } else {
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
+                exit;
+            }
+        }
+    }
+    $updateStmt->close();
+}
+
+// Fetch advisers for dropdown
+function getAdvisers($conn, $department) {
+    $advisers = [];
+    $stmt = $conn->prepare("SELECT adviser_id, fullname FROM adviser WHERE department = ?");
+    if ($stmt === false) {
+        error_log("Error preparing advisers statement: " . $conn->error);
+        return $advisers;
+    }
+    $stmt->bind_param("s", $department);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    while ($row = $result->fetch_assoc()) {
+        $advisers[] = $row;
+    }
+    
+    $stmt->close();
+    return $advisers;
+}
+
+// If department is selected, fetch advisers
+$advisers = [];
+if (isset($selectedDepartment)) {
+    $advisers = getAdvisers($conn, $selectedDepartment);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -371,7 +513,9 @@ function checkAllRoutesApproved($conn, $student_id) {
             cursor: pointer;
             font-weight: bold;
         }
-
+        .action-label {
+    text-align: center;
+}
         #external-submit-button:hover {
             background-color: #45a049;
         }
@@ -399,9 +543,7 @@ function checkAllRoutesApproved($conn, $student_id) {
         box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
         text-decoration: none;
     }
-    .action-label {
-    text-align: center;
-}
+
     .assignment-modal-close {
         color: #aaa;
         float: right;
@@ -517,6 +659,17 @@ function checkAllRoutesApproved($conn, $student_id) {
 .assignment-button {
     white-space: nowrap;
 }
+
+.form-input-row textarea {
+    resize: vertical;
+    min-height: 40px;
+}
+
+/* CSS Animation for spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
     </style>
 </head>
 
@@ -557,6 +710,17 @@ function checkAllRoutesApproved($conn, $student_id) {
                                 <option value="<?= htmlspecialchars($year) ?>"
                                     <?= isset($selectedSchoolYear) && $selectedSchoolYear == $year ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($year) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                    <form method="POST" style="display: inline; margin-left: 10px;">
+                        <select name="semester" onchange="this.form.submit()">
+                            <option value="">All Semesters</option>
+                            <?php foreach ($semesters as $semester): ?>
+                                <option value="<?= htmlspecialchars($semester) ?>"
+                                    <?= isset($selectedSemester) && $selectedSemester == $semester ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($semester) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -649,7 +813,6 @@ function checkAllRoutesApproved($conn, $student_id) {
                     </div>
 
 
-
                     <!-- Registered Account Section -->
                     <div class="menu-item dropdown">
                         <div class="menu-header">
@@ -717,22 +880,28 @@ function checkAllRoutesApproved($conn, $student_id) {
                     $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
                     
                     // Check the approval status of all routes
-                    $routeStatus = checkAllRoutesApproved($conn, $student_id);
+                    // $routeStatus = checkAllRoutesApproved($conn, $student_id);
                     
                     // Determine status label and color
                     $statusLabel = '';
                     $statusColor = '';
                     
-                    if ($routeStatus['all_approved']) {
-                        $statusLabel = 'Complete';
-                        $statusColor = 'green';
-                    } elseif ($routeStatus['approved_count'] > 0) {
-                        $statusLabel = 'Approved: ' . implode(', ', $routeStatus['approved_routes']);
-                        $statusColor = 'orange';
-                    } else {
-                        $statusLabel = 'Pending';
-                        $statusColor = 'red';
-                    }
+                    // Check if any routing monitoring form for this finaldocu is approved
+                    $finaldocu_id = $file['finaldocu_id'] ?? 0; // Ensure we have a valid ID and not null
+                    
+                    $approvedFormQuery = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                       WHERE finaldocu_id = ? 
+                                                       AND (status = 'Approved' OR status = 'approved')");
+                    $approvedFormQuery->bind_param("i", $finaldocu_id);
+                    $approvedFormQuery->execute();
+                    $approvedFormResult = $approvedFormQuery->get_result();
+                    $countResult = $approvedFormResult->fetch_assoc();
+                    $hasApprovedForm = ($countResult && $countResult['count'] > 0);
+                    $approvedFormQuery->close();
+                    
+                    // Determine status label and color - simple Complete/Incomplete
+                    $statusLabel = $hasApprovedForm ? 'Complete' : 'Incomplete';
+                    $statusColor = $hasApprovedForm ? 'green' : 'red';
                     
                     // Panel and adviser information
                     $assigned_panels = [];

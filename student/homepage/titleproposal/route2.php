@@ -293,7 +293,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
     } else {
         $alertMessage = "Original file not found in database.";
     }
-    $stmt->close();
+    // Only close the statement if we're outside the if statement
+    if ($result->num_rows <= 0) {
+        $stmt->close();
+    }
     
     $_SESSION['alert_message'] = $alertMessage;
     header("Location: route2.php");

@@ -283,30 +283,29 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
         exit;
     } else {
-        // Check Route 1 approval status
-        $stmt = $conn->prepare("SELECT status, route2_id FROM final_monitoring_form WHERE student_id = ?");
+        // Check Route 1 approval status - simplified to only require Route 1 approval
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as approved_count 
+            FROM final_monitoring_form 
+            WHERE student_id = ? 
+            AND route1_id IS NOT NULL 
+            AND (status = 'Approved' OR status = 'approved')
+        ");
         if (!$stmt) {
             die("Error preparing statement: " . $conn->error);
         }
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status, $route2_id);
-
-        // Check
-        $allowUpload = true;
-        while ($stmt->fetch()) {
-            if ($status != 'Approved') {
-                if (empty($route2_id)) {
-                    // Meaning it's NOT Route 3, still pending => NOT allowed
-                    $allowUpload = false;
-                    break;
-                }
-            }
-        }
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $route1ApprovedCount = (int)$row['approved_count'];
         $stmt->close();
 
+        // Allow upload if at least one Route 1 form is approved
+        $allowUpload = ($route1ApprovedCount > 0);
+
         if (!$allowUpload) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
+            echo "<script>alert('You need at least one Route 1 approval before uploading to Route 3.'); window.history.back();</script>";
             exit;
         }
 
@@ -1148,9 +1147,9 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    echo "<div class='welcome-card'>
-                            <h1>No Files Uploaded Yet</h1>
-                            <p>Click on 'Submit File' to upload your thesis documents.</p>
+                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                            <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                            <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
                           </div>";
                 }
 

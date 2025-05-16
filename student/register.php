@@ -41,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($conn->query($sql) === TRUE) {
         // Get the auto-generated student_id
         $student_id = $conn->insert_id;
-        echo "<script>alert('Registration successful!'); window.location.href = 'register.php';</script>";
+        echo "<script>alert('Registration successful!'); window.location.href = 'login.php';</script>";
     } else {
         echo "<script>alert('Error: " . addslashes($conn->error) . "'); window.history.back();</script>";
     }

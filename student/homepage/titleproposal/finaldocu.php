@@ -347,23 +347,53 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         }
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status, $route3_id);
-
-        // Check
-        $allowUpload = true;
-        while ($stmt->fetch()) {
-            if ($status != 'Approved') {
-                if (empty($route3_id)) {
-                    // Meaning it's NOT Route 3, still pending => NOT allowed
-                    $allowUpload = false;
-                    break;
-                }
-            }
-        }
+        $result = $stmt->get_result();
+        $hasRecords = $result->num_rows > 0;
+        
+        // We'll use a different approach - we just need to know if there's at least one route1 approval
         $stmt->close();
 
-        if (!$allowUpload) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
+        // Replace with clearer logic that only requires Route 1 approval
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as approved_count 
+            FROM proposal_monitoring_form 
+            WHERE student_id = ? 
+            AND route1_id IS NOT NULL 
+            AND (status = 'Approved' OR status = 'approved')
+        ");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $route1ApprovedCount = (int)$row['approved_count'];
+        $stmt->close();
+
+        // Also check if route3 exists and is approved
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as route3_count
+            FROM route3proposal_files
+            WHERE student_id = ?
+        ");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $route3Exists = (int)$row['route3_count'] > 0;
+        $stmt->close();
+
+        // Allow upload if either:
+        // 1. At least one Route 1 form is approved, or
+        // 2. Route 3 file exists (even if not yet approved)
+        $allowUpload = ($route1ApprovedCount > 0 || $route3Exists);
+
+        if (!$allowUpload && $hasRecords) {
+            echo "<script>alert('You need at least one Route 1 approval or a Route 3 submission before uploading the Final Document.'); window.history.back();</script>";
             exit;
         }
         // Proceed with file upload if Route 1 is approved

@@ -45,11 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $finaldocu = $_POST['finaldocu'];
     $finaldocu_id = $_POST['finaldocu_id'];
     $student_id = $_POST['student_id'];
+    $status = $_POST['status'];
 
     // Prepare SQL for inserting form data
     $stmt = $conn->prepare("INSERT INTO final_monitoring_form 
-    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, finaldocu, finaldocu_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, finaldocu, finaldocu_id, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt === false) {
         die("Error preparing the insert query: " . $conn->error);
     }
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 
         // Bind parameters including the finaldocu_id
         $stmt->bind_param(
-            "ssssssissss",  // 11 specifiers
+            "ssssssisssss",  // 11 specifiers
             $adviser_id, 
             $adviserName, 
             $student_id, 
@@ -77,7 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $pageNumber, 
             $dateReleased, 
             $finaldocu,
-            $finaldocu_id
+            $finaldocu_id,
+            $status
         );
         
         // Execute the statement
@@ -974,6 +976,7 @@ function viewFile(filePath, student_id, finaldocu_id) {
             <input type="hidden" name="finaldocu" value="${filePath}">
             <input type="hidden" name="student_id" value="${student_id}">
             <input type="hidden" name="finaldocu_id" value="${finaldocu_id}">
+            <input type="hidden" name="status" value="Approved">
 
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">

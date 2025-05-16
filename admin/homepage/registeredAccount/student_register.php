@@ -987,7 +987,6 @@ $result = $conn->query($sql);
             <div class="content">
                 <div class="form-container">
                     <h1>List of Registered Students</h1>
-                    <button onclick="window.location.href='student.php'" class="add-student-button">Add Student</button>
                     <div id="success-alert" class="success-alert">
                         <strong>Success!</strong> Student updated successfully!
                     </div>

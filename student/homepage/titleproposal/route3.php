@@ -221,99 +221,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute3"]) && iss
         }
     } else {
         $alertMessage = "Error: Could not find the file record.";
-        $_SESSION['alert_message'] = $alertMessage;
-        header("Location: route3.php");
-        exit;
     }
+    // Only close the statement if we're outside the if statement
+    if ($routeIdResult->num_rows <= 0) {
     $routeIdStmt->close();
-    
-    // Continue with reupload if no restrictions
-    
-    // Check if old file exists in database
-    $stmt = $conn->prepare("SELECT r.route3_id, r.title, r.fullname, r.adviser_id 
-                           FROM route3proposal_files r 
-                           WHERE r.student_id = ? AND r.docuRoute3 = ?");
-    $stmt->bind_param("ss", $student_id, $oldFilePath);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $route3_id = $row['route3_id'];
-        $title = $row['title'];
-        $fullname = $row['fullname'];
-        $adviser_id = $row['adviser_id'];
-        
-        // Get adviser name and email from student table
-        $stmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $adviserResult = $stmt->get_result();
-        if ($adviserResult->num_rows > 0) {
-            $adviserRow = $adviserResult->fetch_assoc();
-            $adviser_name = $adviserRow['adviser'];
-            $adviser_email = $adviserRow['adviser_email'];
-        } else {
-            $adviser_name = "";
-            $adviser_email = "";
-        }
-        $stmt->close();
-        
-        // Process the new file upload
-        $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
-        $fileName = $_FILES["docuRoute3"]["name"];
-        $uploadDir = "../../../uploads/";
-        $newFilePath = $uploadDir . basename($fileName);
-        
-        $allowedTypes = [
-            "application/pdf"
-        ];
-        
-        if (in_array($_FILES["docuRoute3"]["type"], $allowedTypes)) {
-            // Delete old file if it exists
-            if (file_exists($oldFilePath)) {
-                unlink($oldFilePath);
-            }
-            
-            if (move_uploaded_file($fileTmpPath, $newFilePath)) {
-                // Update the database with the new file path
-                $updateStmt = $conn->prepare("UPDATE route3proposal_files SET docuRoute3 = ? WHERE route3_id = ?");
-                $updateStmt->bind_param("si", $newFilePath, $route3_id);
-                
-                if ($updateStmt->execute()) {
-                    // Send email notification about reupload
-                    if (!empty($adviser_email)) {
-                        if (isValidEmail($adviser_email)) {
-                            $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
-                            if ($emailSent) {
-                                $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
-                                error_log("Success: Notification email sent to adviser ($adviser_email) for file reupload.");
-                            } else {
-                                $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
-                                error_log("Error: Failed to send notification email to adviser ($adviser_email) for file reupload.");
-                            }
-                        } else {
-                            $alertMessage = "File reuploaded successfully but adviser email address is invalid.";
-                            error_log("Error: Invalid adviser email address ($adviser_email) for file reupload.");
-                        }
-                    } else {
-                        $alertMessage = "File reuploaded successfully. No adviser email available for notification.";
-                        error_log("Warning: No adviser email available for notification during file reupload.");
-                    }
-                } else {
-                    $alertMessage = "Error updating database: " . $updateStmt->error;
-                }
-                $updateStmt->close();
-            } else {
-                $alertMessage = "Error moving the uploaded file.";
-            }
-        } else {
-            $alertMessage = "Invalid file type. Only PDF files are allowed.";
-        }
-    } else {
-        $alertMessage = "Original file not found in database.";
     }
-    $stmt->close();
     
     $_SESSION['alert_message'] = $alertMessage;
     header("Location: route3.php");
@@ -337,28 +249,48 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         exit;
     } else {
         // Check Route 1 approval status
-// Only check rows that are actually Route 1
-$stmt = $conn->prepare("SELECT status, route2_id FROM proposal_monitoring_form WHERE student_id = ?");
-if (!$stmt) {
-    die("Error preparing statement: " . $conn->error);
-}
-$stmt->bind_param("s", $student_id);
-$stmt->execute();
-$stmt->bind_result($status, $route2_id);
-
-// Check
-$allowUpload = true;
-while ($stmt->fetch()) {
-    if ($status != 'Approved') {
-        if (empty($route2_id)) {
-            // Meaning it's NOT Route 3, still pending => NOT allowed
-            $allowUpload = false;
-            break;
+        // Only check rows that are actually Route 1
+        $stmt = $conn->prepare("SELECT status, route2_id FROM proposal_monitoring_form WHERE student_id = ?");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
         }
-    }
-}
-$stmt->close();
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $stmt->bind_result($status, $route2_id);
 
+        // Check
+        $allowUpload = true;
+        while ($stmt->fetch()) {
+            if ($status != 'Approved') {
+                if (empty($route2_id)) {
+                    // Meaning it's NOT Route 3, still pending => NOT allowed
+                    $allowUpload = false;
+                    break;
+                }
+            }
+        }
+        $stmt->close();
+
+        // Replace with clearer logic that only requires Route 1 approval
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as approved_count 
+            FROM proposal_monitoring_form 
+            WHERE student_id = ? 
+            AND route1_id IS NOT NULL 
+            AND (status = 'Approved' OR status = 'approved')
+        ");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $route1ApprovedCount = (int)$row['approved_count'];
+        $stmt->close();
+
+        // Allow upload if at least one Route 1 form is approved
+        $allowUpload = ($route1ApprovedCount > 0);
 
         if (!$allowUpload) {
             echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
@@ -1232,51 +1164,6 @@ input[type="checkbox"] {
                     }
 
                     echo "
-                        </tbody>
-                    </table>
-                    ";
-                } else {
-                    // Check if minutes exist in route1proposal_files even if no route3 file exists yet
-                    $route1MinutesStmt = $conn->prepare("SELECT r1.minutes, r1.controlNo, r1.fullname, r1.group_number, r1.title 
-                                                         FROM route1proposal_files r1 
-                                                         WHERE r1.student_id = ? AND r1.minutes IS NOT NULL AND r1.minutes != ''");
-                    $route1MinutesStmt->bind_param("s", $student_id);
-                    $route1MinutesStmt->execute();
-                    $route1MinutesResult = $route1MinutesStmt->get_result();
-                    
-                    if ($route1MinutesResult->num_rows > 0) {
-                        $route1MinutesRow = $route1MinutesResult->fetch_assoc();
-                        $minutes = htmlspecialchars($route1MinutesRow['minutes'], ENT_QUOTES);
-                        $controlNo = htmlspecialchars($route1MinutesRow['controlNo'], ENT_QUOTES);
-                        $fullName = htmlspecialchars($route1MinutesRow['fullname'], ENT_QUOTES);
-                        $groupNo = htmlspecialchars($route1MinutesRow['group_number'], ENT_QUOTES);
-                        $title = htmlspecialchars($route1MinutesRow['title'], ENT_QUOTES);
-                        
-                        echo "
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Control No.</th>
-                                    <th>Leader</th>
-                                    <th>Group No.</th>
-                                    <th>Title</th>
-                                    <th>Minutes</th>
-                                    <th class='action-label'>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>$controlNo</td>
-                                    <td>$fullName</td>
-                                    <td>$groupNo</td>
-                                    <td>$title</td>
-                                    <td><span style='color: green;'>Available (from Route 1)</span></td>
-                                    <td>
-                                        <div class='action-buttons'>
-                                            <button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>
-                                        </div>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                         ";
@@ -1285,8 +1172,6 @@ input[type="checkbox"] {
                                 <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
                                 <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
                               </div>";
-                    }
-                    $route1MinutesStmt->close();
                 }
 
                 $stmt->close();

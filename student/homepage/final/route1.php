@@ -283,23 +283,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
         $stmt = $conn->prepare("SELECT status FROM proposal_monitoring_form WHERE student_id = ?");
         $stmt->bind_param("s", $student_id);
         $stmt->execute();
-        $stmt->bind_result($status);
-
+        $result = $stmt->get_result();
+        $recordsExist = $result->num_rows > 0;
+        
         $allApproved = true;  // Flag to check if all approvals are "Approved"
-
-        // Check each route1 approval status
-        while ($stmt->fetch()) {
-            if ($status !== 'Approved') {
-                $allApproved = false;
-                break; // No need to check further if one status is not "Approved"
+        
+        // Only check approval status if records exist
+        if ($recordsExist) {
+            while ($row = $result->fetch_assoc()) {
+                if ($row['status'] !== 'Approved') {
+                    $allApproved = false;
+                    break; // No need to check further if one status is not "Approved"
+                }
             }
         }
         $stmt->close();
-
-        if (!$allApproved) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+        
+        // Allow upload in the following cases:
+        // 1. If there are no records at all (student is starting fresh in final phase)
+        // 2. If all existing records are approved
+        if ($recordsExist && !$allApproved) {
+            // Only prevent upload if there are records AND at least one is not approved
+            echo "<script>alert('You cannot proceed to Final Route 1 until all panels and adviser approve your Title Proposal submissions.'); window.history.back();</script>";
             exit;
         }
+
+        // Additional check specifically for Title Proposal Final Document requirement
+        // Always allow students to upload to Final Route 1 regardless of Title Proposal Final Document status
+        // This removes the dependency on titleproposal/finaldocu.php
 
         if (isset($_FILES["docuRoute1"]) && $_FILES["docuRoute1"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["docuRoute1"]["tmp_name"];
@@ -330,14 +341,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                     $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1proposal_files WHERE student_id = ?");
                     $panelStmt->bind_param("s", $student_id);
                     $panelStmt->execute();
-                    $panelStmt->bind_result($panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id);
-                    $panelStmt->fetch();
-                    $panelStmt->close();
-
-                    if (!isset($panel1_id)) {
-                        echo "<script>alert('Route 1 information not found. Please complete Route 1 first.'); window.history.back();</script>";
-                        exit;
+                    $panelResult = $panelStmt->get_result();
+                    $hasPanelInfo = $panelResult->num_rows > 0;
+                    
+                    if ($hasPanelInfo) {
+                        // Fetch the panel data if available
+                        $row = $panelResult->fetch_assoc();
+                        $panel1_id = $row['panel1_id'];
+                        $panel2_id = $row['panel2_id'];
+                        $panel3_id = $row['panel3_id'];
+                        $panel4_id = $row['panel4_id'];
+                        $panel5_id = $row['panel5_id'];
+                        $adviser_id = $row['adviser_id'];
+                    } else {
+                        // If no panel info exists, we'll use adviser info from student table
+                        $advStmt = $conn->prepare("SELECT adviser_id FROM adviser WHERE fullname = ?");
+                        $advStmt->bind_param("s", $adviser_name);
+                        $advStmt->execute();
+                        $advResult = $advStmt->get_result();
+                        if ($advResult->num_rows > 0) {
+                            $advRow = $advResult->fetch_assoc();
+                            $adviser_id = $advRow['adviser_id'];
+                            // Set other panel IDs to NULL
+                            $panel1_id = $panel2_id = $panel3_id = $panel4_id = $panel5_id = NULL;
+                        } else {
+                            // If adviser not found either, show an error
+                            echo "<script>alert('Adviser information not found. Please make sure your adviser is assigned correctly.'); window.history.back();</script>";
+                            exit;
+                        }
+                        $advStmt->close();
                     }
+                    $panelStmt->close();
 
                     $date_submitted = date("Y-m-d H:i:s");
 
@@ -1121,9 +1155,9 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    echo "<div class='welcome-card'>
-                            <h1>No Files Uploaded Yet</h1>
-                            <p>Click on 'Submit File' to upload your thesis documents.</p>
+                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                            <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                            <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
                           </div>";
                 }
 

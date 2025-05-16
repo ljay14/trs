@@ -26,6 +26,54 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
+// Fetch semesters
+$semesters = [];
+$semesterQuery = "SELECT DISTINCT semester FROM student WHERE semester IS NOT NULL AND semester != ''";
+$semesterResult = $conn->query($semesterQuery);
+if ($semesterResult && $semesterResult->num_rows > 0) {
+    while ($row = $semesterResult->fetch_assoc()) {
+        // Store original value with original case and formatting
+        $semesters[] = $row['semester'];
+    }
+}
+
+// Make sure all standard semesters are included regardless of database values
+$standardSemesters = ['First semester', 'Second semester', 'Summer'];
+
+// Create a normalized array for comparison (lowercase and trimmed)
+$normalizedSemesters = array_map(function($sem) {
+    return strtolower(trim($sem));
+}, $semesters);
+
+// Add standard semesters only if they don't exist (case-insensitive check)
+foreach ($standardSemesters as $stdSemester) {
+    $normalizedStdSemester = strtolower(trim($stdSemester));
+    if (!in_array($normalizedStdSemester, $normalizedSemesters)) {
+        $semesters[] = $stdSemester;
+        $normalizedSemesters[] = $normalizedStdSemester;
+    }
+}
+
+// Remove duplicates (case-insensitive)
+$uniqueSemesters = [];
+$uniqueNormalizedSemesters = [];
+foreach ($semesters as $semester) {
+    $normalizedSemester = strtolower(trim($semester));
+    if (!in_array($normalizedSemester, $uniqueNormalizedSemesters)) {
+        $uniqueSemesters[] = $semester;
+        $uniqueNormalizedSemesters[] = $normalizedSemester;
+    }
+}
+$semesters = $uniqueSemesters;
+
+// Sort them in logical order
+usort($semesters, function($a, $b) {
+    $order = ['first semester' => 1, 'second semester' => 2, 'summer' => 3];
+    $aOrder = isset($order[strtolower(trim($a))]) ? $order[strtolower(trim($a))] : 999;
+    $bOrder = isset($order[strtolower(trim($b))]) ? $order[strtolower(trim($b))] : 999;
+    return $aOrder - $bOrder;
+});
+
 // Fetch school years
 $schoolYears = [];
 $schoolYearQuery = "SELECT DISTINCT school_year FROM route1proposal_files ORDER BY school_year DESC";
@@ -207,13 +255,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['department'])) {
     exit;
 }
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['school_year'])) {
+    $selectedSchoolYear = $_POST['school_year'];
+    $_SESSION['selected_school_year'] = $selectedSchoolYear;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['semester'])) {
+    $selectedSemester = $_POST['semester'];
+    $_SESSION['selected_semester'] = $selectedSemester;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
 // Load data for selected department
 if (isset($_SESSION['selected_department'])) {
     $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
     $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+    $selectedSemester = $_POST['semester'] ?? $_SESSION['selected_semester'] ?? '';
     
     $_SESSION['selected_department'] = $selectedDepartment;
     $_SESSION['selected_school_year'] = $selectedSchoolYear;
+    $_SESSION['selected_semester'] = $selectedSemester;
 
     // Fetch panel data
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
@@ -252,7 +316,55 @@ if (isset($_SESSION['selected_department'])) {
          WHERE department = ?"
     );
     
-    $fileStmt->bind_param("s", $selectedDepartment);
+    // Create proper query with placeholders
+    $sqlQuery = "SELECT 
+            docuRoute1 AS filepath, 
+            docuRoute1 AS filename, 
+            date_submitted,
+            controlNo,
+            group_number,
+            fullname,
+            title,
+            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
+            minutes,
+            route1_id
+         FROM route1proposal_files 
+         WHERE department = ?";
+    
+    // Create array of parameters (must be variables, not direct values)
+    $types = "s";
+    $params = [$selectedDepartment];
+    
+    // Add school year filter if selected
+    if (!empty($selectedSchoolYear)) {
+        $sqlQuery .= " AND school_year = ?";
+        $types .= "s";
+        $params[] = $selectedSchoolYear;
+    }
+    
+    // Add semester filter if selected
+    if (!empty($selectedSemester)) {
+        $sqlQuery .= " AND student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+        $types .= "s";
+        $params[] = $selectedSemester;
+    }
+    
+    $fileStmt = $conn->prepare($sqlQuery);
+    
+    // Correctly bind parameters by reference
+    if (!empty($params)) {
+        $bind_params = array();
+        $bind_params[] = &$types; // First parameter is always the types string
+        
+        // Add references to each parameter
+        for ($i = 0; $i < count($params); $i++) {
+            $bind_params[] = &$params[$i];
+        }
+        
+        // Call bind_param with references
+        call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
+    }
+    
     $fileStmt->execute();
     $fileResult = $fileStmt->get_result();
     while ($row = $fileResult->fetch_assoc()) {
@@ -772,6 +884,17 @@ if (isset($selectedDepartment)) {
                                 <option value="<?= htmlspecialchars($year) ?>"
                                     <?= isset($selectedSchoolYear) && $selectedSchoolYear == $year ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($year) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </form>
+                    <form method="POST" style="display: inline; margin-left: 10px;">
+                        <select name="semester" onchange="this.form.submit()">
+                            <option value="">All Semesters</option>
+                            <?php foreach ($semesters as $semester): ?>
+                                <option value="<?= htmlspecialchars($semester) ?>"
+                                    <?= isset($selectedSemester) && $selectedSemester == $semester ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($semester) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

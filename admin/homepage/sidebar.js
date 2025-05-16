@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const menuHeaders = document.querySelectorAll('.menu-header');
     const path = window.location.pathname;
     
+    // Log the actual path for debugging
+    console.log("Current path:", path);
+    
     // Helper function to close all dropdowns
     function closeAllDropdowns() {
         menuHeaders.forEach(header => {
@@ -15,8 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Helper function to open a specific section
     function openSection(sectionName) {
+        console.log("Opening section:", sectionName);
         menuHeaders.forEach(header => {
             const label = header.querySelector('span').textContent.trim().toLowerCase();
+            console.log("Checking label:", label, "against:", sectionName);
             if (label === sectionName || (sectionName === 'title proposal' && label.includes('title proposal'))) {
                 const dropdownContent = header.nextElementSibling;
                 const icon = header.querySelector('.dropdown-icon');
@@ -34,10 +39,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (path.includes('/final/')) {
             openSection('final');
             openSection('final defense');
-        } else if (path.includes('/registeredaccount/')) {
-            openSection('registered account');
         } else if (path.includes('/departmentcourse/')) {
             openSection('department course');
+        } else if (path.includes('/registeredAccount/') || 
+                   path.includes('/panel_register.php') || 
+                   path.includes('/adviser_register.php') || 
+                   path.includes('/student_register.php')) {
+            openSection('accounts');
         }
     }
     

@@ -296,6 +296,149 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
     exit;
 }
 
+// HANDLE UPLOAD
+if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK && !isset($_POST['old_file_path'])) {
+    $student_id = $_POST["student_id"];
+
+    // Fetch the department and adviser details from the student's account
+    $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($department, $controlNo, $fullname, $group_number, $title, $adviser_name, $adviser_email, $school_year);
+    $stmt->fetch();
+    $stmt->close();
+
+    if (!$department) {
+        echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
+        exit;
+    } else {
+        // Check Route 1 approval status - simplified to only require Route 1 approval
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) as approved_count 
+            FROM final_monitoring_form 
+            WHERE student_id = ? 
+            AND route1_id IS NOT NULL 
+            AND (status = 'Approved' OR status = 'approved')
+        ");
+        if (!$stmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $route1ApprovedCount = (int)$row['approved_count'];
+        $stmt->close();
+
+        // Allow upload if at least one Route 1 form is approved
+        $allowUpload = ($route1ApprovedCount > 0);
+
+        if (!$allowUpload) {
+            echo "<script>alert('You need at least one Route 1 approval before uploading the Final Document.'); window.history.back();</script>";
+            exit;
+        }
+        
+        // Proceed with file upload if Route 1 is approved
+        $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
+        $fileName = $_FILES["finaldocu"]["name"];
+        $uploadDir = "../../../uploads/";
+        $filePath = $uploadDir . basename($fileName);
+
+        $allowedTypes = [
+            "application/pdf"
+        ];
+
+        if (in_array($_FILES["finaldocu"]["type"], $allowedTypes)) {
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            // Check if the student already uploaded for Final Document
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM finaldocufinal_files WHERE student_id = ? AND department = ?");
+            if (!$stmt) {
+                die("Error preparing statement: " . $conn->error);
+            }
+            $stmt->bind_param("ss", $student_id, $department);
+            $stmt->execute();
+            $stmt->bind_result($count);
+            $stmt->fetch();
+            $stmt->close();
+
+            if ($count > 0) {
+                echo "<script>alert('You can only upload one file for Final Document.'); window.history.back();</script>";
+                exit;
+            } elseif (move_uploaded_file($fileTmpPath, $filePath)) {
+                // Fetch panel and adviser IDs from Route 1
+                $panelStmt = $conn->prepare("SELECT panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id FROM route1final_files WHERE student_id = ?");
+                if (!$panelStmt) {
+                    die("Error preparing statement: " . $conn->error);
+                }
+                $panelStmt->bind_param("s", $student_id);
+                $panelStmt->execute();
+                $panelResult = $panelStmt->get_result();
+                $hasPanelInfo = $panelResult->num_rows > 0;
+                
+                if ($hasPanelInfo) {
+                    // Fetch the panel data if available
+                    $row = $panelResult->fetch_assoc();
+                    $panel1_id = $row['panel1_id'];
+                    $panel2_id = $row['panel2_id'];
+                    $panel3_id = $row['panel3_id'];
+                    $panel4_id = $row['panel4_id'];
+                    $panel5_id = $row['panel5_id'];
+                    $adviser_id = $row['adviser_id'];
+                } else {
+                    // Set default values if no panel data is found
+                    $panel1_id = $panel2_id = $panel3_id = $panel4_id = $panel5_id = $adviser_id = NULL;
+                }
+                $panelStmt->close();
+
+                // Get current date/time
+                $date_submitted = date("Y-m-d H:i:s");
+
+                // Insert into Final Document with date_submitted
+                $stmt = $conn->prepare("INSERT INTO finaldocufinal_files (student_id, finaldocu, department, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id, date_submitted, controlNo, fullname, group_number, title, school_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt) {
+                    $stmt->bind_param("sssiiiiiissssss", $student_id, $filePath, $department, $panel1_id, $panel2_id, $panel3_id, $panel4_id, $panel5_id, $adviser_id, $date_submitted, $controlNo, $fullname, $group_number, $title, $school_year);
+                    
+                    if ($stmt->execute()) {
+                        // Send email notification to adviser if email is available
+                        if ($adviser_email) {
+                            if (isValidEmail($adviser_email)) {
+                                $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
+                                if ($emailSent) {
+                                    echo "<script>alert('File uploaded successfully and notification email sent to adviser.'); window.location.href = 'finaldocu.php';</script>";
+                                    error_log("Success: Notification email sent to adviser ($adviser_email) for Final Document upload.");
+                                } else {
+                                    echo "<script>alert('File uploaded successfully but failed to send notification email to adviser.'); window.location.href = 'finaldocu.php';</script>";
+                                    error_log("Error: Failed to send notification email to adviser ($adviser_email) for Final Document upload.");
+                                }
+                            } else {
+                                echo "<script>alert('File uploaded successfully but adviser email address is invalid.'); window.location.href = 'finaldocu.php';</script>";
+                                error_log("Error: Invalid adviser email address ($adviser_email) for Final Document upload.");
+                            }
+                        } else {
+                            echo "<script>alert('File uploaded successfully. No adviser email available for notification.'); window.location.href = 'finaldocu.php';</script>";
+                            error_log("Warning: No adviser email available for notification during Final Document upload.");
+                        }
+                    } else {
+                        echo "<script>alert('Error saving record: " . $stmt->error . "'); window.history.back();</script>";
+                    }
+                    $stmt->close();
+                }
+            } else {
+                echo "<script>alert('Error moving the file.'); window.history.back();</script>";
+            }
+        } else {
+            echo "<script>alert('Invalid file type. Only PDF files are allowed.'); window.history.back();</script>";
+        }
+    }
+    exit;
+}
+
 // Get the student's department
 $department = "";
 $stmt = $conn->prepare("SELECT department FROM student WHERE student_id = ?");
@@ -1187,9 +1330,9 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    echo "<div class='welcome-card'>
-                            <h1>No Files Uploaded Yet</h1>
-                            <p>Click on 'Submit File' to upload your thesis documents.</p>
+                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                            <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                            <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
                           </div>";
                 }
 
