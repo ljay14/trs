@@ -167,43 +167,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
 }
 
 // HANDLE REUPLOAD REQUEST
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isset($_POST['old_file_path'])) {
-    $student_id = $_SESSION['student_id'];
-    $oldFilePath = $_POST['old_file_path'];
-    
-    // Check if Route 3 is already approved
-    $route3_approved = false;
-    $checkStmt = $conn->prepare("
-        SELECT COUNT(*) FROM final_monitoring_form 
-        WHERE student_id = ? 
-        AND routeNumber = 'Route 3'
-        AND (status = 'Approved' OR status = 'approved')
-    ");
-    
-    if ($checkStmt) {
-        $checkStmt->bind_param("s", $student_id);
-        $checkStmt->execute();
-        $checkStmt->bind_result($approved_count);
-        $checkStmt->fetch();
-        $checkStmt->close();
-        
-        if ($approved_count > 0) {
-            $route3_approved = true;
-        }
-    }
-    
-    // Also check if any route3 entries are approved using the checkAllRoutesApproved function
-    $routeStatus = checkAllRoutesApproved($conn, $student_id);
-    if ($routeStatus['route3']) {
-        $route3_approved = true;
-    }
-    
-    // If Route 3 is approved, prevent reupload
-    if ($route3_approved) {
-        $_SESSION['alert_message'] = "Cannot reupload: Route 3 has already been approved.";
-        header("Location: finaldocu.php");
-        exit;
-    }
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isset($_POST['old_file_path'])) {    $student_id = $_SESSION['student_id'];    $oldFilePath = $_POST['old_file_path'];        // Check if Route 3 file exists first - student must have a route3 file to reupload final document    $route3Stmt = $conn->prepare("        SELECT COUNT(*) as route3_count        FROM route3final_files        WHERE student_id = ?    ");    if (!$route3Stmt) {        die("Error preparing statement: " . $conn->error);    }    $route3Stmt->bind_param("s", $student_id);    $route3Stmt->execute();    $route3Result = $route3Stmt->get_result();    $route3Row = $route3Result->fetch_assoc();    $route3Exists = (int)$route3Row['route3_count'] > 0;    $route3Stmt->close();        // Only allow reupload if route3 file exists    if (!$route3Exists) {        $_SESSION['alert_message'] = "You cannot reupload a final document until you have submitted a Route 3 file.";        header("Location: finaldocu.php");        exit;    }        // Check if Route 3 is already approved    $route3_approved = false;    $checkStmt = $conn->prepare("        SELECT COUNT(*) FROM final_monitoring_form         WHERE student_id = ?         AND routeNumber = 'Route 3'        AND (status = 'Approved' OR status = 'approved')    ");        if ($checkStmt) {        $checkStmt->bind_param("s", $student_id);        $checkStmt->execute();        $checkStmt->bind_result($approved_count);        $checkStmt->fetch();        $checkStmt->close();                if ($approved_count > 0) {            $route3_approved = true;        }    }        // Also check if any route3 entries are approved using the checkAllRoutesApproved function    $routeStatus = checkAllRoutesApproved($conn, $student_id);    if ($routeStatus['route3']) {        $route3_approved = true;    }        // If Route 3 is approved, prevent reupload    if ($route3_approved) {        $_SESSION['alert_message'] = "Cannot reupload: Route 3 has already been approved.";        header("Location: finaldocu.php");        exit;    }
     
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT f.finaldocu_id, f.title, f.fullname, f.adviser_id 
@@ -221,10 +185,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
         $adviser_id = $row['adviser_id'];
         
         // Get adviser name and email from student table
-        $stmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $adviserResult = $stmt->get_result();
+        $adviserStmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
+        $adviserStmt->bind_param("s", $student_id);
+        $adviserStmt->execute();
+        $adviserResult = $adviserStmt->get_result();
         if ($adviserResult->num_rows > 0) {
             $adviserRow = $adviserResult->fetch_assoc();
             $adviser_name = $adviserRow['adviser'];
@@ -233,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
             $adviser_name = "";
             $adviser_email = "";
         }
-        $stmt->close();
+        $adviserStmt->close();
         
         // Process the new file upload
         $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
@@ -299,6 +263,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
 // HANDLE UPLOAD
 if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK && !isset($_POST['old_file_path'])) {
     $student_id = $_POST["student_id"];
+
+    // Check if Route 3 file exists first - student must have a route3 file to upload final document
+    $route3Stmt = $conn->prepare("
+        SELECT COUNT(*) as route3_count
+        FROM route3final_files
+        WHERE student_id = ?
+    ");
+    if (!$route3Stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $route3Stmt->bind_param("s", $student_id);
+    $route3Stmt->execute();
+    $route3Result = $route3Stmt->get_result();
+    $route3Row = $route3Result->fetch_assoc();
+    $route3Exists = (int)$route3Row['route3_count'] > 0;
+    $route3Stmt->close();
+    
+    // Only allow upload if route3 file exists
+    if (!$route3Exists) {
+        echo "<script>alert('You cannot upload a final document until you have submitted a Route 3 file.'); window.history.back();</script>";
+        exit;
+    }
 
     // Fetch the department and adviser details from the student's account
     $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");

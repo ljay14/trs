@@ -194,12 +194,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["finaldocu"]) && isse
         }
     }
     
-    // If Route 3 is approved, prevent reupload
-    if ($route3_approved) {
-        $_SESSION['alert_message'] = "Cannot reupload: Route 3 has already been approved.";
+    // Check if route3 file exists
+    $route3Stmt = $conn->prepare("SELECT COUNT(*) as route3_count FROM route3proposal_files WHERE student_id = ?");
+    $route3Stmt->bind_param("s", $student_id);
+    $route3Stmt->execute();
+    $route3Stmt->bind_result($route3_count);
+    $route3Stmt->fetch();
+    $route3Stmt->close();
+    
+    // Only allow reupload if route3 file exists
+    if ($route3_count <= 0) {
+        $_SESSION['alert_message'] = "You cannot reupload a final document until you have submitted a Route 3 file.";
         header("Location: finaldocu.php");
         exit;
     }
+    
+    // We're now allowing reuploads even if Route 3 is approved
+    // The previous restriction that prevented reuploads when approved has been removed
     
     // Check if old file exists in database
     $stmt = $conn->prepare("SELECT f.finaldocu_id, f.title, f.fullname, f.adviser_id 
@@ -319,11 +330,8 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         }
     }
     
-    // If Route 3 is approved, prevent upload
-    if ($route3_approved) {
-        echo "<script>alert('Cannot upload: Route 3 has already been approved.'); window.location.href = 'finaldocu.php';</script>";
-        exit;
-    }
+    // We're now allowing uploads even if Route 3 is approved
+    // The previous restriction that prevented uploads when approved has been removed
 
     // Fetch the department and adviser details from the student's account
     $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
@@ -371,7 +379,7 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         $route1ApprovedCount = (int)$row['approved_count'];
         $stmt->close();
 
-        // Also check if route3 exists and is approved
+        // Check if route3 file exists - student must have a route3 file to upload final document
         $stmt = $conn->prepare("
             SELECT COUNT(*) as route3_count
             FROM route3proposal_files
@@ -386,17 +394,16 @@ if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_O
         $row = $result->fetch_assoc();
         $route3Exists = (int)$row['route3_count'] > 0;
         $stmt->close();
-
-        // Allow upload if either:
-        // 1. At least one Route 1 form is approved, or
-        // 2. Route 3 file exists (even if not yet approved)
-        $allowUpload = ($route1ApprovedCount > 0 || $route3Exists);
-
+        
+        // Only allow upload if route3 file exists
+        $allowUpload = $route3Exists;
+        
+        // Check if all conditions are met before proceeding with file upload
         if (!$allowUpload && $hasRecords) {
-            echo "<script>alert('You need at least one Route 1 approval or a Route 3 submission before uploading the Final Document.'); window.history.back();</script>";
+            echo "<script>alert('You cannot upload a final document until you have submitted a Route 3 file.'); window.history.back();</script>";
             exit;
         }
-        // Proceed with file upload if Route 1 is approved
+        
         if (isset($_FILES["finaldocu"]) && $_FILES["finaldocu"]["error"] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES["finaldocu"]["tmp_name"];
             $fileName = $_FILES["finaldocu"]["name"];
@@ -562,6 +569,9 @@ if ($stmt) {
         $route3_is_approved = true;
     }
 }
+
+// Force route3_is_approved to false to enable button
+$route3_is_approved = false;
 
 // Add a function to check if all routes are approved for a student
 function checkAllRoutesApproved($conn, $student_id) {
@@ -1187,11 +1197,8 @@ input[type="checkbox"] {
             <div class="navigation">
                 <a href="../homepage.php">Home Page</a>
                 <div class="submit-button">
-                <?php if ($route3_is_approved): ?>
-                <a href="#" style="opacity: 0.5; cursor: not-allowed;" title="Cannot submit: Route 3 already approved">Submit File</a>
-                <?php else: ?>
+                <!-- Always show the clickable button with the ID -->
                 <a href="#" id="submit-file-button">Submit File</a>
-                <?php endif; ?>
                 </div>
                 
             </div>
@@ -1363,12 +1370,8 @@ input[type="checkbox"] {
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id')\">View</button>";
                         
-                        // Only show reupload button if Route 3 is not approved
-                        if (!$route3_is_approved) {
-                            echo "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
-                        } else {
-                            echo "<button class='delete-button' disabled style='opacity: 0.5; cursor: not-allowed;' title='Cannot reupload: Route 3 already approved'>Reupload</button>";
-                        }
+                        // Always show reupload button now, regardless of approval status
+                        echo "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
                                     
                         if ($minutes) {
                             echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
@@ -1433,16 +1436,27 @@ input[type="checkbox"] {
     </div>
 
     <script>
-        <?php if (!$route3_is_approved): ?>
-        document.getElementById("submit-file-button").addEventListener("click", function(e) {
-            e.preventDefault();
-            document.querySelector("#finaldocu").click();
+        // Always add event listeners, regardless of route3_is_approved
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitButton = document.getElementById("submit-file-button");
+            if (submitButton) {
+                submitButton.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    document.querySelector("#finaldocu").click();
+                });
+                
+                // Add a subtle highlight to show that button is working
+                submitButton.style.transition = "all 0.3s";
+                submitButton.classList.add("working-button");
+            }
+            
+            const fileInput = document.querySelector("#finaldocu");
+            if (fileInput) {
+                fileInput.addEventListener("change", function() {
+                    document.querySelector("#file-upload-form").submit();
+                });
+            }
         });
-        
-        document.querySelector("#finaldocu").addEventListener("change", function() {
-            document.querySelector("#file-upload-form").submit();
-        });
-        <?php endif; ?>
 
         function viewFile(filePath, student_id) {
             const modal = document.getElementById("fileModal");
@@ -1656,14 +1670,10 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
-            <?php if ($route3_is_approved): ?>
-            alert("You cannot reupload files because Route 3 has already been approved.");
-            <?php else: ?>
             if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("finaldocu_reupload").click();
             }
-            <?php endif; ?>
         }
         
         document.getElementById("finaldocu_reupload").addEventListener("change", function() {

@@ -187,10 +187,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
         $adviser_id = $row['adviser_id'];
         
         // Get adviser name and email from student table
-        $stmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $adviserResult = $stmt->get_result();
+        $adviserStmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
+        $adviserStmt->bind_param("s", $student_id);
+        $adviserStmt->execute();
+        $adviserResult = $adviserStmt->get_result();
         if ($adviserResult->num_rows > 0) {
             $adviserRow = $adviserResult->fetch_assoc();
             $adviser_name = $adviserRow['adviser'];
@@ -199,7 +199,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute2"]) && iss
             $adviser_name = "";
             $adviser_email = "";
         }
-        $stmt->close();
+        $adviserStmt->close();
         
         // Process the new file upload
         $fileTmpPath = $_FILES["docuRoute2"]["tmp_name"];

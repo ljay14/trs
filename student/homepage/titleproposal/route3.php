@@ -182,6 +182,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute3"]) && iss
         $routeIdRow = $routeIdResult->fetch_assoc();
         $route3_id = $routeIdRow['route3_id'];
         
+        // Close the routeIdStmt before creating a new statement
+        $routeIdStmt->close();
+        
         // Check for Route 2 approvals and Route 3 submissions
         $checkStmt = $conn->prepare("
             SELECT 
@@ -219,12 +222,43 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute3"]) && iss
             header("Location: route3.php");
             exit;
         }
+        
+        // Process reupload if not blocked
+        $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
+        $fileName = $_FILES["docuRoute3"]["name"];
+        $uploadDir = "../../../uploads/";
+        $newFilePath = $uploadDir . basename($fileName);
+        
+        $allowedTypes = [
+            "application/pdf"
+        ];
+        
+        if (in_array($_FILES["docuRoute3"]["type"], $allowedTypes)) {
+            // Delete old file if it exists
+            if (file_exists($oldFilePath)) {
+                unlink($oldFilePath);
+            }
+            
+            if (move_uploaded_file($fileTmpPath, $newFilePath)) {
+                // Update the database with the new file path
+                $updateStmt = $conn->prepare("UPDATE route3proposal_files SET docuRoute3 = ? WHERE route3_id = ?");
+                $updateStmt->bind_param("si", $newFilePath, $route3_id);
+                
+                if ($updateStmt->execute()) {
+                    $alertMessage = "File reuploaded successfully.";
+                } else {
+                    $alertMessage = "Error updating database: " . $updateStmt->error;
+                }
+                $updateStmt->close();
+            } else {
+                $alertMessage = "Error moving the uploaded file.";
+            }
+        } else {
+            $alertMessage = "Invalid file type. Only PDF files are allowed.";
+        }
     } else {
         $alertMessage = "Error: Could not find the file record.";
-    }
-    // Only close the statement if we're outside the if statement
-    if ($routeIdResult->num_rows <= 0) {
-    $routeIdStmt->close();
+        $routeIdStmt->close(); // Close stmt if no records found
     }
     
     $_SESSION['alert_message'] = $alertMessage;
