@@ -20,6 +20,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $school_id = $conn->real_escape_string($_POST['school_id']); // Changed from username to school_id
     $email = $conn->real_escape_string($_POST['email']); // Get email
     $password = $_POST['password']; // Get password as plain text
+    $confirm_password = $_POST['confirm_password'];
+    $adviser_email = mysqli_real_escape_string($conn, $_POST['adviser_email']);
+    $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
+    $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
+    $group_members = json_encode($members); // Now properly defined    
+    $controlNo = mysqli_real_escape_string($conn, $_POST['controlNo']);
+    $title = mysqli_real_escape_string($conn, $_POST['title']);
+
+    // Validate email domain
+    if (!preg_match('/@smccnasipit\.edu\.ph$/', $email)) {
+        echo "<script>alert('Email must use the @smccnasipit.edu.ph domain!'); window.history.back();</script>";
+        exit;
+    }
 
     // Generate a unique panel_id
     $panel_id = uniqid("PANEL_");
@@ -31,6 +44,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
+    // Validate passwords match
+    if ($password !== $confirm_password) {
+        echo "<script>alert('Passwords do not match!'); window.history.back();</script>";
+        exit;
+    }
+    
     // Insert data into the database
     $sql = "INSERT INTO panel (panel_id, school_id, email, password, fullname, department, position) 
             VALUES ('$panel_id', '$school_id', '$email', '$password', '$fullname', '$department', '$position')";
@@ -1017,10 +1036,18 @@ $conn->close();
                         <input type="text" id="school_id" name="school_id" required>
 
                         <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required>
+                        <input type="email" id="email" name="email" placeholder="Enter your email address (@smccnasipit.edu.ph)" 
+                               pattern="[a-zA-Z0-9._%+-]+@smccnasipit\.edu\.ph$" 
+                               title="Email must use the @smccnasipit.edu.ph domain" required>
+                        <small id="email-feedback" style="color: #666; font-size: 12px; margin-top: -10px; margin-bottom: 15px; display: block;">
+                            Email must use the @smccnasipit.edu.ph domain
+                        </small>
 
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
+
+                        <label for="confirm_password">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
 
                         <div class="button-container">
                             <button type="submit">Register</button>
@@ -1038,7 +1065,27 @@ $conn->close();
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadDepartments();
+        
+        // Add input event listener to email field for real-time validation
+        const emailInput = document.getElementById('email');
+        emailInput.addEventListener('input', validateEmail);
     });
+    
+    function validateEmail() {
+        const emailInput = document.getElementById('email');
+        const email = emailInput.value;
+        const emailFeedback = document.getElementById('email-feedback');
+        
+        if (email && !email.endsWith('@smccnasipit.edu.ph')) {
+            emailFeedback.textContent = 'Email must use the @smccnasipit.edu.ph domain';
+            emailFeedback.style.color = '#dc3545'; // red for error
+            emailInput.setCustomValidity('Email must use the @smccnasipit.edu.ph domain');
+        } else {
+            emailFeedback.textContent = 'Email must use the @smccnasipit.edu.ph domain';
+            emailFeedback.style.color = '#666'; // normal text color
+            emailInput.setCustomValidity('');
+        }
+    }
     
     function loadDepartments() {
         const departmentSelect = document.getElementById('department');
