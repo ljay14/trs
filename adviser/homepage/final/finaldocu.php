@@ -42,15 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $pageNumberArr = $_POST['pageNumber'];
     $adviserNameArr = $_POST['adviserName'];
     $dateReleasedArr = $_POST['dateReleased'];
-    $finaldocu = $_POST['finaldocu'];
+    $finaldocu = $_POST['docuRoute3'];
     $finaldocu_id = $_POST['finaldocu_id'];
     $student_id = $_POST['student_id'];
     $status = $_POST['status'];
+    $routeNumberArr = $_POST['routeNumber'];
 
     // Prepare SQL for inserting form data
     $stmt = $conn->prepare("INSERT INTO final_monitoring_form 
-    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, finaldocu, finaldocu_id, status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (adviser_id, adviser_name, student_id, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute3, finaldocu_id, status, routeNumber) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt === false) {
         die("Error preparing the insert query: " . $conn->error);
     }
@@ -64,10 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $pageNumber = $pageNumberArr[$i];
         $adviserName = $adviserNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
+        $routeNumber = $routeNumberArr[$i];
 
         // Bind parameters including the finaldocu_id
         $stmt->bind_param(
-            "ssssssisssss",  // 11 specifiers
+            "ssssssissssss",  // 13 specifiers
             $adviser_id, 
             $adviserName, 
             $student_id, 
@@ -79,7 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
             $dateReleased, 
             $finaldocu,
             $finaldocu_id,
-            $status
+            $status,
+            $routeNumber
         );
         
         // Execute the statement

@@ -299,23 +299,6 @@ if (isset($_SESSION['selected_department'])) {
     }
     $adviserStmt->close();
 
-    // Fetch files
-    $fileStmt = $conn->prepare(
-        "SELECT 
-            docuRoute1 AS filepath, 
-            docuRoute1 AS filename, 
-            date_submitted,
-            controlNo,
-            group_number,
-            fullname,
-            title,
-            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
-            minutes,
-            route1_id
-         FROM route1proposal_files 
-         WHERE department = ?"
-    );
-    
     // Create proper query with placeholders
     $sqlQuery = "SELECT 
             docuRoute1 AS filepath, 
@@ -327,31 +310,61 @@ if (isset($_SESSION['selected_department'])) {
             title,
             student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
             minutes,
-            route1_id
-         FROM route1proposal_files 
-         WHERE department = ?";
+            route1_id,
+            department
+         FROM route1proposal_files";
     
     // Create array of parameters (must be variables, not direct values)
-    $types = "s";
-    $params = [$selectedDepartment];
+    $types = "";
+    $params = [];
     
-    // Add school year filter if selected
-    if (!empty($selectedSchoolYear)) {
-        $sqlQuery .= " AND school_year = ?";
+    // Only filter by department if one is selected
+    if (!empty($selectedDepartment)) {
+        $sqlQuery .= " WHERE department = ?";
         $types .= "s";
-        $params[] = $selectedSchoolYear;
-    }
-    
-    // Add semester filter if selected
-    if (!empty($selectedSemester)) {
-        $sqlQuery .= " AND student_id IN (SELECT student_id FROM student WHERE semester = ?)";
-        $types .= "s";
-        $params[] = $selectedSemester;
+        $params[] = $selectedDepartment;
+        
+        // Add school year filter if selected
+        if (!empty($selectedSchoolYear)) {
+            $sqlQuery .= " AND school_year = ?";
+            $types .= "s";
+            $params[] = $selectedSchoolYear;
+        }
+        
+        // Add semester filter if selected
+        if (!empty($selectedSemester)) {
+            $sqlQuery .= " AND student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+            $types .= "s";
+            $params[] = $selectedSemester;
+        }
+    } else {
+        // If no department selected, just add other filters
+        $whereAdded = false;
+        
+        // Add school year filter if selected
+        if (!empty($selectedSchoolYear)) {
+            $sqlQuery .= " WHERE school_year = ?";
+            $whereAdded = true;
+            $types .= "s";
+            $params[] = $selectedSchoolYear;
+        }
+        
+        // Add semester filter if selected
+        if (!empty($selectedSemester)) {
+            if ($whereAdded) {
+                $sqlQuery .= " AND student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+            } else {
+                $sqlQuery .= " WHERE student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+                $whereAdded = true;
+            }
+            $types .= "s";
+            $params[] = $selectedSemester;
+        }
     }
     
     $fileStmt = $conn->prepare($sqlQuery);
     
-    // Correctly bind parameters by reference
+    // Correctly bind parameters by reference if there are any
     if (!empty($params)) {
         $bind_params = array();
         $bind_params[] = &$types; // First parameter is always the types string
@@ -383,7 +396,50 @@ if (isset($_SESSION['selected_department'])) {
             'adviser_id' => $row['adviser_id'],
             'title' => $row['title'],
             'minutes' => $row['minutes'],
-            'route1_id' => $row['route1_id']
+            'route1_id' => $row['route1_id'],
+            'department' => $row['department']
+        ];
+    }
+    
+    $fileStmt->close();
+} else {
+    // No department selected, fetch all files
+    $sqlQuery = "SELECT 
+            docuRoute1 AS filepath, 
+            docuRoute1 AS filename, 
+            date_submitted,
+            controlNo,
+            group_number,
+            fullname,
+            title,
+            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
+            minutes,
+            route1_id,
+            department
+         FROM route1proposal_files";
+    
+    $fileStmt = $conn->prepare($sqlQuery);
+    $fileStmt->execute();
+    $fileResult = $fileStmt->get_result();
+    
+    while ($row = $fileResult->fetch_assoc()) {
+        $files[] = [
+            'filepath' => $row['filepath'],
+            'filename' => $row['filename'],
+            'controlNo' => $row['controlNo'],
+            'group_number' => $row['group_number'],
+            'fullname' => $row['fullname'],
+            'student_id' => $row['student_id'],
+            'panel1_id' => $row['panel1_id'],
+            'panel2_id' => $row['panel2_id'],
+            'panel3_id' => $row['panel3_id'],
+            'panel4_id' => $row['panel4_id'],
+            'panel5_id' => $row['panel5_id'],
+            'adviser_id' => $row['adviser_id'],
+            'title' => $row['title'],
+            'minutes' => $row['minutes'],
+            'route1_id' => $row['route1_id'],
+            'department' => $row['department']
         ];
     }
     
@@ -844,6 +900,21 @@ if (isset($selectedDepartment)) {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    .sidebar {
+            width: 250px;
+            background-color: white;
+            padding: 1.5rem 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 
@@ -858,7 +929,7 @@ if (isset($selectedDepartment)) {
         </header>
 
         <!-- Top Navigation Bar -->
-        <div class="top-bar">
+        <div class="top-bar" style="position: sticky; top: 0; z-index: 100;">
             <div class="navigation">
                 <div class="homepage">
                     <a href="../homepage.php">Home Page</a>

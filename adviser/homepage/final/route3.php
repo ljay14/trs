@@ -66,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         $adviserName = $adviserNameArr[$i];
         $dateReleased = $dateReleasedArr[$i];
         $routeNumber = $routeNumberArr[$i];
-
         // Bind parameters including the route3_id
         $stmt->bind_param(
             "ssssssissssss",  // 11 specifiers

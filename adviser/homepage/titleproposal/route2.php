@@ -942,6 +942,16 @@ input[type="checkbox"] {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border-left-color: var(--accent);
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
     </style>
 </head>
 
@@ -1288,9 +1298,14 @@ function loadAllForms(student_id) {
     // Show loading spinner
     formDataContainer.innerHTML = "<div style='grid-column: span 9; display: flex; justify-content: center; padding: 1rem;'><div class='spinner'></div></div>";
 
-    // Fetch data
+    // Fetch data with correct path
     fetch('route2get_all_forms.php?student_id=' + student_id)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             formDataContainer.innerHTML = ""; // Clear spinner
             
@@ -1338,7 +1353,7 @@ function loadAllForms(student_id) {
         })
         .catch(error => {
             console.error('Error fetching forms:', error);
-            noFormsMessage.innerText = "Error loading forms.";
+            noFormsMessage.innerText = "Error loading forms: " + error.message;
         });
 }
 
@@ -1394,7 +1409,7 @@ function saveStatus(formId, event) {
     .then(response => {
         // Check if response is ok (status code 200-299)
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('Network response was not ok: ' + response.status);
         }
         return response.json();
     })
@@ -1417,7 +1432,7 @@ function saveStatus(formId, event) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while saving the status.');
+        alert('An error occurred while saving the status: ' + error.message);
     });
 }
 
@@ -1561,7 +1576,7 @@ function viewMinutes(minutesPath) {
     }
 
     modal.style.display = "flex";
-    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+    contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
     
     const extension = minutesPath.split('.').pop().toLowerCase();
     if (extension === "pdf") {

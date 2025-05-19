@@ -37,6 +37,52 @@ if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $student_id = $row['student_id'];
     $finaldocu_id = $row['finaldocu_id'];
+    
+    // Check if adviser has reviewed the document first
+    $adviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                   WHERE finaldocu_id = ? AND adviser_id IS NOT NULL 
+                                   AND (status = 'Approved' OR status = 'approved')");
+    $adviserCheck->bind_param("i", $finaldocu_id);
+    $adviserCheck->execute();
+    $adviserResult = $adviserCheck->get_result();
+    $adviserData = $adviserResult->fetch_assoc();
+    $finaldocu_approved = ($adviserData['count'] > 0);
+    $adviserCheck->close();
+    
+    // If finaldocu is not approved, check if route3 was approved for this student
+    if (!$finaldocu_approved) {
+        // Get route3_id for this student
+        $route3Check = $conn->prepare("SELECT route3_id FROM route3final_files WHERE student_id = ?");
+        $route3Check->bind_param("s", $student_id);
+        $route3Check->execute();
+        $route3Result = $route3Check->get_result();
+        
+        if ($route3Result && $route3Row = $route3Result->fetch_assoc()) {
+            $route3_id = $route3Row['route3_id'];
+            
+            // Check if route3 was approved
+            $route3ApprovalCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                  WHERE route3_id = ? AND adviser_id IS NOT NULL 
+                                                  AND (status = 'Approved' OR status = 'approved')");
+            $route3ApprovalCheck->bind_param("i", $route3_id);
+            $route3ApprovalCheck->execute();
+            $route3ApprovalResult = $route3ApprovalCheck->get_result();
+            $route3_approved = ($route3ApprovalResult && $route3ApprovalResult->fetch_assoc()['count'] > 0);
+            $route3ApprovalCheck->close();
+            
+            if ($route3_approved) {
+                // If route3 was approved, no need to show alert
+                $finaldocu_approved = true;
+            }
+        }
+        $route3Check->close();
+    }
+    
+    // Only show alert if no approval in either route
+    if (!$finaldocu_approved) {
+        // Display message that adviser needs to review first
+        echo "<script>alert('The adviser must review this document first before panel members can access it.');</script>";
+    }
 } else {
     $student_id = null;
     $finaldocu_id = null;

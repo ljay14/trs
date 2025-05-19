@@ -266,6 +266,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute1"]) && iss
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POST['csrf_token']) && $_SESSION['csrf_token'] === $_POST['csrf_token']) {
     $student_id = $_POST["student_id"];
 
+    // Check if all required title proposal files are submitted
+    $checkStmt = $conn->prepare("
+        SELECT 
+            (SELECT COUNT(*) FROM route1proposal_files WHERE student_id = ?) as route1_count,
+            (SELECT COUNT(*) FROM route2proposal_files WHERE student_id = ?) as route2_count,
+            (SELECT COUNT(*) FROM route3proposal_files WHERE student_id = ?) as route3_count,
+            (SELECT COUNT(*) FROM finaldocuproposal_files WHERE student_id = ?) as finaldocu_count
+    ");
+    $checkStmt->bind_param("ssss", $student_id, $student_id, $student_id, $student_id);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    $fileCounts = $checkResult->fetch_assoc();
+    $checkStmt->close();
+
+    // Check if any required files are missing
+    if ($fileCounts['route1_count'] == 0 || $fileCounts['route2_count'] == 0 || 
+        $fileCounts['route3_count'] == 0 || $fileCounts['finaldocu_count'] == 0) {
+        echo "<script>alert('You must complete all Title Proposal routes (Route 1, Route 2, Route 3, and Final Document) before proceeding to Final Defense.'); window.history.back();</script>";
+        exit;
+    }
+
     // Fetch the department from the student's account
     $stmt = $conn->prepare("SELECT department, controlNo, fullname, group_number, title, adviser, adviser_email, school_year FROM student WHERE student_id = ?");
     $stmt->bind_param("s", $student_id);

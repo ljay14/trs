@@ -254,7 +254,7 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
             </div>
         ";
-        $mail->AltBody = "Dear {$student_name}, Congratulations! Your adviser {$adviser_name} has APPROVED ALL feedback for your thesis proposal. Summary: {$feedback_summary}, Route: {$route_number}. Please login at: {$login_url} to view all approved feedback and continue with your thesis progress.";
+        $mail->AltBody = "Dear {$student_name}, Congratulations! Your adviser {$adviser_name} has APPROVED ALL feedback for your thesis proposal! Summary: {$feedback_summary}, Route: {$route_number}. Please login at: {$login_url} to continue with your thesis progress.";
 
         // Add additional headers that may help with deliverability
         $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
@@ -268,19 +268,6 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
         
         if (isset($mail)) {
             $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
         } else {
             $errorMsg .= "Exception: " . $e->getMessage();
         }
@@ -290,310 +277,134 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
     }
 }
 
-if (isset($data['id']) && isset($data['status']) && isset($_SESSION['adviser_id'])) {
-    $id = $data['id']; // form id
-    $status = $data['status'];
-    $adviser_id = $_SESSION['adviser_id'];
-
-    // Check if the adviser is authorized for this form
-    $checkQuery = "SELECT adviser_id FROM proposal_monitoring_form WHERE id = ?";
-    $checkStmt = $conn->prepare($checkQuery);
-    $checkStmt->bind_param("i", $id);
-    $checkStmt->execute();
-    $result = $checkStmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        if ($row['adviser_id'] != $adviser_id) {
-            echo json_encode(["success" => false, "message" => "You are not allowed to approve the status because you are not the assigned adviser."]);
-        } else {
-            // Authorized - proceed with update
-            $query = "UPDATE proposal_monitoring_form SET status = ? WHERE id = ? AND adviser_id = ?";
-            $stmt = $conn->prepare($query);
-            $stmt->bind_param("sii", $status, $id, $adviser_id);
-            
-            if ($stmt->execute()) {
-                // If status was changed to "Approved", send email notification
-                if ($status === 'Approved') {
-                    // Get form details and student information
-                    $getFormStmt = $conn->prepare("
-                        SELECT 
-                            p.student_id, 
-                            p.chapter, 
-                            p.paragraph_number, 
-                            p.page_number, 
-                            p.adviser_name,
-                            p.routeNumber,
-                            p.route1_id,
-                            p.route2_id,
-                            p.route3_id,
-                            p.finaldocu_id,
-                            p.adviser_id,
-                            s.fullname AS student_name,
-                            s.email AS student_email
-                        FROM 
-                            proposal_monitoring_form p
-                        JOIN 
-                            student s ON p.student_id = s.student_id
-                        WHERE 
-                            p.id = ?
-                    ");
-                    
-                    $getFormStmt->bind_param("i", $id);
-                    $getFormStmt->execute();
-                    $result = $getFormStmt->get_result();
-                    
-                    if ($result->num_rows > 0) {
-                        $formData = $result->fetch_assoc();
-                        $student_email = $formData['student_email'];
-                        $student_name = $formData['student_name'];
-                        $adviser_name = $formData['adviser_name'];
-                        $route1_id = $formData['route1_id'];
-                        $route2_id = $formData['route2_id'];
-                        $route3_id = $formData['route3_id'];
-                        $finaldocu_id = $formData['finaldocu_id'];
-                        
-                        $form_details = [
-                            'chapter' => $formData['chapter'],
-                            'paragraph_number' => $formData['paragraph_number'],
-                            'page_number' => $formData['page_number'],
-                            'routeNumber' => $formData['routeNumber']
-                        ];
-                        
-                        // Always send individual approval notification first
-                        $emailSent = false;
-                        if (isValidEmail($student_email)) {
-                            $emailSent = sendApprovalNotificationEmail($student_email, $student_name, $adviser_name, $form_details);
-                            if ($emailSent) {
-                                error_log("Individual approval email sent successfully to student: $student_email");
-                            } else {
-                                error_log("Failed to send individual approval email to student: $student_email");
-                            }
-                        } else {
-                            error_log("Invalid student email: $student_email");
-                        }
-                        
-                        // Check if all adviser feedback for the relevant route is approved
-                        $allApproved = false;
-                        $debugInfo = [];
-                        
-                        if ($route2_id) {
-                            // Query ALL forms first to see what's in the database
-                            $debugStmt = $conn->prepare("
-                                SELECT id, status, chapter 
-                                FROM proposal_monitoring_form 
-                                WHERE route2_id = ? AND adviser_id = ?
-                                ORDER BY id
-                            ");
-                            $debugStmt->bind_param("is", $route2_id, $adviser_id);
-                            $debugStmt->execute();
-                            $debugResult = $debugStmt->get_result();
-                            
-                            while ($debugRow = $debugResult->fetch_assoc()) {
-                                $debugInfo[] = "Form ID: {$debugRow['id']}, Status: {$debugRow['status']}, Chapter: {$debugRow['chapter']}";
-                            }
-                            
-                            error_log("DEBUG - All forms in database for route2_id=$route2_id, adviser_id=$adviser_id:");
-                            foreach ($debugInfo as $info) {
-                                error_log("  " . $info);
-                            }
-                            
-                            // Continue with normal check but log results without sending email
-                            $checkStmt = $conn->prepare("
-                                SELECT 
-                                    COUNT(*) as total, 
-                                    SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved,
-                                    SUM(CASE WHEN status != 'Approved' THEN 1 ELSE 0 END) as not_approved
-                                FROM proposal_monitoring_form 
-                                WHERE route2_id = ? AND adviser_id = ?
-                            ");
-                            $checkStmt->bind_param("is", $route2_id, $adviser_id);
-                            $checkStmt->execute();
-                            $checkResult = $checkStmt->get_result();
-                            $checkData = $checkResult->fetch_assoc();
-                            
-                            error_log("DEBUG Stats: route2_id=$route2_id, adviser_id=$adviser_id, total={$checkData['total']}, approved={$checkData['approved']}, not_approved={$checkData['not_approved']}");
-                            
-                            // Add a more complex check with diagnostics
-                            $condition1 = $checkData['total'] >= 2;
-                            $condition2 = $checkData['not_approved'] == 0;
-                            $condition3 = $checkData['approved'] >= 2;
-                            
-                            error_log("Condition checks: multiple forms: " . ($condition1 ? "YES" : "NO") . 
-                                     ", no unapproved forms: " . ($condition2 ? "YES" : "NO") . 
-                                     ", multiple approved: " . ($condition3 ? "YES" : "NO"));
-                            
-                            if ($condition1 && $condition2 && $condition3) {
-                                $allApproved = true;
-                                error_log("All forms for route2_id $route2_id by adviser $adviser_id are approved. Total: {$checkData['total']}, Approved: {$checkData['approved']}");
-                                
-                                // Compile a summary of all approved feedback for this route
-                                $summaryStmt = $conn->prepare("
-                                    SELECT chapter, feedback
-                                    FROM proposal_monitoring_form 
-                                    WHERE route2_id = ? AND adviser_id = ? AND status = 'Approved'
-                                    ORDER BY date_submitted DESC
-                                ");
-                                $summaryStmt->bind_param("is", $route2_id, $adviser_id);
-                                $summaryStmt->execute();
-                                $summaryResult = $summaryStmt->get_result();
-                                
-                                $approvedChapters = [];
-                                while ($summaryRow = $summaryResult->fetch_assoc()) {
-                                    $approvedChapters[] = $summaryRow['chapter'];
-                                }
-                                
-                                // Create a summary message for the email
-                                $feedbackSummary = "All feedback has been approved for chapters: " . implode(", ", $approvedChapters);
-                                
-                                // Send notification email about all approvals
-                                if (isValidEmail($student_email)) {
-                                    $allEmailSent = sendAllApprovedNotification($student_email, $student_name, $adviser_name, $feedbackSummary, $formData['routeNumber']);
-                                    
-                                    if ($allEmailSent) {
-                                        error_log("All approvals notification email sent to student: $student_email");
-                                    } else {
-                                        error_log("Failed to send all approvals notification email to student: $student_email");
-                                    }
-                                }
-                            }
-                        } elseif ($route1_id) {
-                            error_log("This form is for route1, adviser_id=$adviser_id");
-                        } elseif ($route3_id) {
-                            error_log("This form is for route3, adviser_id=$adviser_id");
-                            
-                            // Check status of all route3 forms by this adviser
-                            $checkStmt = $conn->prepare("
-                                SELECT 
-                                    COUNT(*) as total, 
-                                    SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved,
-                                    SUM(CASE WHEN status != 'Approved' THEN 1 ELSE 0 END) as not_approved
-                                FROM proposal_monitoring_form 
-                                WHERE route3_id = ? AND adviser_id = ?
-                            ");
-                            $checkStmt->bind_param("is", $route3_id, $adviser_id);
-                            $checkStmt->execute();
-                            $checkResult = $checkStmt->get_result();
-                            $checkData = $checkResult->fetch_assoc();
-                            
-                            if ($checkData['total'] > 0 && $checkData['not_approved'] == 0) {
-                                $allApproved = true;
-                                error_log("All forms for route3_id $route3_id by adviser $adviser_id are approved");
-                                
-                                // Create a summary message for the email
-                                $feedbackSummary = "All adviser feedback for Route 3 has been approved.";
-                                
-                                // Send notification email about all approvals
-                                if (isValidEmail($student_email)) {
-                                    $emailSent = sendAllApprovedNotification($student_email, $student_name, $adviser_name, $feedbackSummary, "Route 3");
-                                    
-                                    if ($emailSent) {
-                                        error_log("All approvals notification email sent to student: $student_email for Route 3");
-                                    } else {
-                                        error_log("Failed to send all approvals notification email to student: $student_email for Route 3");
-                                    }
-                                }
-                            }
-                        } elseif ($finaldocu_id) {
-                            // Handle finaldocu similar to route3
-                            $debugStmt = $conn->prepare("
-                                SELECT id, status, chapter 
-                                FROM proposal_monitoring_form 
-                                WHERE finaldocu_id = ? AND adviser_id = ?
-                                ORDER BY id
-                            ");
-                            $debugStmt->bind_param("is", $finaldocu_id, $adviser_id);
-                            $debugStmt->execute();
-                            $debugResult = $debugStmt->get_result();
-                            
-                            while ($debugRow = $debugResult->fetch_assoc()) {
-                                $debugInfo[] = "Form ID: {$debugRow['id']}, Status: {$debugRow['status']}, Chapter: {$debugRow['chapter']}";
-                            }
-                            
-                            error_log("DEBUG - All forms in database for finaldocu_id=$finaldocu_id, adviser_id=$adviser_id:");
-                            foreach ($debugInfo as $info) {
-                                error_log("  " . $info);
-                            }
-                            
-                            // Check status of all finaldocu forms by this adviser
-                            $checkStmt = $conn->prepare("
-                                SELECT 
-                                    COUNT(*) as total, 
-                                    SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved,
-                                    SUM(CASE WHEN status != 'Approved' THEN 1 ELSE 0 END) as not_approved
-                                FROM proposal_monitoring_form 
-                                WHERE finaldocu_id = ? AND adviser_id = ?
-                            ");
-                            $checkStmt->bind_param("is", $finaldocu_id, $adviser_id);
-                            $checkStmt->execute();
-                            $checkResult = $checkStmt->get_result();
-                            $checkData = $checkResult->fetch_assoc();
-                            
-                            error_log("DEBUG Stats: finaldocu_id=$finaldocu_id, adviser_id=$adviser_id, total={$checkData['total']}, approved={$checkData['approved']}, not_approved={$checkData['not_approved']}");
-                            
-                            // More complex check with diagnostics
-                            $condition1 = $checkData['total'] >= 2;
-                            $condition2 = $checkData['not_approved'] == 0;
-                            $condition3 = $checkData['approved'] >= 2;
-                            
-                            error_log("Condition checks: multiple forms: " . ($condition1 ? "YES" : "NO") . 
-                                     ", no unapproved forms: " . ($condition2 ? "YES" : "NO") . 
-                                     ", multiple approved: " . ($condition3 ? "YES" : "NO"));
-                            
-                            if ($condition1 && $condition2 && $condition3) {
-                                $allApproved = true;
-                                error_log("All forms for finaldocu_id $finaldocu_id by adviser_id $adviser_id are approved. Total: {$checkData['total']}, Approved: {$checkData['approved']}");
-                                
-                                // Create a summary message for the email
-                                $feedbackSummary = "All adviser feedback for Final Document has been approved.";
-                                
-                                // Send notification email about all approvals
-                                if (isValidEmail($student_email)) {
-                                    $emailSent = sendAllApprovedNotification($student_email, $student_name, $adviser_name, $feedbackSummary, "Final Document");
-                                    
-                                    if ($emailSent) {
-                                        error_log("All approvals notification email sent to student: $student_email for Final Document");
-                                    } else {
-                                        error_log("Failed to send all approvals notification email to student: $student_email for Final Document");
-                                    }
-                                }
-                            } else {
-                                error_log("Not all forms are approved yet for finaldocu_id $finaldocu_id by adviser $adviser_id. Total: {$checkData['total']}, Approved: {$checkData['approved']}");
-                            }
-                        }
-                        
-                        // Always return success with email status
-                        echo json_encode([
-                            "success" => true, 
-                            "message" => "Status updated successfully for form ID $id.", 
-                            "email_sent" => $emailSent,
-                            "all_approved" => $allApproved
-                        ]);
-                        exit;
-                    } else {
-                        echo json_encode(["success" => true, "message" => "Status updated successfully but could not retrieve form details for notification."]);
-                        exit;
-                    }
-                    
-                    $getFormStmt->close();
-                } else {
-                    echo json_encode(["success" => true, "message" => "Status updated successfully."]);
-                    exit;
-                }
-            } else {
-                echo json_encode(["success" => false, "message" => "Failed to update status: " . $stmt->error]);
-                exit;
-            }
-            $stmt->close();
-        }
-    } else {
-        echo json_encode(["success" => false, "message" => "Form not found."]);
-        exit;
-    }
-
-    $checkStmt->close();
-} else {
-    echo json_encode(["success" => false, "message" => "Missing required data or not logged in as adviser."]);
+// Check if we have the required data
+if (!isset($data['id']) || !isset($data['status'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Missing required parameters'
+    ]);
     exit;
 }
+
+$form_id = $data['id'];
+$new_status = $data['status'];
+
+// Get adviser ID from session
+$adviser_id = isset($_SESSION['adviser_id']) ? $_SESSION['adviser_id'] : null;
+$adviser_name = isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Adviser';
+
+if (!$adviser_id) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Adviser not logged in'
+    ]);
+    exit;
+}
+
+// Update the form status in the database
+$stmt = $conn->prepare("UPDATE proposal_monitoring_form SET status = ? WHERE id = ? AND adviser_id = ?");
+$stmt->bind_param("sis", $new_status, $form_id, $adviser_id);
+$result = $stmt->execute();
+
+if ($result) {
+    // Get the form details to use in email notification
+    $formQuery = $conn->prepare("
+        SELECT 
+            student_id, 
+            chapter, 
+            paragraph_number, 
+            page_number, 
+            routeNumber,
+            route2_id
+        FROM 
+            proposal_monitoring_form 
+        WHERE 
+            id = ?
+    ");
+    $formQuery->bind_param("i", $form_id);
+    $formQuery->execute();
+    $formResult = $formQuery->get_result();
+    
+    if ($formResult->num_rows > 0) {
+        $formData = $formResult->fetch_assoc();
+        $student_id = $formData['student_id'];
+        $route2_id = $formData['route2_id'];
+        
+        // Get student email for notification
+        $studentQuery = $conn->prepare("SELECT email, fullname FROM student WHERE student_id = ?");
+        $studentQuery->bind_param("s", $student_id);
+        $studentQuery->execute();
+        $studentResult = $studentQuery->get_result();
+        
+        if ($studentResult->num_rows > 0) {
+            $studentData = $studentResult->fetch_assoc();
+            $student_email = $studentData['email'];
+            $student_name = $studentData['fullname'];
+            
+            // Send email notification if status is Approved
+            if ($new_status === 'Approved') {
+                // Send individual approval notification
+                sendApprovalNotificationEmail($student_email, $student_name, $adviser_name, $formData);
+                
+                // Check if all forms for this student and adviser are approved
+                $allFormsQuery = $conn->prepare("
+                    SELECT 
+                        COUNT(*) as total, 
+                        SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved 
+                    FROM 
+                        proposal_monitoring_form 
+                    WHERE 
+                        student_id = ? AND 
+                        adviser_id = ? AND
+                        route2_id = ?
+                ");
+                $allFormsQuery->bind_param("ssi", $student_id, $adviser_id, $route2_id);
+                $allFormsQuery->execute();
+                $allFormsResult = $allFormsQuery->get_result();
+                $allFormsData = $allFormsResult->fetch_assoc();
+                
+                $all_approved = ($allFormsData['total'] > 0 && $allFormsData['total'] == $allFormsData['approved']);
+                
+                if ($all_approved) {
+                    // Get a summary of the feedback
+                    $feedbackQuery = $conn->prepare("
+                        SELECT GROUP_CONCAT(chapter SEPARATOR ', ') as chapters
+                        FROM proposal_monitoring_form 
+                        WHERE student_id = ? AND adviser_id = ? AND route2_id = ?
+                    ");
+                    $feedbackQuery->bind_param("ssi", $student_id, $adviser_id, $route2_id);
+                    $feedbackQuery->execute();
+                    $feedbackResult = $feedbackQuery->get_result();
+                    $feedbackData = $feedbackResult->fetch_assoc();
+                    
+                    $feedback_summary = "All feedback for chapters " . $feedbackData['chapters'] . " has been approved";
+                    
+                    // Send comprehensive approval notification
+                    sendAllApprovedNotification($student_email, $student_name, $adviser_name, $feedback_summary, $formData['routeNumber']);
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'all_approved' => true,
+                        'message' => 'Status updated successfully. All forms are now approved.'
+                    ]);
+                    exit;
+                }
+            }
+        }
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'all_approved' => false,
+        'message' => 'Status updated successfully'
+    ]);
+} else {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Failed to update status: ' . $stmt->error
+    ]);
+}
+
+$stmt->close();
+$conn->close();
 ?>

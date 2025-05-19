@@ -20,6 +20,7 @@ if ($result && $result->num_rows > 0) {
 
 $selectedDepartment = $_POST['department'] ?? '';
 $panel_id = $_SESSION['panel_id'];
+// Get the panel's name from session
 $panel_fullname = $_SESSION['fullname'] ?? 'Panelist';
 
 $stmt = $conn->prepare("SELECT student_id, route2_id FROM route2final_files 
@@ -37,6 +38,54 @@ if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $student_id = $row['student_id'];
     $route2_id = $row['route2_id'];
+    
+    // Check if adviser has reviewed the document first
+    $adviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form WHERE route2_id = ? AND adviser_id IS NOT NULL");
+    $adviserCheck->bind_param("i", $route2_id);
+    $adviserCheck->execute();
+    $adviserResult = $adviserCheck->get_result();
+    $adviserData = $adviserResult->fetch_assoc();
+    $route2_reviewed = ($adviserData['count'] > 0);
+    $adviserCheck->close();
+    
+    $showAlert = true;
+    
+    // Only check route1 approval if route2 has not been reviewed
+    if (!$route2_reviewed) {
+        // Check if route1 was approved for this student
+        $route1Check = $conn->prepare("SELECT r.route1_id FROM route1final_files r WHERE r.student_id = ?");
+        $route1Check->bind_param("s", $student_id);
+        $route1Check->execute();
+        $route1Result = $route1Check->get_result();
+        
+        if ($route1Result && $route1Row = $route1Result->fetch_assoc()) {
+            $route1_id = $route1Row['route1_id'];
+            
+            // Check if route1 was approved
+            $route1ApprovalCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                  WHERE route1_id = ? AND adviser_id IS NOT NULL 
+                                                  AND (status = 'Approved' OR status = 'approved')");
+            $route1ApprovalCheck->bind_param("i", $route1_id);
+            $route1ApprovalCheck->execute();
+            $route1ApprovalResult = $route1ApprovalCheck->get_result();
+            $route1_approved = ($route1ApprovalResult && $route1ApprovalResult->fetch_assoc()['count'] > 0);
+            $route1ApprovalCheck->close();
+            
+            if ($route1_approved) {
+                // If route1 was approved, no need to show alert
+                $showAlert = false;
+            }
+        }
+        $route1Check->close();
+    } else {
+        // If route2 has been reviewed, don't show alert
+        $showAlert = false;
+    }
+    
+    if ($showAlert) {
+        // Display message that adviser needs to review first
+        echo "<script>alert('The adviser must review this document first before panel members can access it.');</script>";
+    }
 } else {
     $student_id = null;
     $route2_id = null;
@@ -56,7 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
     $student_id = $_POST['student_id'];
     $status = $_POST['status'];
     $routeNumberArr = $_POST['routeNumber'];
-
 
     // Prepare the query
     $stmt = $conn->prepare("INSERT INTO final_monitoring_form (panel_id, panel_name, date_submitted, chapter, feedback, paragraph_number, page_number, date_released, docuRoute2, route2_id, student_id, status, routeNumber) 

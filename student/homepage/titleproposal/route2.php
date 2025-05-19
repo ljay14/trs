@@ -1266,57 +1266,10 @@ input[type="checkbox"] {
                     </table>
                     ";
                 } else {
-                    // Check if minutes exist in route1proposal_files even if no route2 file exists yet
-                    $route1MinutesStmt = $conn->prepare("SELECT r1.minutes, r1.controlNo, r1.fullname, r1.group_number, r1.title 
-                                                         FROM route1proposal_files r1 
-                                                         WHERE r1.student_id = ? AND r1.minutes IS NOT NULL AND r1.minutes != ''");
-                    $route1MinutesStmt->bind_param("s", $student_id);
-                    $route1MinutesStmt->execute();
-                    $route1MinutesResult = $route1MinutesStmt->get_result();
-                    
-                    if ($route1MinutesResult->num_rows > 0) {
-                        $route1MinutesRow = $route1MinutesResult->fetch_assoc();
-                        $minutes = htmlspecialchars($route1MinutesRow['minutes'], ENT_QUOTES);
-                        $controlNo = htmlspecialchars($route1MinutesRow['controlNo'], ENT_QUOTES);
-                        $fullName = htmlspecialchars($route1MinutesRow['fullname'], ENT_QUOTES);
-                        $groupNo = htmlspecialchars($route1MinutesRow['group_number'], ENT_QUOTES);
-                        $title = htmlspecialchars($route1MinutesRow['title'], ENT_QUOTES);
-                        
-                        echo "
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Control No.</th>
-                                    <th>Leader</th>
-                                    <th>Group No.</th>
-                                    <th>Title</th>
-                                    <th>Minutes</th>
-                                    <th class='action-label'>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>$controlNo</td>
-                                    <td>$fullName</td>
-                                    <td>$groupNo</td>
-                                    <td>$title</td>
-                                    <td><span style='color: green;'>Available (from Route 1)</span></td>
-                                    <td>
-                                        <div class='action-buttons'>
-                                            <button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        ";
-                    } else {
-                        echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
-                                <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
-                                <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
-                              </div>";
-                    }
-                    $route1MinutesStmt->close();
+                    echo "<div class='welcome-card' style='background-color: white; border-radius: 10px; box-shadow: var(--shadow); padding: 2rem; text-align: center;'>
+                            <h1 style='color: var(--primary); margin-bottom: 1rem;'>No Files Uploaded Yet</h1>
+                            <p style='color: #666; line-height: 1.6; margin-bottom: 1.5rem;'>Click on 'Submit File' to upload your thesis documents.</p>
+                          </div>";
                 }
 
                 $stmt->close();
