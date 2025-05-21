@@ -213,17 +213,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['semester'])) {
     exit;
 }
 
-// Load data for selected department
-if (isset($_SESSION['selected_department'])) {
-    $selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
-    $selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
-    $selectedSemester = $_POST['semester'] ?? $_SESSION['selected_semester'] ?? '';
-    
-    $_SESSION['selected_department'] = $selectedDepartment;
-    $_SESSION['selected_school_year'] = $selectedSchoolYear;
-    $_SESSION['selected_semester'] = $selectedSemester;
+// Load data for all departments by default or selected department if specified
+$selectedDepartment = $_POST['department'] ?? $_SESSION['selected_department'] ?? '';
+$selectedSchoolYear = $_POST['school_year'] ?? $_SESSION['selected_school_year'] ?? '';
+$selectedSemester = $_POST['semester'] ?? $_SESSION['selected_semester'] ?? '';
 
-    // Fetch panel data
+$_SESSION['selected_department'] = $selectedDepartment;
+$_SESSION['selected_school_year'] = $selectedSchoolYear;
+$_SESSION['selected_semester'] = $selectedSemester;
+
+// Fetch panel data if department is selected
+if (!empty($selectedDepartment)) {
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
     if ($panelStmt === false) {
         echo "Error preparing panel statement: " . $conn->error;
@@ -250,90 +250,98 @@ if (isset($_SESSION['selected_department'])) {
         }
         $adviserStmt->close();
     }
+}
 
-    // Fetch files
-    $sqlQuery = "SELECT 
-            fd.finaldocu AS filepath, 
-            fd.finaldocu AS filename, 
-            fd.date_submitted,
-            fd.controlNo,
-            fd.group_number,
-            fd.fullname,
-            fd.title,
-            fd.student_id, 
-            fd.panel1_id, 
-            fd.panel2_id, 
-            fd.panel3_id, 
-            fd.panel4_id, 
-            fd.panel5_id, 
-            fd.adviser_id,
-            fd.finaldocu_id
-         FROM finaldocufinal_files fd
-         LEFT JOIN route1final_files r1 ON fd.student_id = r1.student_id
-         WHERE fd.department = ?";
+// Fetch files
+$sqlQuery = "SELECT 
+        fd.finaldocu AS filepath, 
+        fd.finaldocu AS filename, 
+        fd.date_submitted,
+        fd.controlNo,
+        fd.group_number,
+        fd.fullname,
+        fd.title,
+        fd.department,
+        fd.student_id, 
+        fd.panel1_id, 
+        fd.panel2_id, 
+        fd.panel3_id, 
+        fd.panel4_id, 
+        fd.panel5_id, 
+        fd.adviser_id,
+        fd.finaldocu_id
+     FROM finaldocufinal_files fd
+     LEFT JOIN route1final_files r1 ON fd.student_id = r1.student_id
+     WHERE 1=1";
 
-    // Create array of parameters (must be variables, not direct values)
-    $types = "s";
-    $params = [$selectedDepartment];
+// Create array of parameters (must be variables, not direct values)
+$types = "";
+$params = [];
 
-    // Add school year filter if selected
-    if (!empty($selectedSchoolYear)) {
-        $sqlQuery .= " AND fd.school_year = ?";
-        $types .= "s";
-        $params[] = $selectedSchoolYear;
-    }
+// Add department filter if selected
+if (!empty($selectedDepartment)) {
+    $sqlQuery .= " AND fd.department = ?";
+    $types .= "s";
+    $params[] = $selectedDepartment;
+}
 
-    // Add semester filter if selected
-    if (!empty($selectedSemester)) {
-        $sqlQuery .= " AND fd.student_id IN (SELECT student_id FROM student WHERE semester = ?)";
-        $types .= "s";
-        $params[] = $selectedSemester;
-    }
-    
-    $fileStmt = $conn->prepare($sqlQuery);
-    
-    if ($fileStmt === false) {
-        // Handle prepare error
-        echo "Error preparing statement: " . $conn->error;
-    } else {
-        // Correctly bind parameters by reference
-        if (!empty($params)) {
-            $bind_params = array();
-            $bind_params[] = &$types; // First parameter is always the types string
-            
-            // Add references to each parameter
-            for ($i = 0; $i < count($params); $i++) {
-                $bind_params[] = &$params[$i];
-            }
-            
-            // Call bind_param with references
-            call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
+// Add school year filter if selected
+if (!empty($selectedSchoolYear)) {
+    $sqlQuery .= " AND fd.school_year = ?";
+    $types .= "s";
+    $params[] = $selectedSchoolYear;
+}
+
+// Add semester filter if selected
+if (!empty($selectedSemester)) {
+    $sqlQuery .= " AND fd.student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+    $types .= "s";
+    $params[] = $selectedSemester;
+}
+
+$fileStmt = $conn->prepare($sqlQuery);
+
+if ($fileStmt === false) {
+    // Handle prepare error
+    echo "Error preparing statement: " . $conn->error;
+} else {
+    // Correctly bind parameters by reference
+    if (!empty($params)) {
+        $bind_params = array();
+        $bind_params[] = &$types; // First parameter is always the types string
+        
+        // Add references to each parameter
+        for ($i = 0; $i < count($params); $i++) {
+            $bind_params[] = &$params[$i];
         }
         
-        $fileStmt->execute();
-        $fileResult = $fileStmt->get_result();
-        while ($row = $fileResult->fetch_assoc()) {
-            $files[] = [
-                'filepath' => $row['filepath'],
-                'filename' => $row['filename'],
-                'controlNo' => $row['controlNo'],
-                'group_number' => $row['group_number'],
-                'fullname' => $row['fullname'],
-                'student_id' => $row['student_id'],
-                'panel1_id' => $row['panel1_id'],
-                'panel2_id' => $row['panel2_id'],
-                'panel3_id' => $row['panel3_id'],
-                'panel4_id' => $row['panel4_id'],
-                'panel5_id' => $row['panel5_id'],
-                'adviser_id' => $row['adviser_id'],
-                'title' => $row['title'],
-                'finaldocu_id' => $row['finaldocu_id']
-                
-            ];
-        }
-        
-        $fileStmt->close();
+        // Call bind_param with references
+        call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
     }
+    
+    $fileStmt->execute();
+    $fileResult = $fileStmt->get_result();
+    while ($row = $fileResult->fetch_assoc()) {
+        $files[] = [
+            'filepath' => $row['filepath'],
+            'filename' => $row['filename'],
+            'controlNo' => $row['controlNo'],
+            'group_number' => $row['group_number'],
+            'fullname' => $row['fullname'],
+            'student_id' => $row['student_id'],
+            'panel1_id' => $row['panel1_id'],
+            'panel2_id' => $row['panel2_id'],
+            'panel3_id' => $row['panel3_id'],
+            'panel4_id' => $row['panel4_id'],
+            'panel5_id' => $row['panel5_id'],
+            'adviser_id' => $row['adviser_id'],
+            'title' => $row['title'],
+            'finaldocu_id' => $row['finaldocu_id']
+            
+        ];
+    }
+    
+    $fileStmt->close();
 }
 
 // Handle file submission for panelists and adviser
@@ -850,7 +858,7 @@ if (isset($selectedDepartment)) {
 
                 <!-- Search and Submit Button -->
                 <div class="search-container">
-                    <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Search by name, group, title or department..." onkeyup="searchTable()">
                 </div>
 
                 <form id="submission-form" action="finaldocu.php" method="POST">
@@ -861,6 +869,7 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Department</th>
                                 <th>Assigned</th>
                                 <th>Status</th>
                                 <th class='action-label'>Action</th>
@@ -957,6 +966,7 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
+                    <td><?= $file['department'] ?></td>
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
@@ -1172,10 +1182,21 @@ if (isset($selectedDepartment)) {
         const rows = table.getElementsByTagName("tr");
         
         for (let i = 0; i < rows.length; i++) {
-            const leaderCell = rows[i].getElementsByTagName("td")[2]; // Index 2 is the Leader column
-            if (leaderCell) {
+            const leaderCell = rows[i].getElementsByTagName("td")[1]; // Leader name (index 1)
+            const groupCell = rows[i].getElementsByTagName("td")[2]; // Group number (index 2)
+            const titleCell = rows[i].getElementsByTagName("td")[3]; // Title (index 3)
+            const deptCell = rows[i].getElementsByTagName("td")[4]; // Department (index 4)
+            
+            if (leaderCell && groupCell && titleCell && deptCell) {
                 const leaderName = leaderCell.textContent || leaderCell.innerText;
-                if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                const groupNum = groupCell.textContent || groupCell.innerText;
+                const title = titleCell.textContent || titleCell.innerText;
+                const department = deptCell.textContent || deptCell.innerText;
+                
+                if (leaderName.toUpperCase().indexOf(filter) > -1 || 
+                    groupNum.toUpperCase().indexOf(filter) > -1 ||
+                    title.toUpperCase().indexOf(filter) > -1 ||
+                    department.toUpperCase().indexOf(filter) > -1) {
                     rows[i].style.display = "";
                 } else {
                     rows[i].style.display = "none";

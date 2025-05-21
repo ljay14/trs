@@ -1598,10 +1598,152 @@ if (isset($selectedDepartment)) {
                 }
             });
         });
+
+        // Setup panel dropdown filtering
+        setupPanelSelectionLogic();
+        setupEditPanelSelectionLogic();
     });
 
     // Global variable to store current file data for edit mode
     let currentEditFile = null;
+
+    // Function to setup panel selection logic for main dropdowns
+    function setupPanelSelectionLogic() {
+        // Get all panel dropdowns
+        const panelDropdowns = [
+            document.getElementById('panel1-dropdown'),
+            document.getElementById('panel2-dropdown'),
+            document.getElementById('panel3-dropdown'),
+            document.getElementById('panel4-dropdown'),
+            document.getElementById('panel5-dropdown')
+        ];
+        
+        // Store original options for each dropdown
+        const originalOptions = panelDropdowns.map(dropdown => {
+            if (!dropdown) return [];
+            return Array.from(dropdown.options).filter(option => option.value !== '').map(option => {
+                return {value: option.value, text: option.text};
+            });
+        });
+        
+        // Function to update available options in each dropdown
+        function updateAvailableOptions() {
+            // Get currently selected values
+            const selectedValues = panelDropdowns.map(dropdown => 
+                dropdown ? dropdown.value : null
+            ).filter(value => value); // Remove empty values
+            
+            // Reset and update each dropdown
+            panelDropdowns.forEach((dropdown, index) => {
+                if (!dropdown) return;
+                
+                const currentValue = dropdown.value;
+                
+                // Store the first option (the label)
+                const firstOption = dropdown.options[0];
+                
+                // Clear everything except the first option
+                while (dropdown.options.length > 1) {
+                    dropdown.remove(1);
+                }
+                
+                // Add all options except those selected in other dropdowns
+                originalOptions[index].forEach(option => {
+                    if (option.value === currentValue || !selectedValues.includes(option.value)) {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = option.value;
+                        optionElement.textContent = option.text;
+                        dropdown.appendChild(optionElement);
+                        
+                        // Re-select current value if it exists
+                        if (option.value === currentValue) {
+                            optionElement.selected = true;
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Add change event listeners to each dropdown
+        panelDropdowns.forEach(dropdown => {
+            if (dropdown) {
+                dropdown.addEventListener('change', updateAvailableOptions);
+            }
+        });
+        
+        // Initialize dropdowns
+        updateAvailableOptions();
+    }
+    
+    // Function to setup panel selection logic for edit form dropdowns
+    function setupEditPanelSelectionLogic() {
+        // Get all edit panel dropdowns
+        const editPanelDropdowns = [
+            document.getElementById('edit-panel1'),
+            document.getElementById('edit-panel2'),
+            document.getElementById('edit-panel3'),
+            document.getElementById('edit-panel4'),
+            document.getElementById('edit-panel5')
+        ];
+        
+        // Store original options for each dropdown
+        const originalEditOptions = editPanelDropdowns.map(dropdown => {
+            if (!dropdown) return [];
+            return Array.from(dropdown.options).filter(option => option.value !== '').map(option => {
+                return {value: option.value, text: option.text};
+            });
+        });
+        
+        // Function to update available options in each dropdown
+        function updateEditAvailableOptions() {
+            // Get currently selected values
+            const selectedValues = editPanelDropdowns.map(dropdown => 
+                dropdown ? dropdown.value : null
+            ).filter(value => value); // Remove empty values
+            
+            // Reset and update each dropdown
+            editPanelDropdowns.forEach((dropdown, index) => {
+                if (!dropdown) return;
+                
+                const currentValue = dropdown.value;
+                
+                // Store the first option (the label)
+                const firstOption = dropdown.options[0];
+                
+                // Clear everything except the first option
+                while (dropdown.options.length > 1) {
+                    dropdown.remove(1);
+                }
+                
+                // Add all options except those selected in other dropdowns
+                originalEditOptions[index].forEach(option => {
+                    if (option.value === currentValue || !selectedValues.includes(option.value)) {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = option.value;
+                        optionElement.textContent = option.text;
+                        dropdown.appendChild(optionElement);
+                        
+                        // Re-select current value if it exists
+                        if (option.value === currentValue) {
+                            optionElement.selected = true;
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Add change event listeners to each dropdown
+        editPanelDropdowns.forEach(dropdown => {
+            if (dropdown) {
+                dropdown.addEventListener('change', updateEditAvailableOptions);
+            }
+        });
+        
+        // Initialize dropdowns when the edit modal is shown
+        document.getElementById('edit-assignments-btn').addEventListener('click', function() {
+            setTimeout(updateEditAvailableOptions, 100);
+        });
+    }
 
     function showAssignmentDetails(assignments, fileData = null) {
         const modal = document.getElementById('assignmentModal');
