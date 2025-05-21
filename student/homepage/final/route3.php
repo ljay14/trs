@@ -283,7 +283,24 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
         exit;
     } else {
-        // Check Route 1 approval status - simplified to only require Route 1 approval
+        // First check if there are any Route 1 forms assigned
+        $totalStmt = $conn->prepare("
+            SELECT COUNT(*) as total_count 
+            FROM final_monitoring_form 
+            WHERE student_id = ? 
+            AND route1_id IS NOT NULL
+        ");
+        if (!$totalStmt) {
+            die("Error preparing statement: " . $conn->error);
+        }
+        $totalStmt->bind_param("s", $student_id);
+        $totalStmt->execute();
+        $totalResult = $totalStmt->get_result();
+        $totalRow = $totalResult->fetch_assoc();
+        $route1TotalCount = (int)$totalRow['total_count'];
+        $totalStmt->close();
+        
+        // Then check how many are approved
         $stmt = $conn->prepare("
             SELECT COUNT(*) as approved_count 
             FROM final_monitoring_form 
@@ -301,11 +318,11 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         $route1ApprovedCount = (int)$row['approved_count'];
         $stmt->close();
 
-        // Allow upload if at least one Route 1 form is approved
-        $allowUpload = ($route1ApprovedCount > 0);
+        // Only allow upload if ALL assigned Route 1 forms are approved
+        $allowUpload = ($route1TotalCount > 0 && $route1ApprovedCount == $route1TotalCount);
 
         if (!$allowUpload) {
-            echo "<script>alert('You need at least one Route 1 approval before uploading to Route 3.'); window.history.back();</script>";
+            echo "<script>alert('You need approval on ALL Route 1 forms before uploading to Route 3.'); window.history.back();</script>";
             exit;
         }
 
@@ -1427,7 +1444,7 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath, disableReupload, disableReason) {
-            if (disableReupload === true) {
+            if (disableReupload === 'true') {
                 alert("Cannot reupload file. " + disableReason + ".");
                 return;
             }

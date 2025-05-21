@@ -822,7 +822,7 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Department</th>
+                        
                                 <th>Minutes</th>
                                 <th>Assigned</th>
                                 <th class='action-label'>Action</th>
@@ -896,7 +896,7 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-                    <td><?= $department ?></td>
+                    
                     <td>
                         <?php 
                         $minutesStatus = $file['minutes'] ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';

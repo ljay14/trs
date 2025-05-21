@@ -944,7 +944,7 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Department</th>
+                                <th>Minutes</th>
                                 <th>Assigned</th>
                                 <th>Status</th>
                                 <th class='action-label'>Action</th>
@@ -962,7 +962,8 @@ if (isset($selectedDepartment)) {
                     $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
                     $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
                     $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
-                    
+                    $minutes = htmlspecialchars($file['minutes'] ?? '', ENT_QUOTES);
+
                     // Check the approval status of all routes
                     $routeStatus = checkAllRoutesApproved($conn, $student_id);
                     
@@ -1063,7 +1064,12 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-                    <td><?= $file['department'] ?></td>
+                    <td>
+                        <?php 
+                        $minutesStatus = $file['minutes'] ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                        echo $minutesStatus;
+                        ?>
+                    </td>
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
@@ -1080,6 +1086,9 @@ if (isset($selectedDepartment)) {
                     </td>
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['finaldocu_id'] ?? '' ?>')">View</button>
+                        <?php if (isset($file['minutes']) && !empty($file['minutes'])): ?>
+                        <button type="button" class="view-button" style="background-color:rgb(59, 119, 169);" onclick="viewMinutes('<?= $file['minutes'] ?>')">View Minutes</button>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -1602,6 +1611,37 @@ if (isset($selectedDepartment)) {
         modal.style.display = "none";
         document.getElementById("fileModalContent").innerHTML = '';
         document.getElementById("routingForm").innerHTML = '';
+    }
+
+    // Function to view minutes
+    function viewMinutes(minutesUrl) {
+        const modal = document.getElementById("fileModal");
+        const contentArea = document.getElementById("fileModalContent");
+        const routingFormArea = document.getElementById("routingForm");
+
+        modal.style.display = "flex";
+        contentArea.innerHTML = "Loading minutes file...";
+        routingFormArea.innerHTML = ""; // Clear the routing form section
+        
+        // Check the file extension to determine how to display it
+        const extension = minutesUrl.split('.').pop().toLowerCase();
+        
+        if (extension === "pdf") {
+            contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
+        } else if (extension === "docx") {
+            fetch(minutesUrl)
+                .then((response) => response.arrayBuffer())
+                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                .then((result) => {
+                    contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`;
+                })
+                .catch((err) => {
+                    console.error("Error viewing minutes:", err);
+                    contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Failed to display the minutes file. Please try again later.</p></div>";
+                });
+        } else {
+            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type for minutes.</p></div>";
+        }
     }
 
     // Modify the update form to use AJAX for submission

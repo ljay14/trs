@@ -100,12 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
 function checkAllRoutesApproved($conn, $student_id) {
     // Check Route 1 status
     $route1Approved = false;
+    
     // First check if there are any Route 1 forms
     $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route1_id IS NOT NULL
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 1' OR routeNumber = 'route 1' OR routeNumber = 'ROUTE 1')
     ");
     $totalStmt->bind_param("s", $student_id);
     $totalStmt->execute();
@@ -116,11 +117,11 @@ function checkAllRoutesApproved($conn, $student_id) {
 
     // Then check how many are approved
     $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route1_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 1' OR routeNumber = 'route 1' OR routeNumber = 'ROUTE 1')
+        AND (status = 'Approved' OR status = 'approved' OR status = 'APPROVED')
     ");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
@@ -136,12 +137,13 @@ function checkAllRoutesApproved($conn, $student_id) {
 
     // Check Route 2 status
     $route2Approved = false;
+    
     // First check if there are any Route 2 forms
     $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route2_id IS NOT NULL
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 2' OR routeNumber = 'route 2' OR routeNumber = 'ROUTE 2')
     ");
     $totalStmt->bind_param("s", $student_id);
     $totalStmt->execute();
@@ -152,11 +154,11 @@ function checkAllRoutesApproved($conn, $student_id) {
 
     // Then check how many are approved
     $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route2_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 2' OR routeNumber = 'route 2' OR routeNumber = 'ROUTE 2')
+        AND (status = 'Approved' OR status = 'approved' OR status = 'APPROVED')
     ");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
@@ -172,12 +174,13 @@ function checkAllRoutesApproved($conn, $student_id) {
 
     // Check Route 3 status
     $route3Approved = false;
+    
     // First check if there are any Route 3 forms
     $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route3_id IS NOT NULL
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 3' OR routeNumber = 'route 3' OR routeNumber = 'ROUTE 3')
     ");
     $totalStmt->bind_param("s", $student_id);
     $totalStmt->execute();
@@ -188,11 +191,11 @@ function checkAllRoutesApproved($conn, $student_id) {
 
     // Then check how many are approved
     $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count
-        FROM final_monitoring_form
-        WHERE student_id = ?
-        AND route3_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND (routeNumber = 'Route 3' OR routeNumber = 'route 3' OR routeNumber = 'ROUTE 3')
+        AND (status = 'Approved' OR status = 'approved' OR status = 'APPROVED')
     ");
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
@@ -205,12 +208,43 @@ function checkAllRoutesApproved($conn, $student_id) {
         $route3Approved = ($route3_total > 0 && $route3_approved_count == $route3_total);
     }
     $stmt->close();
+    
+    // Use custom logic for all_approved: if all forms in all routes that have submissions are approved
+    $all_routes_approved = true;
+    
+    // Only require Route 1 approval if there are any Route 1 forms
+    if ($route1_total > 0 && !$route1Approved) {
+        $all_routes_approved = false;
+    }
+    
+    // Only require Route 2 approval if there are any Route 2 forms
+    if ($route2_total > 0 && !$route2Approved) {
+        $all_routes_approved = false;
+    }
+    
+    // Only require Route 3 approval if there are any Route 3 forms
+    if ($route3_total > 0 && !$route3Approved) {
+        $all_routes_approved = false;
+    }
+    
+    // Fix for when counts match but route isn't considered approved
+    if ($route1_total > 0 && $route1_approved_count == $route1_total) {
+        $route1Approved = true;
+    }
+    
+    if ($route2_total > 0 && $route2_approved_count == $route2_total) {
+        $route2Approved = true;
+    }
+    
+    if ($route3_total > 0 && $route3_approved_count == $route3_total) {
+        $route3Approved = true;
+    }
 
     return [
         'route1' => $route1Approved,
         'route2' => $route2Approved,
         'route3' => $route3Approved,
-        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
+        'all_approved' => $all_routes_approved,
         'route1_counts' => [
             'total' => $route1_total,
             'approved' => $route1_approved_count

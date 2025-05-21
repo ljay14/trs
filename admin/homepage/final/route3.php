@@ -743,7 +743,7 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Department</th>
+                                
                                 <th>Assigned</th>
                                 <th class='action-label'>Action</th>
                             </tr>
@@ -816,7 +816,7 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-                    <td><?= $department ?></td>
+                    
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(

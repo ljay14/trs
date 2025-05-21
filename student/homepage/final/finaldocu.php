@@ -585,11 +585,19 @@ function checkAllRoutesApproved($conn, $student_id) {
     }
     $stmt->close();
 
+    // Check if any route has forms but is not approved
+    $has_pending_routes = false;
+    
+    // Only consider routes with forms assigned
+    if ($route1_total > 0 && !$route1Approved) $has_pending_routes = true;
+    if ($route2_total > 0 && !$route2Approved) $has_pending_routes = true;
+    if ($route3_total > 0 && !$route3Approved) $has_pending_routes = true;
+    
     return [
         'route1' => $route1Approved,
         'route2' => $route2Approved,
         'route3' => $route3Approved,
-        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
+        'all_approved' => !$has_pending_routes,
         'route1_counts' => [
             'total' => $route1_total,
             'approved' => $route1_approved_count
