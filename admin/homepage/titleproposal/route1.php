@@ -911,9 +911,10 @@ if (isset($selectedDepartment)) {
             justify-content: space-between;
             border-right: 1px solid var(--border);
             position: sticky;
-            top: 0;
-            height: 100vh;
+            top: 52px; /* Updated to account for the top bar height */
+            height: calc(100vh - 52px); /* Adjusted to account for the top bar */
             overflow-y: auto;
+            z-index: 90; /* Add z-index to ensure proper stacking */
         }
     </style>
 </head>

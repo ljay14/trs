@@ -1,5 +1,15 @@
 // Simpler sidebar management to ensure consistent behavior
 document.addEventListener('DOMContentLoaded', function() {
+    // Ensure sidebar is sticky across all pages
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.style.position = 'sticky';
+        sidebar.style.top = '52px'; // Updated to account for top bar height
+        sidebar.style.height = 'calc(100vh - 52px)'; // Adjusted height
+        sidebar.style.overflowY = 'auto';
+        sidebar.style.zIndex = '90'; // Add z-index for proper stacking
+    }
+    
     const menuHeaders = document.querySelectorAll('.menu-header');
     const path = window.location.pathname;
     

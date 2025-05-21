@@ -152,6 +152,10 @@ $result = $conn->query($sql);
             flex-direction: column;
             justify-content: space-between;
             border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
         }
 
         .menu-section {

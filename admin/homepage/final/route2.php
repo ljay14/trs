@@ -556,7 +556,7 @@ if (isset($selectedDepartment)) {
         </header>
 
         <!-- Top Navigation Bar -->
-        <div class="top-bar">
+        <div class="top-bar" style="position: sticky; top: 0; z-index: 100;">
             <div class="navigation">
                 <div class="homepage">
                     <a href="../homepage.php">Home Page</a>
