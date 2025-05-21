@@ -282,55 +282,73 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
         echo "<script>alert('No account found with the provided ID number.'); window.history.back();</script>";
         exit;
     } else {
-        // Check Route 1 approval status
-        // Only check rows that are actually Route 1
-        $stmt = $conn->prepare("SELECT status, route2_id FROM proposal_monitoring_form WHERE student_id = ?");
-        if (!$stmt) {
-            die("Error preparing statement: " . $conn->error);
-        }
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $stmt->bind_result($status, $route2_id);
-
-        // Check
-        $allowUpload = true;
-        while ($stmt->fetch()) {
-            if ($status != 'Approved') {
-                if (empty($route2_id)) {
-                    // Meaning it's NOT Route 3, still pending => NOT allowed
-                    $allowUpload = false;
-                    break;
-                }
-            }
-        }
-        $stmt->close();
-
-        // Replace with clearer logic that only requires Route 1 approval
-        $stmt = $conn->prepare("
-            SELECT COUNT(*) as approved_count 
-            FROM proposal_monitoring_form 
-            WHERE student_id = ? 
-            AND route1_id IS NOT NULL 
-            AND (status = 'Approved' OR status = 'approved')
-        ");
-        if (!$stmt) {
-            die("Error preparing statement: " . $conn->error);
-        }
-        $stmt->bind_param("s", $student_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $route1ApprovedCount = (int)$row['approved_count'];
-        $stmt->close();
-
-        // Allow upload if at least one Route 1 form is approved
-        $allowUpload = ($route1ApprovedCount > 0);
-
-        if (!$allowUpload) {
-            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 and Route 2 submissions.'); window.history.back();</script>";
+        // First get the route1 information to determine how many approvals are required
+        $route1Stmt = $conn->prepare("SELECT route1_id, adviser_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id 
+                                      FROM route1proposal_files WHERE student_id = ?");
+        $route1Stmt->bind_param("s", $student_id);
+        $route1Stmt->execute();
+        $route1Result = $route1Stmt->get_result();
+        
+        if ($route1Result->num_rows == 0) {
+            echo "<script>alert('You must complete Route 1 first before proceeding to Route 3.'); window.history.back();</script>";
             exit;
         }
-        // Proceed with file upload if Route 1 is approved
+        
+        $route1Row = $route1Result->fetch_assoc();
+        $route1_id = $route1Row['route1_id'];
+        $adviser_id = $route1Row['adviser_id'];
+        
+        // Count how many panels are assigned (not null)
+        $requiredApprovals = 1; // Start with 1 for adviser
+        if (!empty($route1Row['panel1_id'])) $requiredApprovals++;
+        if (!empty($route1Row['panel2_id'])) $requiredApprovals++;
+        if (!empty($route1Row['panel3_id'])) $requiredApprovals++;
+        if (!empty($route1Row['panel4_id'])) $requiredApprovals++;
+        if (!empty($route1Row['panel5_id'])) $requiredApprovals++;
+        
+        $route1Stmt->close();
+        
+        // Now count how many approvals have been received for route1
+        $approvalStmt = $conn->prepare("
+            SELECT COUNT(*) as approved_count 
+            FROM proposal_monitoring_form 
+            WHERE route1_id = ? 
+            AND status = 'approved'
+        ");
+        $approvalStmt->bind_param("i", $route1_id);
+        $approvalStmt->execute();
+        $approvalResult = $approvalStmt->get_result();
+        $approvalRow = $approvalResult->fetch_assoc();
+        $route1ApprovedCount = (int)$approvalRow['approved_count'];
+        $approvalStmt->close();
+        
+        // Check if the adviser specifically has approved
+        $adviserApprovalStmt = $conn->prepare("
+            SELECT COUNT(*) as adviser_approved 
+            FROM proposal_monitoring_form 
+            WHERE route1_id = ? 
+            AND adviser_id = ?
+            AND status = 'approved'
+        ");
+        $adviserApprovalStmt->bind_param("ii", $route1_id, $adviser_id);
+        $adviserApprovalStmt->execute();
+        $adviserResult = $adviserApprovalStmt->get_result();
+        $adviserRow = $adviserResult->fetch_assoc();
+        $adviserApproved = (int)$adviserRow['adviser_approved'] > 0;
+        $adviserApprovalStmt->close();
+        
+        // Debug info
+        error_log("Route3 Upload Check: Student ID: $student_id, Required Approvals: $requiredApprovals, Actual Approvals: $route1ApprovedCount, Adviser Approved: " . ($adviserApproved ? "Yes" : "No"));
+        
+        // Allow upload only if all required approvals are in place and adviser has approved
+        $allowUpload = ($route1ApprovedCount >= $requiredApprovals) && $adviserApproved;
+        
+        if (!$allowUpload) {
+            echo "<script>alert('You cannot proceed to Route 3 until all panels and adviser approve your Route 1 submission.'); window.history.back();</script>";
+            exit;
+        }
+        
+        // Proceed with file upload if all Route 1 approvals are in place
         $fileTmpPath = $_FILES["docuRoute3"]["tmp_name"];
         $fileName = $_FILES["docuRoute3"]["name"];
         $uploadDir = "../../../uploads/";
@@ -366,7 +384,18 @@ if (isset($_FILES["docuRoute3"]) && $_FILES["docuRoute3"]["error"] == UPLOAD_ERR
                 $panelStmt->close();
 
                 if (!isset($panel1_id)) {
-                    echo "<script>alert('Route 1 and Route 2 information not found. Please complete Route 1 and Route 2 first.'); window.history.back();</script>";
+                    echo "<script>alert('Route 1 information not found. Please complete Route 1 first.'); window.history.back();</script>";
+                    exit;
+                }
+
+                // Check if at least one panel ID is assigned
+                $hasPanelAssigned = false;
+                if (!empty($panel1_id) || !empty($panel2_id) || !empty($panel3_id) || !empty($panel4_id) || !empty($panel5_id)) {
+                    $hasPanelAssigned = true;
+                }
+                
+                if (!$hasPanelAssigned) {
+                    echo "<script>alert('You cannot upload for Route 3 because no panel members have been assigned yet. Please contact the administrator.'); window.history.back();</script>";
                     exit;
                 }
 

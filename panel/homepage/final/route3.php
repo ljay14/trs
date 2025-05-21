@@ -39,17 +39,16 @@ if ($result->num_rows > 0) {
     
     // Check if adviser has reviewed the document first
     $adviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
-                                   WHERE route3_id = ? AND adviser_id IS NOT NULL 
-                                   AND (status = 'Approved' OR status = 'approved')");
+                                   WHERE route3_id = ? AND adviser_id IS NOT NULL");
     $adviserCheck->bind_param("i", $route3_id);
     $adviserCheck->execute();
     $adviserResult = $adviserCheck->get_result();
     $adviserData = $adviserResult->fetch_assoc();
-    $route3_approved = ($adviserData['count'] > 0);
+    $route3_advised = ($adviserData['count'] > 0);
     $adviserCheck->close();
     
-    // If route3 is not approved, check if route2 was approved for this student
-    if (!$route3_approved) {
+    // If route3 is not advised, check if route2 was submitted by adviser for this student
+    if (!$route3_advised) {
         // Get route2_id for this student
         $route2Check = $conn->prepare("SELECT route2_id FROM route2final_files WHERE student_id = ?");
         $route2Check->bind_param("s", $student_id);
@@ -59,26 +58,25 @@ if ($result->num_rows > 0) {
         if ($route2Result && $route2Row = $route2Result->fetch_assoc()) {
             $route2_id = $route2Row['route2_id'];
             
-            // Check if route2 was approved
-            $route2ApprovalCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
-                                                  WHERE route2_id = ? AND adviser_id IS NOT NULL 
-                                                  AND (status = 'Approved' OR status = 'approved')");
-            $route2ApprovalCheck->bind_param("i", $route2_id);
-            $route2ApprovalCheck->execute();
-            $route2ApprovalResult = $route2ApprovalCheck->get_result();
-            $route2_approved = ($route2ApprovalResult && $route2ApprovalResult->fetch_assoc()['count'] > 0);
-            $route2ApprovalCheck->close();
+            // Check if route2 has any adviser submission
+            $route2AdviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                              WHERE route2_id = ? AND adviser_id IS NOT NULL");
+            $route2AdviserCheck->bind_param("i", $route2_id);
+            $route2AdviserCheck->execute();
+            $route2AdviserResult = $route2AdviserCheck->get_result();
+            $route2_advised = ($route2AdviserResult && $route2AdviserResult->fetch_assoc()['count'] > 0);
+            $route2AdviserCheck->close();
             
-            if ($route2_approved) {
-                // If route2 was approved, no need to show alert
-                $route3_approved = true;
+            if ($route2_advised) {
+                // If route2 has adviser submission, allow panel access
+                $route3_advised = true;
             }
         }
         $route2Check->close();
     }
     
-    // Only show alert if no approval in either route
-    if (!$route3_approved) {
+    // Only show alert if no adviser submission in either route
+    if (!$route3_advised) {
         // Display message that adviser needs to review first
         echo "<script>alert('The adviser must review this document first before panel members can access it.');</script>";
     }
@@ -921,38 +919,49 @@ input[type="checkbox"] {
             $result = $stmt->get_result();
             $files_to_display = [];
 
-            // For each file, check if adviser approved final route2
+            // For each file, check if adviser approved either route2 or route3
             if ($result->num_rows > 0) {
                 while($row = $result->fetch_assoc()) {
                     $student_id = $row['student_id'];
                     $route3_id = $row['route3_id'];
                     $can_display = false;
                     
-                    // Only check final route2 approval - ignore route3 status
-                    // Get route2_id
-                    $get_route2 = $conn->prepare("SELECT route2_id FROM route2final_files WHERE student_id = ?");
-                    $get_route2->bind_param("s", $student_id);
-                    $get_route2->execute();
-                    $route2_result = $get_route2->get_result();
+                    // Check if route3 has any adviser submission
+                    $check_route3 = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                  WHERE route3_id = ? AND adviser_id IS NOT NULL");
+                    $check_route3->bind_param("i", $route3_id);
+                    $check_route3->execute();
+                    $route3_result = $check_route3->get_result();
+                    $route3_advised = ($route3_result && $route3_result->fetch_assoc()['count'] > 0);
+                    $check_route3->close();
                     
-                    if ($route2_result && $route2_row = $route2_result->fetch_assoc()) {
-                        $route2_id = $route2_row['route2_id'];
+                    if ($route3_advised) {
+                        $can_display = true;
+                    } else {
+                        // Get route2_id
+                        $get_route2 = $conn->prepare("SELECT route2_id FROM route2final_files WHERE student_id = ?");
+                        $get_route2->bind_param("s", $student_id);
+                        $get_route2->execute();
+                        $route2_result = $get_route2->get_result();
                         
-                        // Check if final route2 was approved
-                        $check_route2 = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
-                                                      WHERE route2_id = ? AND adviser_id IS NOT NULL 
-                                                      AND (status = 'Approved' OR status = 'approved')");
-                        $check_route2->bind_param("i", $route2_id);
-                        $check_route2->execute();
-                        $route2_result = $check_route2->get_result();
-                        $route2_approved = ($route2_result && $route2_result->fetch_assoc()['count'] > 0);
-                        $check_route2->close();
-                        
-                        if ($route2_approved) {
-                            $can_display = true;
+                        if ($route2_result && $route2_row = $route2_result->fetch_assoc()) {
+                            $route2_id = $route2_row['route2_id'];
+                            
+                            // Check if route2 has any adviser submission
+                            $check_route2 = $conn->prepare("SELECT COUNT(*) as count FROM final_monitoring_form 
+                                                          WHERE route2_id = ? AND adviser_id IS NOT NULL");
+                            $check_route2->bind_param("i", $route2_id);
+                            $check_route2->execute();
+                            $route2_result = $check_route2->get_result();
+                            $route2_advised = ($route2_result && $route2_result->fetch_assoc()['count'] > 0);
+                            $check_route2->close();
+                            
+                            if ($route2_advised) {
+                                $can_display = true;
+                            }
                         }
+                        $get_route2->close();
                     }
-                    $get_route2->close();
                     
                     if ($can_display) {
                         $files_to_display[] = $row;

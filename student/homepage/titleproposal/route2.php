@@ -360,6 +360,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['csrf_token'], $_POS
                         exit;
                     }
 
+                    // Check if at least one panel ID is assigned
+                    $hasPanelAssigned = false;
+                    if (!empty($panel1_id) || !empty($panel2_id) || !empty($panel3_id) || !empty($panel4_id) || !empty($panel5_id)) {
+                        $hasPanelAssigned = true;
+                    }
+                    
+                    if (!$hasPanelAssigned) {
+                        echo "<script>alert('You cannot upload for Route 2 because no panel members have been assigned yet. Please contact the administrator.'); window.history.back();</script>";
+                        exit;
+                    }
+
                     // Get current date/time
                     $date_submitted = date("Y-m-d H:i:s");
 

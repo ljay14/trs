@@ -2160,3 +2160,291 @@
 
 [2025-05-21 06:12:31] PHPMailer [2]: SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-231d4e98054sm84307545ad.137 - gsmtp
 
+[2025-05-21 17:21:17] PHPMailer [2]: SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:17] PHPMailer [1]: CLIENT -> SERVER: EHLO localhost
+
+[2025-05-21 17:21:17] PHPMailer [2]: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [120.28.252.91]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+[2025-05-21 17:21:17] PHPMailer [1]: CLIENT -> SERVER: STARTTLS
+
+[2025-05-21 17:21:18] PHPMailer [2]: SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+[2025-05-21 17:21:18] PHPMailer [1]: CLIENT -> SERVER: EHLO localhost
+
+[2025-05-21 17:21:18] PHPMailer [2]: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [120.28.252.91]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+[2025-05-21 17:21:18] PHPMailer [1]: CLIENT -> SERVER: AUTH LOGIN
+
+[2025-05-21 17:21:18] PHPMailer [2]: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+[2025-05-21 17:21:18] PHPMailer [1]: CLIENT -> SERVER: [credentials hidden]
+[2025-05-21 17:21:18] PHPMailer [2]: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+[2025-05-21 17:21:18] PHPMailer [1]: CLIENT -> SERVER: [credentials hidden]
+[2025-05-21 17:21:19] PHPMailer [2]: SERVER -> CLIENT: 235 2.7.0 Accepted
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: MAIL FROM:<lokolomi14@gmail.com>
+
+[2025-05-21 17:21:19] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.0 OK d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: RCPT TO:<lokolomi143@gmail.com>
+
+[2025-05-21 17:21:19] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.5 OK d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: DATA
+
+[2025-05-21 17:21:19] PHPMailer [2]: SERVER -> CLIENT: 354 Go ahead d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Date: Wed, 21 May 2025 17:21:17 +0200
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: To: Kenneth Barrera <lokolomi143@gmail.com>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: From: Thesis Routing System <lokolomi14@gmail.com>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Reply-To: Thesis Routing System <lokolomi14@gmail.com>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Subject: Panel Assignment Notification - Thesis Routing System
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Message-ID: <iKdIZyXM4623mAnAFVyV7bhCpuaMXRnlAgqwTGIc2k@localhost>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: X-Mailer: PHPMailer 6.10.0 (https://github.com/PHPMailer/PHPMailer)
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: X-Mailer: Thesis Routing System
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: X-Priority: 3
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: MIME-Version: 1.0
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Content-Type: multipart/alternative;
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:  boundary="b1=_iKdIZyXM4623mAnAFVyV7bhCpuaMXRnlAgqwTGIc2k"
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Content-Transfer-Encoding: 8bit
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: --b1=_iKdIZyXM4623mAnAFVyV7bhCpuaMXRnlAgqwTGIc2k
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Content-Type: text/plain; charset=us-ascii
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Dear Kenneth Barrera, You have been assigned as Panel 1 for the thesis '123' by 123. Please login at: http://localhost/TRS/panel/ to review the proposal.
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: --b1=_iKdIZyXM4623mAnAFVyV7bhCpuaMXRnlAgqwTGIc2k
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: Content-Type: text/html; charset=us-ascii
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p>Dear <strong>Kenneth Barrera</strong>,</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p>You have been assigned as <strong>Panel 1</strong> for the following thesis:</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p><strong>Student:</strong> 123</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p><strong>Title:</strong> 123</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p>Please log in to the Thesis Routing System to review the proposal.</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <div style='margin-top: 30px; text-align: center;'>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                     <a href='http://localhost/TRS/panel/' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 </div>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='http://localhost/TRS/panel/'>http://localhost/TRS/panel/</a></p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:             </div>
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER:         
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: --b1=_iKdIZyXM4623mAnAFVyV7bhCpuaMXRnlAgqwTGIc2k--
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 17:21:19] PHPMailer [1]: CLIENT -> SERVER: .
+
+[2025-05-21 17:21:20] PHPMailer [2]: SERVER -> CLIENT: 250 2.0.0 OK  1747840879 d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:21] PHPMailer [1]: CLIENT -> SERVER: RSET
+
+[2025-05-21 17:21:21] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.5 Flushed d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 17:21:21] PHPMailer [1]: CLIENT -> SERVER: QUIT
+
+[2025-05-21 17:21:21] PHPMailer [2]: SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-231d4adbfd6sm94537305ad.67 - gsmtp
+
+[2025-05-21 18:16:40] PHPMailer [2]: SERVER -> CLIENT: 220 smtp.gmail.com ESMTP d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:40] PHPMailer [1]: CLIENT -> SERVER: EHLO localhost
+
+[2025-05-21 18:16:40] PHPMailer [2]: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [120.28.219.55]
+250-SIZE 35882577
+250-8BITMIME
+250-STARTTLS
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+[2025-05-21 18:16:40] PHPMailer [1]: CLIENT -> SERVER: STARTTLS
+
+[2025-05-21 18:16:41] PHPMailer [2]: SERVER -> CLIENT: 220 2.0.0 Ready to start TLS
+
+[2025-05-21 18:16:41] PHPMailer [1]: CLIENT -> SERVER: EHLO localhost
+
+[2025-05-21 18:16:41] PHPMailer [2]: SERVER -> CLIENT: 250-smtp.gmail.com at your service, [120.28.219.55]
+250-SIZE 35882577
+250-8BITMIME
+250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+250-ENHANCEDSTATUSCODES
+250-PIPELINING
+250-CHUNKING
+250 SMTPUTF8
+
+[2025-05-21 18:16:41] PHPMailer [1]: CLIENT -> SERVER: AUTH LOGIN
+
+[2025-05-21 18:16:41] PHPMailer [2]: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+[2025-05-21 18:16:41] PHPMailer [1]: CLIENT -> SERVER: [credentials hidden]
+[2025-05-21 18:16:41] PHPMailer [2]: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+[2025-05-21 18:16:41] PHPMailer [1]: CLIENT -> SERVER: [credentials hidden]
+[2025-05-21 18:16:42] PHPMailer [2]: SERVER -> CLIENT: 235 2.7.0 Accepted
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: MAIL FROM:<lokolomi14@gmail.com>
+
+[2025-05-21 18:16:42] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.0 OK d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: RCPT TO:<123@smccnasipit.edu.ph>
+
+[2025-05-21 18:16:42] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.5 OK d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: DATA
+
+[2025-05-21 18:16:42] PHPMailer [2]: SERVER -> CLIENT: 354 Go ahead d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Date: Wed, 21 May 2025 18:16:40 +0200
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: To: 123 <123@smccnasipit.edu.ph>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: From: Thesis Routing System <lokolomi14@gmail.com>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Reply-To: Thesis Routing System <lokolomi14@gmail.com>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Subject: Panel Assignment Notification - Thesis Routing System
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Message-ID: <iFkU293EhbJMav3WPBBw6Ou3OrUUC86xFckBzZo@localhost>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: X-Mailer: PHPMailer 6.10.0 (https://github.com/PHPMailer/PHPMailer)
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: X-Mailer: Thesis Routing System
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: X-Priority: 3
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: MIME-Version: 1.0
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Content-Type: multipart/alternative;
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:  boundary="b1=_iFkU293EhbJMav3WPBBw6Ou3OrUUC86xFckBzZo"
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Content-Transfer-Encoding: 8bit
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: --b1=_iFkU293EhbJMav3WPBBw6Ou3OrUUC86xFckBzZo
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Content-Type: text/plain; charset=us-ascii
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Dear 123, You have been assigned as Panel 1 for the thesis '123' by 123. Please login at: http://localhost/TRS/panel/ to review the proposal.
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: --b1=_iFkU293EhbJMav3WPBBw6Ou3OrUUC86xFckBzZo
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: Content-Type: text/html; charset=us-ascii
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p>Dear <strong>123</strong>,</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p>You have been assigned as <strong>Panel 1</strong> for the following thesis:</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p><strong>Student:</strong> 123</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p><strong>Title:</strong> 123</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p>Please log in to the Thesis Routing System to review the proposal.</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <div style='margin-top: 30px; text-align: center;'>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                     <a href='http://localhost/TRS/panel/' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 </div>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='http://localhost/TRS/panel/'>http://localhost/TRS/panel/</a></p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:             </div>
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER:         
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: --b1=_iFkU293EhbJMav3WPBBw6Ou3OrUUC86xFckBzZo--
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: 
+
+[2025-05-21 18:16:42] PHPMailer [1]: CLIENT -> SERVER: .
+
+[2025-05-21 18:16:43] PHPMailer [2]: SERVER -> CLIENT: 250 2.0.0 OK  1747844202 d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:43] PHPMailer [1]: CLIENT -> SERVER: RSET
+
+[2025-05-21 18:16:43] PHPMailer [2]: SERVER -> CLIENT: 250 2.1.5 Flushed d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+
+[2025-05-21 18:16:43] PHPMailer [1]: CLIENT -> SERVER: QUIT
+
+[2025-05-21 18:16:44] PHPMailer [2]: SERVER -> CLIENT: 221 2.0.0 closing connection d2e1a72fcca58-742a9877056sm10053781b3a.143 - gsmtp
+

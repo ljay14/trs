@@ -196,132 +196,159 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["docuRoute1"]) && iss
     $student_id = $_SESSION['student_id'];
     $oldFilePath = $_POST['old_file_path'];
     
-    // Check if there are any form submissions for this file
-    $formSubmissionStmt = $conn->prepare("SELECT COUNT(*) as submission_count FROM proposal_monitoring_form WHERE student_id = ? AND routeNumber = '1'");
-    $formSubmissionStmt->bind_param("s", $student_id);
-    $formSubmissionStmt->execute();
-    $formSubmissionResult = $formSubmissionStmt->get_result();
-    $submissionRow = $formSubmissionResult->fetch_assoc();
-    $submissionCount = (int)$submissionRow['submission_count'];
-    $formSubmissionStmt->close();
+    // First get the route1_id for this file path
+    $routeIdStmt = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ? AND docuRoute1 = ?");
+    $routeIdStmt->bind_param("ss", $student_id, $oldFilePath);
+    $routeIdStmt->execute();
+    $routeIdResult = $routeIdStmt->get_result();
     
-    // Check for any approved submissions
-    $approvalStmt = $conn->prepare("SELECT COUNT(*) as approval_count FROM proposal_monitoring_form WHERE student_id = ? AND status = 'approved'");
-    $approvalStmt->bind_param("s", $student_id);
-    $approvalStmt->execute();
-    $approvalResult = $approvalStmt->get_result();
-    $approvalRow = $approvalResult->fetch_assoc();
-    $approvalCount = (int)$approvalRow['approval_count'];
-    $approvalStmt->close();
-    
-    // Add debug information to error log
-    error_log("Route 1 Reupload Check: Student ID: $student_id, Submissions: $submissionCount, Approvals: $approvalCount");
-    
-    // Only block reupload if there are ACTUAL submissions or approvals
-    $blockReupload = false;
-    $blockReason = "";
-    
-    if ($submissionCount > 0) {
-        $blockReupload = true;
-        $blockReason = "This file already has routing form submissions from adviser or panel members";
-    } elseif ($approvalCount > 0) {
-        $blockReupload = true;
-        $blockReason = "This file already has approved submissions";
-    }
-    
-    if ($blockReupload) {
-        $alertMessage = "Cannot reupload: $blockReason.";
-        $_SESSION['alert_message'] = $alertMessage;
-        header("Location: route1.php");
-        exit;
-    }
-    
-    // Continue with reupload if no form submissions
-    // Check if old file exists in database
-    $stmt = $conn->prepare("SELECT r.route1_id, r.title, r.fullname, r.adviser_id 
+    if ($routeIdResult->num_rows > 0) {
+        $routeIdRow = $routeIdResult->fetch_assoc();
+        $route1_id = $routeIdRow['route1_id'];
+        $routeIdStmt->close();
+        
+        // Check if there are any form submissions from adviser for this specific route1_id
+        $formSubmissionStmt = $conn->prepare("SELECT COUNT(*) as submission_count FROM proposal_monitoring_form WHERE route1_id = ? AND adviser_id IS NOT NULL");
+        $formSubmissionStmt->bind_param("i", $route1_id);
+        $formSubmissionStmt->execute();
+        $formSubmissionResult = $formSubmissionStmt->get_result();
+        $submissionRow = $formSubmissionResult->fetch_assoc();
+        $submissionCount = (int)$submissionRow['submission_count'];
+        $formSubmissionStmt->close();
+        
+        // Also check for any submissions (even non-adviser ones) as a fallback
+        $allSubmissionsStmt = $conn->prepare("SELECT COUNT(*) as all_submissions_count FROM proposal_monitoring_form WHERE student_id = ? AND routeNumber = '1'");
+        $allSubmissionsStmt->bind_param("s", $student_id);
+        $allSubmissionsStmt->execute();
+        $allSubmissionsResult = $allSubmissionsStmt->get_result();
+        $allSubmissionsRow = $allSubmissionsResult->fetch_assoc();
+        $allSubmissionsCount = (int)$allSubmissionsRow['all_submissions_count'];
+        $allSubmissionsStmt->close();
+        
+        // Check for any approved submissions
+        $approvalStmt = $conn->prepare("SELECT COUNT(*) as approval_count FROM proposal_monitoring_form WHERE student_id = ? AND status = 'approved'");
+        $approvalStmt->bind_param("s", $student_id);
+        $approvalStmt->execute();
+        $approvalResult = $approvalStmt->get_result();
+        $approvalRow = $approvalResult->fetch_assoc();
+        $approvalCount = (int)$approvalRow['approval_count'];
+        $approvalStmt->close();
+        
+        // Add debug information to error log
+        error_log("Route 1 Reupload Check: Student ID: $student_id, Route1 ID: $route1_id, Adviser Submissions: $submissionCount, All Submissions: $allSubmissionsCount, Approvals: $approvalCount");
+        
+        // Block reupload based on checks
+        $blockReupload = false;
+        $blockReason = "";
+        
+        if ($submissionCount > 0) {
+            $blockReupload = true;
+            $blockReason = "This file already has routing form submissions from adviser";
+        } elseif ($allSubmissionsCount > 0) {
+            $blockReupload = true;
+            $blockReason = "This file already has routing form submissions";
+        } elseif ($approvalCount > 0) {
+            $blockReupload = true;
+            $blockReason = "This file already has approved submissions";
+        }
+        
+        if ($blockReupload) {
+            $alertMessage = "Cannot reupload: $blockReason.";
+            $_SESSION['alert_message'] = $alertMessage;
+            header("Location: route1.php");
+            exit;
+        }
+        
+        // Continue with reupload if no blocking condition is met
+        // Check if old file exists in database
+        $stmt = $conn->prepare("SELECT r.route1_id, r.title, r.fullname, r.adviser_id 
                            FROM route1proposal_files r 
                            WHERE r.student_id = ? AND r.docuRoute1 = ?");
-    $stmt->bind_param("ss", $student_id, $oldFilePath);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $route1_id = $row['route1_id'];
-        $title = $row['title'];
-        $fullname = $row['fullname'];
-        $adviser_id = $row['adviser_id'];
+        $stmt->bind_param("ss", $student_id, $oldFilePath);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
-        // Get adviser name and email from student table
-        $adviserStmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
-        $adviserStmt->bind_param("s", $student_id);
-        $adviserStmt->execute();
-        $adviserResult = $adviserStmt->get_result();
-        if ($adviserResult->num_rows > 0) {
-            $adviserRow = $adviserResult->fetch_assoc();
-            $adviser_name = $adviserRow['adviser'];
-            $adviser_email = $adviserRow['adviser_email'];
-        } else {
-            $adviser_name = "";
-            $adviser_email = "";
-        }
-        $adviserStmt->close();
-        
-        // Process the new file upload
-        $fileTmpPath = $_FILES["docuRoute1"]["tmp_name"];
-        $fileName = $_FILES["docuRoute1"]["name"];
-        $uploadDir = "../../../uploads/";
-        $newFilePath = $uploadDir . basename($fileName);
-        
-        $allowedTypes = [
-            "application/pdf"
-        ];
-        
-        if (in_array($_FILES["docuRoute1"]["type"], $allowedTypes)) {
-            // Delete old file if it exists
-            if (file_exists($oldFilePath)) {
-                unlink($oldFilePath);
-            }
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $route1_id = $row['route1_id'];
+            $title = $row['title'];
+            $fullname = $row['fullname'];
+            $adviser_id = $row['adviser_id'];
             
-            if (move_uploaded_file($fileTmpPath, $newFilePath)) {
-                // Update the database with the new file path
-                $updateStmt = $conn->prepare("UPDATE route1proposal_files SET docuRoute1 = ? WHERE route1_id = ?");
-                $updateStmt->bind_param("si", $newFilePath, $route1_id);
+            // Get adviser name and email from student table
+            $adviserStmt = $conn->prepare("SELECT adviser, adviser_email FROM student WHERE student_id = ?");
+            $adviserStmt->bind_param("s", $student_id);
+            $adviserStmt->execute();
+            $adviserResult = $adviserStmt->get_result();
+            if ($adviserResult->num_rows > 0) {
+                $adviserRow = $adviserResult->fetch_assoc();
+                $adviser_name = $adviserRow['adviser'];
+                $adviser_email = $adviserRow['adviser_email'];
+            } else {
+                $adviser_name = "";
+                $adviser_email = "";
+            }
+            $adviserStmt->close();
+            
+            // Process the new file upload
+            $fileTmpPath = $_FILES["docuRoute1"]["tmp_name"];
+            $fileName = $_FILES["docuRoute1"]["name"];
+            $uploadDir = "../../../uploads/";
+            $newFilePath = $uploadDir . basename($fileName);
+            
+            $allowedTypes = [
+                "application/pdf"
+            ];
+            
+            if (in_array($_FILES["docuRoute1"]["type"], $allowedTypes)) {
+                // Delete old file if it exists
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
                 
-                if ($updateStmt->execute()) {
-                    // Send email notification about reupload
-                    if (!empty($adviser_email)) {
-                        if (isValidEmail($adviser_email)) {
-                        $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
-                        if ($emailSent) {
-                            $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
-                                error_log("Success: Notification email sent to adviser ($adviser_email) for file reupload.");
-                        } else {
-                            $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
-                                error_log("Error: Failed to send notification email to adviser ($adviser_email) for file reupload.");
+                if (move_uploaded_file($fileTmpPath, $newFilePath)) {
+                    // Update the database with the new file path
+                    $updateStmt = $conn->prepare("UPDATE route1proposal_files SET docuRoute1 = ? WHERE route1_id = ?");
+                    $updateStmt->bind_param("si", $newFilePath, $route1_id);
+                    
+                    if ($updateStmt->execute()) {
+                        // Send email notification about reupload
+                        if (!empty($adviser_email)) {
+                            if (isValidEmail($adviser_email)) {
+                            $emailSent = sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title);
+                            if ($emailSent) {
+                                $alertMessage = "File reuploaded successfully and notification email sent to adviser.";
+                                    error_log("Success: Notification email sent to adviser ($adviser_email) for file reupload.");
+                                } else {
+                                    $alertMessage = "File reuploaded successfully but failed to send notification email to adviser.";
+                                    error_log("Error: Failed to send notification email to adviser ($adviser_email) for file reupload.");
+                                }
+                            } else {
+                                $alertMessage = "File reuploaded successfully but adviser email address is invalid.";
+                                error_log("Error: Invalid adviser email address ($adviser_email) for file reupload.");
                             }
                         } else {
-                            $alertMessage = "File reuploaded successfully but adviser email address is invalid.";
-                            error_log("Error: Invalid adviser email address ($adviser_email) for file reupload.");
+                            $alertMessage = "File reuploaded successfully. No adviser email available for notification.";
+                            error_log("Warning: No adviser email available for notification during file reupload.");
                         }
                     } else {
-                        $alertMessage = "File reuploaded successfully. No adviser email available for notification.";
-                        error_log("Warning: No adviser email available for notification during file reupload.");
+                        $alertMessage = "Error updating database: " . $updateStmt->error;
                     }
+                    $updateStmt->close();
                 } else {
-                    $alertMessage = "Error updating database: " . $updateStmt->error;
+                    $alertMessage = "Error moving the uploaded file.";
                 }
-                $updateStmt->close();
             } else {
-                $alertMessage = "Error moving the uploaded file.";
+                $alertMessage = "Invalid file type. Only PDF files are allowed.";
             }
         } else {
-            $alertMessage = "Invalid file type. Only PDF files are allowed.";
+            $alertMessage = "Original file not found in database.";
         }
+        $stmt->close();
     } else {
-        $alertMessage = "Original file not found in database.";
+        $alertMessage = "Record not found or you don't have permission.";
+        $routeIdStmt->close();
     }
-    $stmt->close();
     
     $_SESSION['alert_message'] = $alertMessage;
     header("Location: route1.php");
@@ -1154,6 +1181,7 @@ input[type="checkbox"] {
                         r.group_number,
                         r.title,
                         r.minutes,
+                        (SELECT COUNT(*) FROM proposal_monitoring_form WHERE route1_id = r.route1_id AND adviser_id IS NOT NULL) as adviser_form_count,
                         (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND routeNumber = '1') as form_count,
                         (SELECT COUNT(*) FROM proposal_monitoring_form WHERE student_id = r.student_id AND status = 'approved') as approved_count
                     FROM 
@@ -1190,11 +1218,12 @@ input[type="checkbox"] {
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
                         $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
+                        $adviser_form_count = (int)$row['adviser_form_count'];
                         $form_count = (int)$row['form_count'];
                         $approved_count = (int)$row['approved_count'];
                         
-                        // Add debug info
-                        echo "<!-- Debug: Form Count: $form_count, Approved: $approved_count -->";
+                        // Add more debug information to HTML comment
+                        echo "<!-- Debug: Adviser Form Count: $adviser_form_count, Form Count: $form_count, Approved: $approved_count -->";
                         
                         $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
@@ -1203,17 +1232,25 @@ input[type="checkbox"] {
                         $reuploadTitle = "";
                         
                         // Only check for these if they actually have values
-                        if ($form_count > 0) {
+                        if ($adviser_form_count > 0) {
+                            $disableReupload = true;
+                            $reuploadTitle = "Cannot reupload: File already has routing form submissions from adviser";
+                            echo "<!-- Debug: Disabling reupload because adviser_form_count = $adviser_form_count -->";
+                        } else if ($form_count > 0) {
                             $disableReupload = true;
                             $reuploadTitle = "Cannot reupload: File already has routing form submissions";
+                            echo "<!-- Debug: Disabling reupload because form_count = $form_count -->";
                         } else if ($approved_count > 0) {
                             $disableReupload = true;
                             $reuploadTitle = "Cannot reupload: One or more submissions have been approved";
+                            echo "<!-- Debug: Disabling reupload because approved_count = $approved_count -->";
                         }
                         
+                        echo "<!-- Final disable status: " . ($disableReupload ? "DISABLED" : "NOT DISABLED") . " -->";
+                        
                         $reuploadBtn = $disableReupload 
-                            ? "<button class='delete-button' style='opacity: 0.5; cursor: not-allowed;' title='$reuploadTitle'>Reupload</button>"
-                            : "<button class='delete-button' onclick=\"confirmReupload('$filePath')\">Reupload</button>";
+                            ? "<button class='delete-button reupload-btn' style='opacity: 0.5; cursor: not-allowed;' title='$reuploadTitle' data-disabled='true'>Reupload</button>"
+                            : "<button class='delete-button reupload-btn' onclick=\"confirmReupload('$filePath')\" data-path='$filePath'>Reupload</button>";
                         
                         echo "
                         <tr>
@@ -1561,24 +1598,14 @@ input[type="checkbox"] {
         }
         
         function confirmReupload(filePath) {
-            // Find the reupload button that was clicked
-            const reuploadButtons = document.querySelectorAll(".delete-button");
-            let isDisabled = false;
-            let message = "";
-            
-            // Check if button has disabled styling
-            for (let btn of reuploadButtons) {
-                if (btn.getAttribute("style") && btn.getAttribute("style").includes("opacity: 0.5")) {
-                    if (btn.title) {
-                        isDisabled = true;
-                        message = btn.title;
-                        alert(message);
-                        return;
-                    }
-                }
+            // Check if clicked on disabled button - prevent reupload
+            if (event && event.target && event.target.dataset && event.target.dataset.disabled === 'true') {
+                alert(event.target.title || "Cannot reupload: This file has already been reviewed by adviser");
+                return;
             }
             
-            if (!isDisabled && confirm("Do you want to reupload this file? The current file will be replaced.")) {
+            // If not disabled and doesn't have an onclick handler, handle it here
+            if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
                 document.getElementById("old_file_path").value = filePath;
                 document.getElementById("docuRoute1_reupload").click();
             }
@@ -1605,6 +1632,29 @@ input[type="checkbox"] {
                 }
             </style>
         `);
+
+        // Also add event delegation to handle clicks on all reupload buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('reupload-btn')) {
+                    // If disabled, show message and don't proceed
+                    if (event.target.dataset.disabled === 'true') {
+                        alert(event.target.title || "Cannot reupload: This file has already been reviewed by adviser");
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return false;
+                    }
+                    
+                    // If not disabled and doesn't have an onclick handler, handle it here
+                    if (!event.target.hasAttribute('onclick') && event.target.dataset.path) {
+                        if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
+                            document.getElementById("old_file_path").value = event.target.dataset.path;
+                            document.getElementById("docuRoute1_reupload").click();
+                        }
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -40,17 +40,16 @@ if ($result->num_rows > 0) {
     
     // Check if adviser has reviewed the document first
     $adviserCheck = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
-                                   WHERE finaldocu_id = ? AND adviser_id IS NOT NULL 
-                                   AND (status = 'Approved' OR status = 'approved')");
+                                   WHERE finaldocu_id = ? AND adviser_id IS NOT NULL");
     $adviserCheck->bind_param("i", $finaldocu_id);
     $adviserCheck->execute();
     $adviserResult = $adviserCheck->get_result();
     $adviserData = $adviserResult->fetch_assoc();
-    $finaldocu_approved = ($adviserData['count'] > 0);
+    $finaldocu_advised = ($adviserData['count'] > 0);
     $adviserCheck->close();
     
-    // If finaldocu is not approved, check if route3 was approved for this student
-    if (!$finaldocu_approved) {
+    // If finaldocu is not advised, check if route3 was submitted by adviser for this student
+    if (!$finaldocu_advised) {
         // Get route3_id for this student
         $route3Check = $conn->prepare("SELECT route3_id FROM route3proposal_files WHERE student_id = ?");
         $route3Check->bind_param("s", $student_id);
@@ -60,26 +59,25 @@ if ($result->num_rows > 0) {
         if ($route3Result && $route3Row = $route3Result->fetch_assoc()) {
             $route3_id = $route3Row['route3_id'];
             
-            // Check if route3 was approved
+            // Check if route3 was advised (has adviser submission)
             $route3ApprovalCheck = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
-                                                  WHERE route3_id = ? AND adviser_id IS NOT NULL 
-                                                  AND (status = 'Approved' OR status = 'approved')");
+                                                  WHERE route3_id = ? AND adviser_id IS NOT NULL");
             $route3ApprovalCheck->bind_param("i", $route3_id);
             $route3ApprovalCheck->execute();
             $route3ApprovalResult = $route3ApprovalCheck->get_result();
-            $route3_approved = ($route3ApprovalResult && $route3ApprovalResult->fetch_assoc()['count'] > 0);
+            $route3_advised = ($route3ApprovalResult && $route3ApprovalResult->fetch_assoc()['count'] > 0);
             $route3ApprovalCheck->close();
             
-            if ($route3_approved) {
-                // If route3 was approved, no need to show alert
-                $finaldocu_approved = true;
+            if ($route3_advised) {
+                // If route3 was advised, no need to show alert
+                $finaldocu_advised = true;
             }
         }
         $route3Check->close();
     }
     
-    // Only show alert if no approval in either route
-    if (!$finaldocu_approved) {
+    // Only show alert if no submission in either route
+    if (!$finaldocu_advised) {
         // Display message that adviser needs to review first
         echo "<script>alert('The adviser must review this document first before panel members can access it.');</script>";
     }
@@ -158,6 +156,22 @@ if (isset($_SESSION['panel_id'])) {
 function checkAllRoutesApproved($conn, $student_id) {
     // Check Route 1 status
     $route1Approved = false;
+    
+    // First check if there are any Route 1 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route1_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route1_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
     $stmt = $conn->prepare("
         SELECT COUNT(*) as approved_count 
         FROM proposal_monitoring_form 
@@ -168,14 +182,33 @@ function checkAllRoutesApproved($conn, $student_id) {
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
     $result = $stmt->get_result();
+    $route1_approved_count = 0;
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $route1Approved = ((int)$row['approved_count'] > 0);
+        $route1_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route1Approved = ($route1_total > 0 && $route1_approved_count == $route1_total);
     }
     $stmt->close();
 
     // Check Route 2 status
     $route2Approved = false;
+    
+    // First check if there are any Route 2 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route2_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route2_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
     $stmt = $conn->prepare("
         SELECT COUNT(*) as approved_count 
         FROM proposal_monitoring_form 
@@ -186,14 +219,33 @@ function checkAllRoutesApproved($conn, $student_id) {
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
     $result = $stmt->get_result();
+    $route2_approved_count = 0;
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $route2Approved = ((int)$row['approved_count'] > 0);
+        $route2_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route2Approved = ($route2_total > 0 && $route2_approved_count == $route2_total);
     }
     $stmt->close();
 
     // Check Route 3 status
     $route3Approved = false;
+    
+    // First check if there are any Route 3 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM proposal_monitoring_form 
+        WHERE student_id = ? 
+        AND route3_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route3_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
     $stmt = $conn->prepare("
         SELECT COUNT(*) as approved_count 
         FROM proposal_monitoring_form 
@@ -204,9 +256,12 @@ function checkAllRoutesApproved($conn, $student_id) {
     $stmt->bind_param("s", $student_id);
     $stmt->execute();
     $result = $stmt->get_result();
+    $route3_approved_count = 0;
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $route3Approved = ((int)$row['approved_count'] > 0);
+        $route3_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route3Approved = ($route3_total > 0 && $route3_approved_count == $route3_total);
     }
     $stmt->close();
 
@@ -214,7 +269,19 @@ function checkAllRoutesApproved($conn, $student_id) {
         'route1' => $route1Approved,
         'route2' => $route2Approved,
         'route3' => $route3Approved,
-        'all_approved' => ($route1Approved && $route2Approved && $route3Approved)
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
+        'route1_counts' => [
+            'total' => $route1_total,
+            'approved' => $route1_approved_count
+        ],
+        'route2_counts' => [
+            'total' => $route2_total,
+            'approved' => $route2_approved_count
+        ],
+        'route3_counts' => [
+            'total' => $route3_total,
+            'approved' => $route3_approved_count
+        ]
     ];
 }
 ?>
@@ -943,15 +1010,14 @@ input[type="checkbox"] {
                         
                         // Check finaldocu approval
                         $check_finaldocu = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
-                                                      WHERE finaldocu_id = ? AND adviser_id IS NOT NULL 
-                                                      AND (status = 'Approved' OR status = 'approved')");
+                                                      WHERE finaldocu_id = ? AND adviser_id IS NOT NULL");
                         $check_finaldocu->bind_param("i", $finaldocu_id);
                         $check_finaldocu->execute();
                         $finaldocu_result = $check_finaldocu->get_result();
-                        $finaldocu_approved = ($finaldocu_result && $finaldocu_result->fetch_assoc()['count'] > 0);
+                        $finaldocu_advised = ($finaldocu_result && $finaldocu_result->fetch_assoc()['count'] > 0);
                         $check_finaldocu->close();
                         
-                        if ($finaldocu_approved) {
+                        if ($finaldocu_advised) {
                             $can_display = true;
                         } else {
                             // Get route3_id
@@ -963,17 +1029,16 @@ input[type="checkbox"] {
                             if ($route3_result && $route3_row = $route3_result->fetch_assoc()) {
                                 $route3_id = $route3_row['route3_id'];
                                 
-                                // Check if route3 was approved
+                                // Check if route3 was advised
                                 $check_route3 = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
-                                                              WHERE route3_id = ? AND adviser_id IS NOT NULL 
-                                                              AND (status = 'Approved' OR status = 'approved')");
+                                                              WHERE route3_id = ? AND adviser_id IS NOT NULL");
                                 $check_route3->bind_param("i", $route3_id);
                                 $check_route3->execute();
                                 $route3_result = $check_route3->get_result();
-                                $route3_approved = ($route3_result && $route3_result->fetch_assoc()['count'] > 0);
+                                $route3_advised = ($route3_result && $route3_result->fetch_assoc()['count'] > 0);
                                 $check_route3->close();
                                 
-                                if ($route3_approved) {
+                                if ($route3_advised) {
                                     $can_display = true;
                                 }
                             }
@@ -1027,14 +1092,34 @@ input[type="checkbox"] {
                             $statusLabel = 'Complete';
                             $statusColor = 'green';
                         } else {
-                            // Show which routes are approved
+                            // Show which routes are approved and the approval counts
                             $approvedRoutes = [];
-                            if ($routeStatus['route1']) $approvedRoutes[] = 'Route 1';
-                            if ($routeStatus['route2']) $approvedRoutes[] = 'Route 2';
-                            if ($routeStatus['route3']) $approvedRoutes[] = 'Route 3';
+                            if (isset($routeStatus['route1_counts'])) {
+                                if ($routeStatus['route1']) {
+                                    $approvedRoutes[] = "Route 1 ({$routeStatus['route1_counts']['approved']}/{$routeStatus['route1_counts']['total']})";
+                                } else if ($routeStatus['route1_counts']['total'] > 0) {
+                                    $approvedRoutes[] = "Route 1 ({$routeStatus['route1_counts']['approved']}/{$routeStatus['route1_counts']['total']})";
+                                }
+                            }
+                            
+                            if (isset($routeStatus['route2_counts'])) {
+                                if ($routeStatus['route2']) {
+                                    $approvedRoutes[] = "Route 2 ({$routeStatus['route2_counts']['approved']}/{$routeStatus['route2_counts']['total']})";
+                                } else if ($routeStatus['route2_counts']['total'] > 0) {
+                                    $approvedRoutes[] = "Route 2 ({$routeStatus['route2_counts']['approved']}/{$routeStatus['route2_counts']['total']})";
+                                }
+                            }
+                            
+                            if (isset($routeStatus['route3_counts'])) {
+                                if ($routeStatus['route3']) {
+                                    $approvedRoutes[] = "Route 3 ({$routeStatus['route3_counts']['approved']}/{$routeStatus['route3_counts']['total']})";
+                                } else if ($routeStatus['route3_counts']['total'] > 0) {
+                                    $approvedRoutes[] = "Route 3 ({$routeStatus['route3_counts']['approved']}/{$routeStatus['route3_counts']['total']})";
+                                }
+                            }
                             
                             if (count($approvedRoutes) > 0) {
-                                $statusLabel = 'Approved: ' . implode(', ', $approvedRoutes);
+                                $statusLabel = 'In Progress: ' . implode(', ', $approvedRoutes);
                                 $statusColor = 'orange';
                             } else {
                                 $statusLabel = 'Pending';

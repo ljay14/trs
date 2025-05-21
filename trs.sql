@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 14, 2025 at 02:43 AM
+-- Generation Time: May 21, 2025 at 04:40 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -81,14 +81,20 @@ CREATE TABLE `departmentcourse` (
 --
 
 INSERT INTO `departmentcourse` (`id`, `department`, `course`) VALUES
-(1, 'College of Computing and Information Science', 'BS of Information Technology\'s'),
-(2, 'College of Computing and Information Science', 'BS in Computer Science'),
+(1, 'College of Computing and Information Science', 'Bachelor of Science in Information Technology'),
+(2, 'College of Computing and Information Science', 'Bachelor of Science in Computer Science'),
 (3, 'College of Tourism and Hospitality Management', 'Bachelor of Science in Tourism Management'),
 (4, 'College of Tourism and Hospitality Management', 'Bachelor of Science in Hospitality Management'),
-(5, 'College of Business and Management', 'BSBA - Financial Management'),
-(6, 'College of Business and Management', 'BSBA - Human Resource Management'),
-(7, 'College of Business and Management', 'BSBA - Marketing Management'),
-(8, 'College of Teacher Education', 'Bachelor of Elementary Education');
+(5, 'College of Business and Management', 'Bachelor of Science in Business Administration major in Financial Management'),
+(6, 'College of Business and Management', 'Bachelor of Science in Business Administration major in Human Resource Management'),
+(7, 'College of Business and Management', 'Bachelor of Science in Business Administration major in Marketing Management'),
+(8, 'College of Teacher Education', 'Bachelor of Elementary Education'),
+(9, 'College of Arts and Sciences', 'Bachelor of Arts major in English Language'),
+(10, 'College of Computing and Information Science', 'Bachelor of Science in Information System'),
+(11, 'College of Criminal Justice Education', 'Bachelor of Science in Criminology'),
+(12, 'College of Teacher Education', 'Bachelor of Secondary Education major in English'),
+(13, 'College of Teacher Education', 'Bachelor of Secondary Education major in Science'),
+(14, 'College of Teacher Education', 'Bachelor of Secondary Education major in Social Studies');
 
 -- --------------------------------------------------------
 
@@ -146,15 +152,16 @@ CREATE TABLE `finaldocuproposal_files` (
   `group_number` int(255) NOT NULL,
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
-  `minutes` varchar(255) NOT NULL
+  `minutes` varchar(255) NOT NULL,
+  `routeNumber` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `finaldocuproposal_files`
 --
 
-INSERT INTO `finaldocuproposal_files` (`finaldocu_id`, `student_id`, `finaldocu`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `panel5_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `minutes`) VALUES
-(47, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:42:16', 29, '123', '123', 123, '1234', '2024-2025', '');
+INSERT INTO `finaldocuproposal_files` (`finaldocu_id`, `student_id`, `finaldocu`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `panel5_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `minutes`, `routeNumber`) VALUES
+(47, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:42:16', 29, '123', '123', 123, '1234', '2024-2025', '', '');
 
 -- --------------------------------------------------------
 
@@ -333,15 +340,17 @@ CREATE TABLE `route1proposal_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `minutes` varchar(255) NOT NULL
+  `minutes` varchar(255) NOT NULL,
+  `routeNumber` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `route1proposal_files`
 --
 
-INSERT INTO `route1proposal_files` (`route1_id`, `student_id`, `docuRoute1`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`) VALUES
-(92, 36, '../../../uploads/Certificate_of_Endorsement (4).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07 18:39:36', '123', '123', 123, '1234', '2024-2025', '0', '../../../uploads/minutes/Certificate_of_Endorsement (4).pdf');
+INSERT INTO `route1proposal_files` (`route1_id`, `student_id`, `docuRoute1`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
+(92, 36, '../../../uploads/Certificate_of_Endorsement (4).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07 18:39:36', '123', '123', 123, '1234', '2024-2025', '0', '../../../uploads/minutes/Certificate_of_Endorsement (4).pdf', ''),
+(93, 35, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, 0, 0, 0, 29, 'College of Computing and Information Science', NULL, '123', '123', 123, '123', '2024-2025', '', '../../../uploads/minutes/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '');
 
 -- --------------------------------------------------------
 
@@ -399,15 +408,16 @@ CREATE TABLE `route2proposal_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `minutes` varchar(255) NOT NULL
+  `minutes` varchar(255) NOT NULL,
+  `routeNumber` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `route2proposal_files`
 --
 
-INSERT INTO `route2proposal_files` (`route2_id`, `student_id`, `docuRoute2`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`) VALUES
-(36, '36', '../../../uploads/Certificate_of_Endorsement (5).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:40:17', 29, '123', '123', 123, '1234', '2024-2025', '0', '');
+INSERT INTO `route2proposal_files` (`route2_id`, `student_id`, `docuRoute2`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
+(36, '36', '../../../uploads/Certificate_of_Endorsement (5).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:40:17', 29, '123', '123', 123, '1234', '2024-2025', '0', '', '');
 
 -- --------------------------------------------------------
 
@@ -465,15 +475,16 @@ CREATE TABLE `route3proposal_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `minutes` varchar(255) NOT NULL
+  `minutes` varchar(255) NOT NULL,
+  `routeNumber` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `route3proposal_files`
 --
 
-INSERT INTO `route3proposal_files` (`route3_id`, `student_id`, `docuRoute3`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`) VALUES
-(34, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:41:23', 29, '123', '123', 123, '1234', '2024-2025', '0', '');
+INSERT INTO `route3proposal_files` (`route3_id`, `student_id`, `docuRoute3`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
+(34, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:41:23', 29, '123', '123', 123, '1234', '2024-2025', '0', '', '');
 
 -- --------------------------------------------------------
 
@@ -623,7 +634,7 @@ ALTER TABLE `adviser`
 -- AUTO_INCREMENT for table `departmentcourse`
 --
 ALTER TABLE `departmentcourse`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `finaldocufinal_files`
@@ -665,7 +676,7 @@ ALTER TABLE `route1final_files`
 -- AUTO_INCREMENT for table `route1proposal_files`
 --
 ALTER TABLE `route1proposal_files`
-  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
 
 --
 -- AUTO_INCREMENT for table `route2final_files`
