@@ -986,114 +986,45 @@ if (isset($selectedDepartment)) {
                 <input type="hidden" id="edit-filepath" name="filepath">
                 <input type="hidden" name="update_assignments" value="1">
                 
-                <div class="form-group">
-                    <label for="edit-panel1">Panel 1:</label>
-                    <select id="edit-panel1" name="panel1" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel1'");
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
+                <?php
+                // Function to generate panel dropdown with proper selection and filtering
+                function generatePanelDropdown($conn, $selectedDepartment, $position, $currentPanelId = null) {
+                    $html = "<div class='form-group'>\n";
+                    $html .= "    <label for='edit-{$position}'>" . ucfirst($position) . ":</label>\n";
+                    $html .= "    <select id='edit-{$position}' name='{$position}' class='form-control panel-select' data-position='{$position}'>\n";
+                    $html .= "        <option value=''>None</option>\n";
+                    
+                    if (isset($selectedDepartment)) {
+                        // Get all panels from the department (not filtering by position)
+                        $panelStmt = $conn->prepare("SELECT panel_id, fullname, department, position FROM panel");
+                        $panelStmt->execute();
+                        $panelResult = $panelStmt->get_result();
+                        
+                        while ($row = $panelResult->fetch_assoc()) {
+                            $selected = ($currentPanelId == $row['panel_id']) ? 'selected' : '';
+                            $deptInfo = ($row['department'] != $selectedDepartment) ? ' (' . htmlspecialchars($row['department']) . ')' : '';
+                            $posInfo = $row['position'] ? ' - ' . ucfirst($row['position']) : '';
+                            
+                            $html .= "        <option value='" . htmlspecialchars($row['panel_id']) . "' " . $selected . " data-panel-id='" . htmlspecialchars($row['panel_id']) . "'>\n";
+                            $html .= "            " . htmlspecialchars($row['fullname']) . $deptInfo . $posInfo . "\n";
+                            $html .= "        </option>\n";
                         }
-                        ?>
-                    </select>
-                </div>
+                        $panelStmt->close();
+                    }
+                    
+                    $html .= "    </select>\n";
+                    $html .= "</div>\n";
+                    
+                    return $html;
+                }
                 
-                <div class="form-group">
-                    <label for="edit-panel2">Panel 2:</label>
-                    <select id="edit-panel2" name="panel2" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel3">Panel 3:</label>
-                    <select id="edit-panel3" name="panel3" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel3'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel4">Panel 4:</label>
-                    <select id="edit-panel4" name="panel4" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel4'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel5">Panel 5:</label>
-                    <select id="edit-panel5" name="panel5" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel5'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
+                // Generate dropdowns for all panel positions
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel1');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel2');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel3');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel4');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel5');
+                ?>
                 
                 <div class="form-group">
                     <label for="edit-adviser">Adviser:</label>
@@ -1228,6 +1159,9 @@ if (isset($selectedDepartment)) {
         if (currentEditFile.adviser_id) {
             document.getElementById('edit-adviser').value = currentEditFile.adviser_id;
         }
+        
+        // Filter out already assigned panels
+        filterPanelDropdowns();
     }
 
     function cancelEdit() {
@@ -1432,6 +1366,47 @@ if (isset($selectedDepartment)) {
         document.getElementById("routingForm").innerHTML = '';
     }
 
+    // Function to filter panel dropdowns to prevent duplicates
+    function filterPanelDropdowns() {
+        const panelSelects = document.querySelectorAll('.panel-select');
+        const selectedPanels = [];
+        
+        // First, collect all currently selected panel IDs
+        panelSelects.forEach(select => {
+            if (select.value) {
+                selectedPanels.push({
+                    id: select.value,
+                    position: select.getAttribute('data-position')
+                });
+            }
+        });
+        
+        // Then, for each dropdown, hide options that are selected in other dropdowns
+        panelSelects.forEach(select => {
+            const currentPosition = select.getAttribute('data-position');
+            const currentValue = select.value;
+            
+            // Reset all options to visible first
+            Array.from(select.options).forEach(option => {
+                if (option.value) { // Skip the 'None' option
+                    option.disabled = false;
+                    option.style.display = '';
+                }
+            });
+            
+            // Completely hide options that are selected in other dropdowns
+            selectedPanels.forEach(panel => {
+                if (panel.position !== currentPosition && panel.id !== currentValue) {
+                    const option = select.querySelector(`option[data-panel-id="${panel.id}"]`);
+                    if (option) {
+                        // Completely hide the option instead of just disabling it
+                        option.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
+    
     // Modify the update form to use AJAX for submission
     document.addEventListener('DOMContentLoaded', function() {
         // Check if external-submit-button doesn't exist, and handle that case
@@ -1444,6 +1419,12 @@ if (isset($selectedDepartment)) {
                 panelContainer.style.display = 'none';
             }
         }
+        
+        // Add event listeners to panel dropdowns for filtering
+        const panelSelects = document.querySelectorAll('.panel-select');
+        panelSelects.forEach(select => {
+            select.addEventListener('change', filterPanelDropdowns);
+        });
         
         // Update form for assignments
         const updateForm = document.getElementById('update-assignments-form');

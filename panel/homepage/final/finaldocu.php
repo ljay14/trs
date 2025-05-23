@@ -1168,7 +1168,7 @@ input[type="checkbox"] {
                             }
                             
                             if (count($approvedRoutes) > 0) {
-                                $statusLabel = 'In Progress: ' . implode(', ', $approvedRoutes);
+                                $statusLabel = 'In Progress';
                                 $statusColor = 'orange';
                             } else {
                                 $statusLabel = 'Pending';

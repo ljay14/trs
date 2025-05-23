@@ -148,10 +148,10 @@
         justify-content: space-between;
         border-right: 1px solid var(--border);
         position: sticky;
-        top: 52px; /* Account for top bar height */
-        height: calc(100vh - 52px); /* Adjusted height */
+        top: 52px;
+        height: calc(100vh - 52px);
         overflow-y: auto;
-        z-index: 90; /* Add z-index for proper stacking */
+        z-index: 90;
     }
 
     .menu-section {
@@ -347,31 +347,6 @@
         border: 1px solid var(--border);
         background-color: white;
         text-align: center;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        min-height: 40px;
-    }
-
-    /* Specific style for the feedback cell (3rd column) */
-    .form-grid-container > div:nth-child(9n + 3) {
-        text-align: left;
-        justify-content: flex-start;
-        overflow-y: visible;
-        max-height: none; /* Remove height limit */
-        height: auto; /* Allow height to adjust to content */
-        white-space: pre-wrap; /* Preserve line breaks and spacing */
-    }
-    
-    /* Style for feedback cell class used in JavaScript */
-    .feedback-cell {
-        text-align: left !important;
-        justify-content: flex-start !important;
-        overflow-y: visible !important;
-        max-height: none !important;
-        height: auto !important;
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
     }
 
     .close-button {

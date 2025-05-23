@@ -21,16 +21,6 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
-// Fetch school years
-$schoolYears = [];
-$schoolYearQuery = "SELECT DISTINCT school_year FROM route3final_files ORDER BY school_year DESC";
-$schoolYearResult = $conn->query($schoolYearQuery);
-if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
-    while ($row = $schoolYearResult->fetch_assoc()) {
-        $schoolYears[] = $row['school_year'];
-    }
-}
-
 // Fetch semesters
 $semesters = [];
 $semesterQuery = "SELECT DISTINCT semester FROM student WHERE semester IS NOT NULL AND semester != ''";
@@ -79,28 +69,50 @@ usort($semesters, function($a, $b) {
     return $aOrder - $bOrder;
 });
 
+// Fetch school years
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM route3final_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
+
 // Helper functions to get names from IDs
 function getPanelName($conn, $panel_id) {
     $stmt = $conn->prepare("SELECT fullname FROM panel WHERE panel_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing panel name statement: " . $conn->error);
+        return "";
+    }
     $stmt->bind_param("i", $panel_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        $stmt->close();
         return $row['fullname'];
     }
+    $stmt->close();
     return "";
 }
 
 function getAdviserName($conn, $adviser_id) {
     $stmt = $conn->prepare("SELECT fullname FROM adviser WHERE adviser_id = ?");
+    if ($stmt === false) {
+        error_log("Error preparing adviser name statement: " . $conn->error);
+        return "";
+    }
     $stmt->bind_param("i", $adviser_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
+        $stmt->close();
         return $row['fullname'];
     }
+    $stmt->close();
     return "";
 }
 
@@ -143,38 +155,54 @@ $_SESSION['selected_semester'] = $selectedSemester;
 // Fetch panel data if department is selected
 if (!empty($selectedDepartment)) {
     $panelStmt = $conn->prepare("SELECT * FROM panel WHERE department = ?");
-    $panelStmt->bind_param("s", $selectedDepartment);
-    $panelStmt->execute();
-    $panelResult = $panelStmt->get_result();
-    while ($row = $panelResult->fetch_assoc()) {
-        $panel[$row['position']][] = $row['fullname'];
+    if ($panelStmt === false) {
+        echo "Error preparing panel statement: " . $conn->error;
+    } else {
+        $panelStmt->bind_param("s", $selectedDepartment);
+        $panelStmt->execute();
+        $panelResult = $panelStmt->get_result();
+        while ($row = $panelResult->fetch_assoc()) {
+            $panel[$row['position']][] = $row['fullname'];
+        }
+        $panelStmt->close();
     }
-    $panelStmt->close();
 
     // Fetch adviser data
     $adviserStmt = $conn->prepare("SELECT * FROM adviser WHERE department = ?");
-    $adviserStmt->bind_param("s", $selectedDepartment);
-    $adviserStmt->execute();
-    $adviserResult = $adviserStmt->get_result();
-    while ($row = $adviserResult->fetch_assoc()) {
-        $adviser[] = $row['fullname'];
+    if ($adviserStmt === false) {
+        echo "Error preparing adviser statement: " . $conn->error;
+    } else {
+        $adviserStmt->bind_param("s", $selectedDepartment);
+        $adviserStmt->execute();
+        $adviserResult = $adviserStmt->get_result();
+        while ($row = $adviserResult->fetch_assoc()) {
+            $adviser[] = $row['fullname'];
+        }
+        $adviserStmt->close();
     }
-    $adviserStmt->close();
 }
 
 // Fetch files
+// Create SQL query with placeholders
 $sqlQuery = "SELECT 
-        docuRoute3 AS filepath, 
-        docuRoute3 AS filename, 
-        date_submitted,
-        controlNo,
-        group_number,
-        fullname,
-        title,
-        department,
-        student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id
-     FROM route3final_files 
-     WHERE 1=1";
+    r3.docuRoute3 AS filepath, 
+    r3.docuRoute3 AS filename, 
+    r3.date_submitted,
+    r3.controlNo,
+    r3.group_number,
+    r3.fullname,
+    r3.title,
+    r3.student_id, 
+    r3.panel1_id, 
+    r3.panel2_id, 
+    r3.panel3_id, 
+    r3.panel4_id, 
+    r3.panel5_id, 
+    r3.adviser_id,
+    r3.route3_id,
+    r3.department
+ FROM route3final_files r3
+ WHERE 1=1";
 
 // Create array of parameters (must be variables, not direct values)
 $types = "";
@@ -182,21 +210,21 @@ $params = [];
 
 // Add department filter if selected
 if (!empty($selectedDepartment)) {
-    $sqlQuery .= " AND department = ?";
+    $sqlQuery .= " AND r3.department = ?";
     $types .= "s";
     $params[] = $selectedDepartment;
 }
 
 // Add school year filter if selected
 if (!empty($selectedSchoolYear)) {
-    $sqlQuery .= " AND school_year = ?";
+    $sqlQuery .= " AND r3.school_year = ?";
     $types .= "s";
     $params[] = $selectedSchoolYear;
 }
 
 // Add semester filter if selected
 if (!empty($selectedSemester)) {
-    $sqlQuery .= " AND student_id IN (SELECT student_id FROM student WHERE semester = ?)";
+    $sqlQuery .= " AND r3.student_id IN (SELECT student_id FROM student WHERE semester = ?)";
     $types .= "s";
     $params[] = $selectedSemester;
 }
@@ -217,28 +245,34 @@ if (!empty($params)) {
     call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
 }
 
-$fileStmt->execute();
-$fileResult = $fileStmt->get_result();
-while ($row = $fileResult->fetch_assoc()) {
-    $files[] = [
-        'filepath' => $row['filepath'],
-        'filename' => $row['filename'],
-        'controlNo' => $row['controlNo'],
-        'group_number' => $row['group_number'],
-        'fullname' => $row['fullname'],
-        'student_id' => $row['student_id'],
-        'panel1_id' => $row['panel1_id'],
-        'panel2_id' => $row['panel2_id'],
-        'panel3_id' => $row['panel3_id'],
-        'panel4_id' => $row['panel4_id'],
-        'panel5_id' => $row['panel5_id'],
-        'adviser_id' => $row['adviser_id'],
-        'title' => $row['title'],
-        'department' => $row['department']
-    ];
+if ($fileStmt === false) {
+    // Handle prepare error
+    echo "Error preparing statement: " . $conn->error;
+} else {
+    $fileStmt->execute();
+    $fileResult = $fileStmt->get_result();
+    while ($row = $fileResult->fetch_assoc()) {
+        $files[] = [
+            'filepath' => $row['filepath'],
+            'filename' => $row['filename'],
+            'controlNo' => $row['controlNo'],
+            'group_number' => $row['group_number'],
+            'fullname' => $row['fullname'],
+            'student_id' => $row['student_id'],
+            'panel1_id' => $row['panel1_id'],
+            'panel2_id' => $row['panel2_id'],
+            'panel3_id' => $row['panel3_id'],
+            'panel4_id' => $row['panel4_id'],
+            'panel5_id' => $row['panel5_id'],
+            'adviser_id' => $row['adviser_id'],
+            'title' => $row['title'],
+            'route3_id' => $row['route3_id'],
+            'department' => $row['department']
+        ];
+    }
+    
+    $fileStmt->close();
 }
-
-$fileStmt->close();
 
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
@@ -260,6 +294,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
 
             // Check if the file exists in DB
             $checkStmt = $conn->prepare("SELECT * FROM route3final_files WHERE docuRoute3 = ?");
+            if ($checkStmt === false) {
+                echo "<script>alert('Error preparing check statement: " . $conn->error . "');</script>";
+                continue;
+            }
             $checkStmt->bind_param("s", $fileName);
             $checkStmt->execute();
             $result = $checkStmt->get_result();
@@ -272,6 +310,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 $updatePanelStmt = $conn->prepare("UPDATE route3final_files 
                     SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
                     WHERE docuRoute3 = ?");
+                if ($updatePanelStmt === false) {
+                    echo "<script>alert('Error preparing update statement: " . $conn->error . "');</script>";
+                    continue;
+                }
                 $updatePanelStmt->bind_param("iiiiiss", $panel1, $panel2, $panel3, $panel4, $panel5, $dateNow, $fileName);
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
@@ -301,38 +343,56 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $updateStmt = $conn->prepare("UPDATE route3final_files 
         SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
         WHERE docuRoute3 = ?");
-    $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
     
-    if ($updateStmt->execute()) {
-        // Only show alert if not an AJAX request
+    if ($updateStmt === false) {
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Assignments updated successfully.');</script>";
+            echo "<script>alert('Error preparing update statement: " . $conn->error . "');</script>";
         } else {
-            // For AJAX requests, just return a success message that will be handled by JavaScript
+            // For AJAX requests
             if (!headers_sent()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                echo json_encode(['success' => false, 'message' => 'Error preparing update statement: ' . $conn->error]);
                 exit;
             }
         }
     } else {
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+        $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
+        
+        if ($updateStmt->execute()) {
+            // Only show alert if not an AJAX request
+            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+                echo "<script>alert('Assignments updated successfully.');</script>";
+            } else {
+                // For AJAX requests, just return a success message that will be handled by JavaScript
+                if (!headers_sent()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message' => 'Assignments updated successfully.']);
+                    exit;
+                }
+            }
         } else {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
-                exit;
+            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+                echo "<script>alert('Failed to update assignments: " . $conn->error . "');</script>";
+            } else {
+                if (!headers_sent()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Failed to update assignments: ' . $conn->error]);
+                    exit;
+                }
             }
         }
+        $updateStmt->close();
     }
-    $updateStmt->close();
 }
 
 // Fetch advisers for dropdown
 function getAdvisers($conn, $department) {
     $advisers = [];
     $stmt = $conn->prepare("SELECT adviser_id, fullname FROM adviser WHERE department = ?");
+    if ($stmt === false) {
+        error_log("Error preparing advisers statement: " . $conn->error);
+        return $advisers;
+    }
     $stmt->bind_param("s", $department);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -359,7 +419,7 @@ if (isset($selectedDepartment)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route 3 - Thesis Routing System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <link rel="stylesheet" href="finalstyle.css">
+    <link rel="stylesheet" href="proposalstyle.css">
     <style>
         /* Add styles for the search bar */
         .search-container {
@@ -405,7 +465,9 @@ if (isset($selectedDepartment)) {
             cursor: pointer;
             font-weight: bold;
         }
-
+        .action-label {
+    text-align: center;
+}
         #external-submit-button:hover {
             background-color: #45a049;
         }
@@ -442,9 +504,7 @@ if (isset($selectedDepartment)) {
         cursor: pointer;
         text-decoration: none;
     }
-    .action-label {
-    text-align: center;
-}
+
     .assignment-modal-close:hover,
     .assignment-modal-close:focus {
         color: black;
@@ -550,6 +610,17 @@ if (isset($selectedDepartment)) {
 /* Style to fix the panel buttons */
 .assignment-button {
     white-space: nowrap;
+}
+
+.form-input-row textarea {
+    resize: vertical;
+    min-height: 40px;
+}
+
+/* CSS Animation for spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
     </style>
 </head>
@@ -743,7 +814,6 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                
                                 <th>Assigned</th>
                                 <th class='action-label'>Action</th>
                             </tr>
@@ -816,7 +886,8 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-                    
+          
+
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
@@ -833,7 +904,7 @@ if (isset($selectedDepartment)) {
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="7" style="text-align: center;">No files found.</td>
+                <td colspan="8" style="text-align: center;">No files found.</td>
             </tr>
         <?php endif; ?>
     </tbody>
@@ -862,6 +933,8 @@ if (isset($selectedDepartment)) {
         </div>
     </div>
 
+
+
     <div id="assignmentModal" class="assignment-modal">
     <div class="assignment-modal-content">
         <span class="assignment-modal-close" onclick="closeAssignmentModal()">&times;</span>
@@ -887,114 +960,45 @@ if (isset($selectedDepartment)) {
                 <input type="hidden" id="edit-filepath" name="filepath">
                 <input type="hidden" name="update_assignments" value="1">
                 
-                <div class="form-group">
-                    <label for="edit-panel1">Panel 1:</label>
-                    <select id="edit-panel1" name="panel1" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel1'");
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
+                <?php
+                // Function to generate panel dropdown with proper selection and filtering
+                function generatePanelDropdown($conn, $selectedDepartment, $position, $currentPanelId = null) {
+                    $html = "<div class='form-group'>\n";
+                    $html .= "    <label for='edit-{$position}'>" . ucfirst($position) . ":</label>\n";
+                    $html .= "    <select id='edit-{$position}' name='{$position}' class='form-control panel-select' data-position='{$position}'>\n";
+                    $html .= "        <option value=''>None</option>\n";
+                    
+                    if (isset($selectedDepartment)) {
+                        // Get all panels from the department (not filtering by position)
+                        $panelStmt = $conn->prepare("SELECT panel_id, fullname, department, position FROM panel");
+                        $panelStmt->execute();
+                        $panelResult = $panelStmt->get_result();
+                        
+                        while ($row = $panelResult->fetch_assoc()) {
+                            $selected = ($currentPanelId == $row['panel_id']) ? 'selected' : '';
+                            $deptInfo = ($row['department'] != $selectedDepartment) ? ' (' . htmlspecialchars($row['department']) . ')' : '';
+                            $posInfo = $row['position'] ? ' - ' . ucfirst($row['position']) : '';
+                            
+                            $html .= "        <option value='" . htmlspecialchars($row['panel_id']) . "' " . $selected . " data-panel-id='" . htmlspecialchars($row['panel_id']) . "'>\n";
+                            $html .= "            " . htmlspecialchars($row['fullname']) . $deptInfo . $posInfo . "\n";
+                            $html .= "        </option>\n";
                         }
-                        ?>
-                    </select>
-                </div>
+                        $panelStmt->close();
+                    }
+                    
+                    $html .= "    </select>\n";
+                    $html .= "</div>\n";
+                    
+                    return $html;
+                }
                 
-                <div class="form-group">
-                    <label for="edit-panel2">Panel 2:</label>
-                    <select id="edit-panel2" name="panel2" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel3">Panel 3:</label>
-                    <select id="edit-panel3" name="panel3" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel3'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel4">Panel 4:</label>
-                    <select id="edit-panel4" name="panel4" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel4'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-panel5">Panel 5:</label>
-                    <select id="edit-panel5" name="panel5" class="form-control">
-                        <option value="">None</option>
-                        <?php
-                        if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel5'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
-                            $panelStmt->execute();
-                            $panelResult = $panelStmt->get_result();
-                            while ($row = $panelResult->fetch_assoc()):
-                            ?>
-                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
-                                </option>
-                            <?php endwhile;
-                            $panelStmt->close();
-                        }
-                        ?>
-                    </select>
-                </div>
+                // Generate dropdowns for all panel positions
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel1');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel2');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel3');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel4');
+                echo generatePanelDropdown($conn, $selectedDepartment, 'panel5');
+                ?>
                 
                 <div class="form-group">
                     <label for="edit-adviser">Adviser:</label>
@@ -1129,6 +1133,9 @@ if (isset($selectedDepartment)) {
         if (currentEditFile.adviser_id) {
             document.getElementById('edit-adviser').value = currentEditFile.adviser_id;
         }
+        
+        // Filter out already assigned panels
+        filterPanelDropdowns();
     }
 
     function cancelEdit() {
@@ -1162,7 +1169,7 @@ if (isset($selectedDepartment)) {
         ]), ENT_QUOTES) ?>
     )"
     */
-    function viewFile(filePath, student_id, route3_id) {
+    function viewFile(filePath, student_id,route3_id) {
         const modal = document.getElementById("fileModal");
         const contentArea = document.getElementById("fileModalContent");
         const routingFormArea = document.getElementById("routingForm");
@@ -1170,48 +1177,48 @@ if (isset($selectedDepartment)) {
         modal.style.display = "flex";
         contentArea.innerHTML = "Loading file...";
         routingFormArea.innerHTML = `
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-        <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
-        <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
-        <div style="text-align: center;">
-            <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
-            <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="../../../assets/logo.png" style="width: 40px; max-width: 100px;">
+            <img src="../../../assets/smcc-reslogo.png" style="width: 50px; max-width: 100px;">
+            <div style="text-align: center;">
+                <h4 style="margin: 0;">SAINT MICHAEL COLLEGE OF CARAGA</h4>
+                <h4 style="margin: 0;">RESEARCH & INSTRUCTIONAL INNOVATION DEPARTMENT</h4>
+            </div>
+            <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
         </div>
-        <img src="../../../assets/socotec.png" style="width: 60px; max-width: 100px;">
+        <button id="printButton" style="background-color: var(--primary); color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+                <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            </svg>
+            Print Form
+        </button>
     </div>
-    <button id="printButton" style="background-color: var(--primary); color: white; border: none; border-radius: 4px; padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
-            <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
-        </svg>
-        Print Form
-    </button>
-</div>
-<hr style="border: 1px solid black; margin: 0.2rem 0;">
-<div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
-<h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
-</div>
+    <hr style="border: 1px solid black; margin: 0.2rem 0;">
+    <div style="margin-top: 1rem; margin-bottom: 30px; display: flex; justify-content: center; align-items: center;">
+        <h4 style="margin: 0;">ROUTING MONITORING FORM</h4>
+    </div>
 
-<!-- Header row for submitted forms -->
-<div class="form-grid-container" style="margin-top: 20px;">
-<div><strong>Date Submitted</strong></div>
-<div><strong>Chapter</strong></div>
-<div><strong>Feedback</strong></div>
-<div><strong>Paragraph No</strong></div>
-<div><strong>Page No</strong></div>
-<div><strong>Submitted By</strong></div>
-<div><strong>Date Released</strong></div>
-<div><strong>Status</strong></div>
-<div><strong>Route Number</strong></div>
-</div>
+    <!-- Header row for submitted forms -->
+    <div class="form-grid-container" style="margin-top: 20px;">
+        <div><strong>Date Submitted</strong></div>
+        <div><strong>Chapter</strong></div>
+        <div><strong>Feedback</strong></div>
+        <div><strong>Paragraph No</strong></div>
+        <div><strong>Page No</strong></div>
+        <div><strong>Submitted By</strong></div>
+        <div><strong>Date Released</strong></div>
+        <div><strong>Status</strong></div>
+        <div><strong>Route Number</strong></div>
+    </div>
 
-<!-- Container for submitted form data -->
-<div id="submittedFormsContainer" class="form-grid-container"></div>
-<div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
+    <!-- Container for submitted form data -->
+    <div id="submittedFormsContainer" class="form-grid-container"></div>
+    <div id="noFormsMessage" style="margin-top: 10px; color: gray;"></div>
 `;
 
-        // Load form data dynamically
+        // Load form data dynamically 
         fetch(`route3get_all_forms.php?student_id=${encodeURIComponent(student_id)}&route3_id=${encodeURIComponent(route3_id)}`)
             .then(res => res.json())
             .then(data => {
@@ -1222,6 +1229,7 @@ if (isset($selectedDepartment)) {
                     rowsContainer.innerHTML = `<div style="grid-column: span 9; text-align: center;">No routing form data available.</div>`;
                     return;
                 }
+                
                 data.forEach(row => {
                     let submittedBy = "N/A";
                     if (row.adviser_name) {
@@ -1352,6 +1360,47 @@ if (isset($selectedDepartment)) {
         document.getElementById("routingForm").innerHTML = '';
     }
 
+    // Function to filter panel dropdowns to prevent duplicates
+    function filterPanelDropdowns() {
+        const panelSelects = document.querySelectorAll('.panel-select');
+        const selectedPanels = [];
+        
+        // First, collect all currently selected panel IDs
+        panelSelects.forEach(select => {
+            if (select.value) {
+                selectedPanels.push({
+                    id: select.value,
+                    position: select.getAttribute('data-position')
+                });
+            }
+        });
+        
+        // Then, for each dropdown, hide options that are selected in other dropdowns
+        panelSelects.forEach(select => {
+            const currentPosition = select.getAttribute('data-position');
+            const currentValue = select.value;
+            
+            // Reset all options to visible first
+            Array.from(select.options).forEach(option => {
+                if (option.value) { // Skip the 'None' option
+                    option.disabled = false;
+                    option.style.display = '';
+                }
+            });
+            
+            // Completely hide options that are selected in other dropdowns
+            selectedPanels.forEach(panel => {
+                if (panel.position !== currentPosition && panel.id !== currentValue) {
+                    const option = select.querySelector(`option[data-panel-id="${panel.id}"]`);
+                    if (option) {
+                        // Completely hide the option instead of just disabling it
+                        option.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
+    
     // Modify the update form to use AJAX for submission
     document.addEventListener('DOMContentLoaded', function() {
         // Check if external-submit-button doesn't exist, and handle that case
@@ -1364,6 +1413,12 @@ if (isset($selectedDepartment)) {
                 panelContainer.style.display = 'none';
             }
         }
+        
+        // Add event listeners to panel dropdowns for filtering
+        const panelSelects = document.querySelectorAll('.panel-select');
+        panelSelects.forEach(select => {
+            select.addEventListener('change', filterPanelDropdowns);
+        });
         
         // Update form for assignments
         const updateForm = document.getElementById('update-assignments-form');
@@ -1535,5 +1590,7 @@ if (isset($selectedDepartment)) {
             });
         }
     });
+
+
 </script>
 <script src="../sidebar.js"></script>

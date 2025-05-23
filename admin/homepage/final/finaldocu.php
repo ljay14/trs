@@ -21,158 +21,6 @@ if ($deptResult->num_rows > 0) {
     }
 }
 
-// Add a function to check if all routes are approved for a student
-function checkAllRoutesApproved($conn, $student_id) {
-    // Check Route 1 status
-    $route1Approved = false;
-        
-    // First check if there are any Route 1 forms
-    $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ? 
-        AND route1_id IS NOT NULL
-    ");
-    $totalStmt->bind_param("s", $student_id);
-    $totalStmt->execute();
-    $result = $totalStmt->get_result();
-    $totalRow = $result->fetch_assoc();
-    $route1_total = (int)$totalRow['total_count'];
-    $totalStmt->close();
-        
-    // Then check how many are approved
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ?
-        AND route1_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
-    ");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $route1_approved_count = 0;
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $route1_approved_count = (int)$row['approved_count'];
-        // Only mark as approved if ALL forms are approved
-        $route1Approved = ($route1_total > 0 && $route1_approved_count == $route1_total);
-    }
-    $stmt->close();
-        
-    // Check Route 2 status
-    $route2Approved = false;
-        
-    // First check if there are any Route 2 forms
-    $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ?
-        AND route2_id IS NOT NULL
-    ");
-    $totalStmt->bind_param("s", $student_id);
-    $totalStmt->execute();
-    $result = $totalStmt->get_result();
-    $totalRow = $result->fetch_assoc();
-    $route2_total = (int)$totalRow['total_count'];
-    $totalStmt->close();
-        
-    // Then check how many are approved
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ?
-        AND route2_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
-    ");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $route2_approved_count = 0;
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $route2_approved_count = (int)$row['approved_count'];
-        // Only mark as approved if ALL forms are approved
-        $route2Approved = ($route2_total > 0 && $route2_approved_count == $route2_total);
-    }
-    $stmt->close();
-        
-    // Check Route 3 status
-    $route3Approved = false;
-        
-    // First check if there are any Route 3 forms
-    $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ?
-        AND route3_id IS NOT NULL
-    ");
-    $totalStmt->bind_param("s", $student_id);
-    $totalStmt->execute();
-    $result = $totalStmt->get_result();
-    $totalRow = $result->fetch_assoc();
-    $route3_total = (int)$totalRow['total_count'];
-    $totalStmt->close();
-        
-    // Then check how many are approved
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as approved_count 
-        FROM final_monitoring_form 
-        WHERE student_id = ?
-        AND route3_id IS NOT NULL
-        AND (status = 'Approved' OR status = 'approved')
-    ");
-    $stmt->bind_param("s", $student_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $route3_approved_count = 0;
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $route3_approved_count = (int)$row['approved_count'];
-        // Only mark as approved if ALL forms are approved
-        $route3Approved = ($route3_total > 0 && $route3_approved_count == $route3_total);
-    }
-    $stmt->close();
-        
-    // Create array of approved routes for status display
-    $approvedRoutes = [];
-    if ($route1Approved) $approvedRoutes[] = "Route 1";
-    if ($route2Approved) $approvedRoutes[] = "Route 2";
-    if ($route3Approved) $approvedRoutes[] = "Route 3";
-        
-    // Return results
-    return [
-        'route1_approved' => $route1Approved,
-        'route2_approved' => $route2Approved,
-        'route3_approved' => $route3Approved,
-        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
-        'approved_routes' => $approvedRoutes,
-        'approved_count' => count($approvedRoutes),
-        'route1_counts' => [
-            'total' => $route1_total,
-            'approved' => $route1_approved_count
-        ],
-        'route2_counts' => [
-            'total' => $route2_total,
-            'approved' => $route2_approved_count
-        ],
-        'route3_counts' => [
-            'total' => $route3_total,
-            'approved' => $route3_approved_count
-        ]
-    ];
-}
-
-// Fetch school years
-$schoolYears = [];
-$schoolYearQuery = "SELECT DISTINCT school_year FROM finaldocufinal_files ORDER BY school_year DESC";
-$schoolYearResult = $conn->query($schoolYearQuery);
-if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
-    while ($row = $schoolYearResult->fetch_assoc()) {
-        $schoolYears[] = $row['school_year'];
-    }
-}
-
 // Fetch semesters
 $semesters = [];
 $semesterQuery = "SELECT DISTINCT semester FROM student WHERE semester IS NOT NULL AND semester != ''";
@@ -220,6 +68,158 @@ usort($semesters, function($a, $b) {
     $bOrder = isset($order[strtolower(trim($b))]) ? $order[strtolower(trim($b))] : 999;
     return $aOrder - $bOrder;
 });
+
+// Add a function to check if all routes are approved for a student
+function checkAllRoutesApproved($conn, $student_id) {
+    // Check Route 1 status
+    $route1Approved = false;
+        
+    // First check if there are any Route 1 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ? 
+        AND route1_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route1_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ?
+        AND route1_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $route1_approved_count = 0;
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route1_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route1Approved = ($route1_total > 0 && $route1_approved_count == $route1_total);
+    }
+    $stmt->close();
+    
+    // Check Route 2 status
+    $route2Approved = false;
+    
+    // First check if there are any Route 2 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ?
+        AND route2_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route2_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ?
+        AND route2_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $route2_approved_count = 0;
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route2_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route2Approved = ($route2_total > 0 && $route2_approved_count == $route2_total);
+    }
+    $stmt->close();
+    
+    // Check Route 3 status
+    $route3Approved = false;
+    
+    // First check if there are any Route 3 forms
+    $totalStmt = $conn->prepare("
+        SELECT COUNT(*) as total_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ?
+        AND route3_id IS NOT NULL
+    ");
+    $totalStmt->bind_param("s", $student_id);
+    $totalStmt->execute();
+    $result = $totalStmt->get_result();
+    $totalRow = $result->fetch_assoc();
+    $route3_total = (int)$totalRow['total_count'];
+    $totalStmt->close();
+    
+    // Then check how many are approved
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM final_monitoring_form 
+        WHERE student_id = ?
+        AND route3_id IS NOT NULL
+        AND (status = 'Approved' OR status = 'approved')
+    ");
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $route3_approved_count = 0;
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $route3_approved_count = (int)$row['approved_count'];
+        // Only mark as approved if ALL forms are approved
+        $route3Approved = ($route3_total > 0 && $route3_approved_count == $route3_total);
+    }
+    $stmt->close();
+    
+    // Create array of approved routes for status display
+    $approvedRoutes = [];
+    if ($route1Approved) $approvedRoutes[] = "Route 1";
+    if ($route2Approved) $approvedRoutes[] = "Route 2";
+    if ($route3Approved) $approvedRoutes[] = "Route 3";
+    
+    // Return results
+    return [
+        'route1_approved' => $route1Approved,
+        'route2_approved' => $route2Approved,
+        'route3_approved' => $route3Approved,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
+        'approved_routes' => $approvedRoutes,
+        'approved_count' => count($approvedRoutes),
+        'route1_counts' => [
+            'total' => $route1_total,
+            'approved' => $route1_approved_count
+        ],
+        'route2_counts' => [
+            'total' => $route2_total,
+            'approved' => $route2_approved_count
+        ],
+        'route3_counts' => [
+            'total' => $route3_total,
+            'approved' => $route3_approved_count
+        ]
+    ];
+}
+
+// Fetch school years
+$schoolYears = [];
+$schoolYearQuery = "SELECT DISTINCT school_year FROM finaldocufinal_files ORDER BY school_year DESC";
+$schoolYearResult = $conn->query($schoolYearQuery);
+if ($schoolYearResult && $schoolYearResult->num_rows > 0) {
+    while ($row = $schoolYearResult->fetch_assoc()) {
+        $schoolYears[] = $row['school_year'];
+    }
+}
 
 // Helper functions to get names from IDs
 function getPanelName($conn, $panel_id) {
@@ -325,26 +325,26 @@ if (!empty($selectedDepartment)) {
 }
 
 // Fetch files
+// Create SQL query with placeholders
 $sqlQuery = "SELECT 
-        fd.finaldocu AS filepath, 
-        fd.finaldocu AS filename, 
-        fd.date_submitted,
-        fd.controlNo,
-        fd.group_number,
-        fd.fullname,
-        fd.title,
-        fd.department,
-        fd.student_id, 
-        fd.panel1_id, 
-        fd.panel2_id, 
-        fd.panel3_id, 
-        fd.panel4_id, 
-        fd.panel5_id, 
-        fd.adviser_id,
-        fd.finaldocu_id
-     FROM finaldocufinal_files fd
-     LEFT JOIN route1final_files r1 ON fd.student_id = r1.student_id
-     WHERE 1=1";
+    fd.finaldocu AS filepath, 
+    fd.finaldocu AS filename, 
+    fd.date_submitted,
+    fd.controlNo,
+    fd.group_number,
+    fd.fullname,
+    fd.title,
+    fd.student_id, 
+    fd.panel1_id, 
+    fd.panel2_id, 
+    fd.panel3_id, 
+    fd.panel4_id, 
+    fd.panel5_id, 
+    fd.adviser_id,
+    fd.finaldocu_id,
+    fd.department
+ FROM finaldocufinal_files fd
+ WHERE 1=1";
 
 // Create array of parameters (must be variables, not direct values)
 $types = "";
@@ -373,24 +373,24 @@ if (!empty($selectedSemester)) {
 
 $fileStmt = $conn->prepare($sqlQuery);
 
+// Correctly bind parameters by reference if there are any parameters
+if (!empty($params)) {
+    $bind_params = array();
+    $bind_params[] = &$types; // First parameter is always the types string
+    
+    // Add references to each parameter
+    for ($i = 0; $i < count($params); $i++) {
+        $bind_params[] = &$params[$i];
+    }
+    
+    // Call bind_param with references
+    call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
+}
+
 if ($fileStmt === false) {
     // Handle prepare error
     echo "Error preparing statement: " . $conn->error;
 } else {
-    // Correctly bind parameters by reference
-    if (!empty($params)) {
-        $bind_params = array();
-        $bind_params[] = &$types; // First parameter is always the types string
-        
-        // Add references to each parameter
-        for ($i = 0; $i < count($params); $i++) {
-            $bind_params[] = &$params[$i];
-        }
-        
-        // Call bind_param with references
-        call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
-    }
-    
     $fileStmt->execute();
     $fileResult = $fileStmt->get_result();
     while ($row = $fileResult->fetch_assoc()) {
@@ -408,8 +408,8 @@ if ($fileStmt === false) {
             'panel5_id' => $row['panel5_id'],
             'adviser_id' => $row['adviser_id'],
             'title' => $row['title'],
-            'finaldocu_id' => $row['finaldocu_id']
-            
+            'finaldocu_id' => $row['finaldocu_id'],
+            'department' => $row['department']
         ];
     }
     
@@ -547,7 +547,7 @@ if (isset($selectedDepartment)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Final Document - Thesis Routing System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <link rel="stylesheet" href="finalstyle.css">
+    <link rel="stylesheet" href="proposalstyle.css">
     <style>
         /* Add styles for the search bar */
         .search-container {
@@ -941,7 +941,6 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-                                <th>Department</th>
                                 <th>Assigned</th>
                                 <th>Status</th>
                                 <th class='action-label'>Action</th>
@@ -959,7 +958,8 @@ if (isset($selectedDepartment)) {
                     $fullname = htmlspecialchars($file['fullname'] ?? '', ENT_QUOTES);
                     $student_id = htmlspecialchars($file['student_id'] ?? '', ENT_QUOTES);
                     $title = htmlspecialchars($file['title'] ?? '', ENT_QUOTES);
-                    
+                    $minutes = htmlspecialchars($file['minutes'] ?? '', ENT_QUOTES);
+
                     // Check the approval status of all routes
                     $routeStatus = checkAllRoutesApproved($conn, $student_id);
                     
@@ -998,7 +998,7 @@ if (isset($selectedDepartment)) {
                         }
                         
                         if (count($approvedRoutes) > 0) {
-                            $statusLabel = 'In Progress: ' . implode(', ', $approvedRoutes);
+                            $statusLabel = 'In Progress';
                             $statusColor = 'orange';
                         } else {
                             $statusLabel = 'Pending';
@@ -1060,7 +1060,7 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-                    <td><?= $file['department'] ?></td>
+
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
@@ -1600,6 +1600,8 @@ if (isset($selectedDepartment)) {
         document.getElementById("fileModalContent").innerHTML = '';
         document.getElementById("routingForm").innerHTML = '';
     }
+
+
 
     // Modify the update form to use AJAX for submission
     document.addEventListener('DOMContentLoaded', function() {
