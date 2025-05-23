@@ -1391,7 +1391,7 @@ if (isset($selectedDepartment)) {
                         <option value="">None</option>
                         <?php
                         if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel WHERE position = 'panel1'");
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
                             $panelStmt->execute();
                             $panelResult = $panelStmt->get_result();
                             while ($row = $panelResult->fetch_assoc()):
@@ -1412,14 +1412,13 @@ if (isset($selectedDepartment)) {
                         <option value="">None</option>
                         <?php
                         if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel2'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
                             $panelStmt->execute();
                             $panelResult = $panelStmt->get_result();
                             while ($row = $panelResult->fetch_assoc()):
                             ?>
                                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
+                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                                 </option>
                             <?php endwhile;
                             $panelStmt->close();
@@ -1434,14 +1433,13 @@ if (isset($selectedDepartment)) {
                         <option value="">None</option>
                         <?php
                         if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel3'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
                             $panelStmt->execute();
                             $panelResult = $panelStmt->get_result();
                             while ($row = $panelResult->fetch_assoc()):
                             ?>
                                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
+                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                                 </option>
                             <?php endwhile;
                             $panelStmt->close();
@@ -1456,14 +1454,13 @@ if (isset($selectedDepartment)) {
                         <option value="">None</option>
                         <?php
                         if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel4'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
                             $panelStmt->execute();
                             $panelResult = $panelStmt->get_result();
                             while ($row = $panelResult->fetch_assoc()):
                             ?>
                                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
+                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                                 </option>
                             <?php endwhile;
                             $panelStmt->close();
@@ -1478,14 +1475,13 @@ if (isset($selectedDepartment)) {
                         <option value="">None</option>
                         <?php
                         if (isset($selectedDepartment)) {
-                            $panelStmt = $conn->prepare("SELECT panel_id, fullname FROM panel WHERE department = ? AND position = 'panel5'");
-                            $panelStmt->bind_param("s", $selectedDepartment);
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
                             $panelStmt->execute();
                             $panelResult = $panelStmt->get_result();
                             while ($row = $panelResult->fetch_assoc()):
                             ?>
                                 <option value="<?= htmlspecialchars($row['panel_id']) ?>">
-                                    <?= htmlspecialchars($row['fullname']) ?>
+                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
                                 </option>
                             <?php endwhile;
                             $panelStmt->close();

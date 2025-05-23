@@ -140,20 +140,12 @@ function checkAllRoutesApproved($conn, $student_id) {
     if ($route2Approved) $approvedRoutes[] = "Route 2";
     if ($route3Approved) $approvedRoutes[] = "Route 3";
         
-    // Check if any route has forms but is not approved
-    $has_pending_routes = false;
-    
-    // Only consider routes with forms assigned
-    if ($route1_total > 0 && !$route1Approved) $has_pending_routes = true;
-    if ($route2_total > 0 && !$route2Approved) $has_pending_routes = true;
-    if ($route3_total > 0 && !$route3Approved) $has_pending_routes = true;
-    
     // Return results
     return [
         'route1_approved' => $route1Approved,
         'route2_approved' => $route2Approved,
         'route3_approved' => $route3Approved,
-        'all_approved' => !$has_pending_routes,
+        'all_approved' => ($route1Approved && $route2Approved && $route3Approved),
         'approved_routes' => $approvedRoutes,
         'approved_count' => count($approvedRoutes),
         'route1_counts' => [
@@ -938,7 +930,7 @@ if (isset($selectedDepartment)) {
 
                 <!-- Search and Submit Button -->
                 <div class="search-container">
-                    <input type="text" id="searchInput" class="search-box" placeholder="Search by name, group or title..." onkeyup="searchTable()">
+                    <input type="text" id="searchInput" class="search-box" placeholder="Search by name, group, title or department..." onkeyup="searchTable()">
                 </div>
 
                 <form id="submission-form" action="finaldocu.php" method="POST">
@@ -949,7 +941,7 @@ if (isset($selectedDepartment)) {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
-
+                                <th>Department</th>
                                 <th>Assigned</th>
                                 <th>Status</th>
                                 <th class='action-label'>Action</th>
@@ -1068,7 +1060,7 @@ if (isset($selectedDepartment)) {
                     <td><?= $fullname ?></td>
                     <td><?= $group_number ?></td>
                     <td><?= $title ?></td>
-
+                    <td><?= $file['department'] ?></td>
                     <td>
                         <button type="button" class="assignment-button <?= ($has_panels || $has_adviser) ? '' : 'not-assigned' ?>" 
                                 onclick="showAssignmentDetails(
@@ -1090,7 +1082,7 @@ if (isset($selectedDepartment)) {
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="6" style="text-align: center;">No files found.</td>
+                <td colspan="7" style="text-align: center;">No files found.</td>
             </tr>
         <?php endif; ?>
     </tbody>
@@ -1110,7 +1102,8 @@ if (isset($selectedDepartment)) {
 
     <!-- Modal for Viewing Files -->
     <div id="fileModal" class="modal">
-        <div class="modargb(36, 105, 161)           <span class="close-button" onclick="closeModal()">×</span>
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">×</span>
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
@@ -1275,33 +1268,36 @@ if (isset($selectedDepartment)) {
 </html>
 <script>
 
-        // Search function for the table
-        function searchTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById("file-list");
-            const rows = table.getElementsByTagName("tr");
+    // Search function for the table
+    function searchTable() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("file-list");
+        const rows = table.getElementsByTagName("tr");
+        
+        for (let i = 0; i < rows.length; i++) {
+            const leaderCell = rows[i].getElementsByTagName("td")[1]; // Leader name (index 1)
+            const groupCell = rows[i].getElementsByTagName("td")[2]; // Group number (index 2)
+            const titleCell = rows[i].getElementsByTagName("td")[3]; // Title (index 3)
+            const deptCell = rows[i].getElementsByTagName("td")[4]; // Department (index 4)
             
-            for (let i = 0; i < rows.length; i++) {
-                const leaderCell = rows[i].getElementsByTagName("td")[1]; // Leader name (index 1)
-                const groupCell = rows[i].getElementsByTagName("td")[2]; // Group number (index 2)
-                const titleCell = rows[i].getElementsByTagName("td")[3]; // Title (index 3)
+            if (leaderCell && groupCell && titleCell && deptCell) {
+                const leaderName = leaderCell.textContent || leaderCell.innerText;
+                const groupNum = groupCell.textContent || groupCell.innerText;
+                const title = titleCell.textContent || titleCell.innerText;
+                const department = deptCell.textContent || deptCell.innerText;
                 
-                if (leaderCell && groupCell && titleCell) {
-                    const leaderName = leaderCell.textContent || leaderCell.innerText;
-                    const groupNum = groupCell.textContent || groupCell.innerText;
-                    const title = titleCell.textContent || titleCell.innerText;
-                    
-                    if (leaderName.toUpperCase().indexOf(filter) > -1 || 
-                        groupNum.toUpperCase().indexOf(filter) > -1 ||
-                        title.toUpperCase().indexOf(filter) > -1) {
-                        rows[i].style.display = "";
-                    } else {
-                        rows[i].style.display = "none";
-                    }
+                if (leaderName.toUpperCase().indexOf(filter) > -1 || 
+                    groupNum.toUpperCase().indexOf(filter) > -1 ||
+                    title.toUpperCase().indexOf(filter) > -1 ||
+                    department.toUpperCase().indexOf(filter) > -1) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
                 }
             }
         }
+    }
 
     // Global variable to store current file data for edit mode
     let currentEditFile = null;
@@ -1598,7 +1594,12 @@ if (isset($selectedDepartment)) {
         }, 100);
     }
 
-            function closeModal() {        const modal = document.getElementById("fileModal");        modal.style.display = "none";        document.getElementById("fileModalContent").innerHTML = '';        document.getElementById("routingForm").innerHTML = '';    }        // Function to view minutes    function viewMinutes(minutesUrl) {        const modal = document.getElementById("fileModal");        const contentArea = document.getElementById("fileModalContent");        const routingFormArea = document.getElementById("routingForm");                modal.style.display = "flex";        contentArea.innerHTML = "Loading minutes file...";        routingFormArea.innerHTML = ""; // Clear the routing form section                // Check the file extension to determine how to display it        const extension = minutesUrl.split('.').pop().toLowerCase();                if (extension === "pdf") {            contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;        } else if (extension === "docx") {            fetch(minutesUrl)                .then((response) => response.arrayBuffer())                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))                .then((result) => {                    contentArea.innerHTML = `<div class="file-content" style="padding: 2rem;">${result.value}</div>`;                })                .catch((err) => {                    console.error("Error viewing minutes:", err);                    contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Failed to display the minutes file. Please try again later.</p></div>";                });        } else {            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type for minutes.</p></div>";        }    }
+    function closeModal() {
+        const modal = document.getElementById("fileModal");
+        modal.style.display = "none";
+        document.getElementById("fileModalContent").innerHTML = '';
+        document.getElementById("routingForm").innerHTML = '';
+    }
 
     // Modify the update form to use AJAX for submission
     document.addEventListener('DOMContentLoaded', function() {
