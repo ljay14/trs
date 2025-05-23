@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 21, 2025 at 04:40 PM
+-- Generation Time: May 23, 2025 at 07:09 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -127,7 +127,7 @@ CREATE TABLE `finaldocufinal_files` (
 --
 
 INSERT INTO `finaldocufinal_files` (`finaldocu_id`, `student_id`, `finaldocu`, `adviser_id`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `panel5_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `routeNumber`) VALUES
-(20, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '29', '20', '0', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:46:48', '123', '123', 123, '1234', '2024-2025', '');
+(22, '39', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '29', '30', '21', '22', '23', '34', 'College of Computing and Information Science', '2025-05-23 05:39:57', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '');
 
 -- --------------------------------------------------------
 
@@ -161,7 +161,7 @@ CREATE TABLE `finaldocuproposal_files` (
 --
 
 INSERT INTO `finaldocuproposal_files` (`finaldocu_id`, `student_id`, `finaldocu`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `panel5_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `minutes`, `routeNumber`) VALUES
-(47, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:42:16', 29, '123', '123', 123, '1234', '2024-2025', '', '');
+(49, '39', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '20', '21', '22', '23', '34', 'College of Computing and Information Science', '2025-05-23 05:10:32', 29, 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '', '');
 
 -- --------------------------------------------------------
 
@@ -201,14 +201,19 @@ CREATE TABLE `final_monitoring_form` (
 --
 
 INSERT INTO `final_monitoring_form` (`id`, `panel_id`, `student_id`, `panel_name`, `date_submitted`, `chapter`, `feedback`, `paragraph_number`, `page_number`, `date_released`, `docuRoute1`, `created_at`, `adviser_id`, `adviser_name`, `route1_id`, `route2_id`, `docuRoute2`, `status`, `route3_id`, `docuRoute3`, `finaldocu_id`, `finaldocu`, `panel5_id`, `routeNumber`) VALUES
-(71, 0, 36, '', '2025-05-07', '123', '123', 123, 123, '2025-05-07', '../../../uploads/Certificate_of_Endorsement (4).pdf', '2025-05-07 16:42:53', 29, 'REA MIE OMAS-AS', 21, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
-(72, 0, 36, '', '2025-05-07', '123', '123', 123, 123, '2025-05-07', '../../../uploads/Certificate_of_Endorsement (4).pdf', '2025-05-07 16:42:57', 29, 'REA MIE OMAS-AS', 21, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
-(73, 20, 36, 'Kenneth Barrera', '2025-05-07', '123', '123', 123, 123, '2025-05-07', '../../../uploads/Certificate_of_Endorsement (4).pdf', '2025-05-07 16:43:21', 0, '', 21, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
-(74, 0, 36, '', '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 16:48:55', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, 'Approved', 21, '../../../uploads/Certificate_of_Endorsement (2).pdf', 0, '', '', 'Route 3'),
-(75, 0, 36, '', '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 16:49:46', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, 'Approved', 0, '', 20, '../../../uploads/Certificate_of_Endorsement (2).pdf', '', ''),
-(76, 0, 36, '', '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 16:58:10', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, NULL, 0, '', 20, '../../../uploads/Certificate_of_Endorsement (2).pdf', '', ''),
-(77, 0, 36, '', '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 17:05:42', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, 'Approved', 0, '', 20, '../../../uploads/Certificate_of_Endorsement (2).pdf', '', ''),
-(78, 0, 36, '', '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 17:05:54', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, 'Approved', 0, '', 20, '../../../uploads/Certificate_of_Endorsement (2).pdf', '', '');
+(86, 0, 39, '', '2025-05-23', '1', '1', 11, 1, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:19:37', 29, 'REA MIE OMAS-AS', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(87, 0, 39, '', '2025-05-23', '123', '123', 123, 123, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:21:41', 29, 'REA MIE OMAS-AS', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(88, 30, 39, 'Rennel Uayan', '2025-05-23', '2', '2', 2, 22, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:22:22', 0, '', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(89, 22, 39, 'Daisa O. Gupit', '2025-05-23', '3', '3', 33, 3, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:29:54', 0, '', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(90, 21, 39, 'Lealil Palacio', '2025-05-23', '4', '4', 44, 4, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:30:20', 0, '', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(91, 23, 39, 'Marlon Juhn Timogan', '2025-05-23', '5', '5', 55, 5, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:30:58', 0, '', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(92, 34, 39, 'Marisol Rosario', '2025-05-23', '6', '6', 66, 6, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 03:31:19', 0, '', 23, NULL, NULL, 'Approved', 0, '', 0, '', '', 'Route 1'),
+(93, 0, 39, '', '2025-05-23', '1', '11', 1, 1, '2025-05-23', NULL, '2025-05-23 03:35:39', 29, 'REA MIE OMAS-AS', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(94, 30, 39, 'Rennel Uayan', '2025-05-23', '2', '22', 22, 2, '2025-05-23', NULL, '2025-05-23 03:36:03', 0, '', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(95, 21, 39, 'Lealil Palacio', '2025-05-23', '3', '33', 3, 3, '2025-05-23', NULL, '2025-05-23 03:36:43', 0, '', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(96, 22, 39, 'Daisa O. Gupit', '2025-05-23', '4', '44', 4, 4, '2025-05-23', NULL, '2025-05-23 03:37:16', 0, '', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(97, 23, 39, 'Marlon Juhn Timogan', '2025-05-23', '5', '5', 5, 5, '2025-05-23', NULL, '2025-05-23 03:38:29', 0, '', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(98, 34, 39, 'Marisol Rosario', '2025-05-23', '6', '6', 6, 6, '2025-05-23', NULL, '2025-05-23 03:39:01', 0, '', NULL, NULL, NULL, 'Approved', 24, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3');
 
 -- --------------------------------------------------------
 
@@ -235,11 +240,8 @@ INSERT INTO `panel` (`panel_id`, `school_id`, `password`, `fullname`, `departmen
 (21, 'apple', '123', 'Lealil Palacio', 'College of Computing and Information Science', 'panel2', ''),
 (22, 'Daisa', '123', 'Daisa O. Gupit', 'College of Computing and Information Science', 'panel3', ''),
 (23, 'marlon', '123', 'Marlon Juhn Timogan', 'College of Computing and Information Science', 'panel4', ''),
-(29, '1123', '123', 'bultak', 'College of Computing and Information Science', 'panel4', ''),
-(30, '1111', '123', 'Ell Jay Lacaran', 'College of Computing and Information Science', 'panel5', ''),
-(31, '321', '123', 'skubido', 'College of Business and Management', 'panel2', ''),
-(32, '1233', '123', 'waewaewa', 'College of Computing and Information Science', 'panel3', ''),
-(33, '123', '123', '123', 'College of Computing and Information Science', 'panel1', 'elljaylacaran143@gmail.com');
+(30, '1111', '123', 'Rennel Uayan', 'College of Computing and Information Science', 'panel5', ''),
+(34, '123', '123', 'Marisol Rosario', 'College of Computing and Information Science', 'panel1', '123@smccnasipit.edu.ph');
 
 -- --------------------------------------------------------
 
@@ -279,10 +281,18 @@ CREATE TABLE `proposal_monitoring_form` (
 --
 
 INSERT INTO `proposal_monitoring_form` (`id`, `panel_id`, `student_id`, `panel_name`, `date_submitted`, `chapter`, `feedback`, `paragraph_number`, `page_number`, `date_released`, `docuRoute1`, `created_at`, `adviser_id`, `adviser_name`, `route1_id`, `route2_id`, `docuRoute2`, `status`, `route3_id`, `docuRoute3`, `finaldocu_id`, `finaldocu`, `panel5_id`, `routeNumber`) VALUES
-(207, NULL, 36, NULL, '2025-05-07', '123', '123', 123, 123, '2025-05-07', '../../../uploads/Certificate_of_Endorsement (4).pdf', '2025-05-07 16:39:53', 29, 'REA MIE OMAS-AS', 92, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
-(208, '20', 36, 'Kenneth Barrera', '2025-05-07', '123', '123', 123, 123, '2025-05-07', '../../../uploads/Certificate_of_Endorsement (4).pdf', '2025-05-07 16:40:08', 0, '', 92, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
-(209, NULL, 36, NULL, '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 16:41:47', 29, 'REA MIE OMAS-AS', 0, 0, '', 'Approved', 34, '../../../uploads/Certificate_of_Endorsement (2).pdf', 0, '', '', 'Route 3'),
-(210, NULL, 36, NULL, '2025-05-07', 'All', 'No additional comments. Document reviewed.', 0, 0, '2025-05-07', NULL, '2025-05-07 17:01:59', 29, 'REA MIE OMAS-AS', 0, 0, '', 'Approved', 0, '../../../uploads/Certificate_of_Endorsement (2).pdf', 47, '', '', 'Final');
+(223, NULL, 39, NULL, '2025-05-23', '2', '2', 23, 3, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:49:52', 29, 'REA MIE OMAS-AS', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(224, '20', 39, 'Kenneth Barrera', '2025-05-23', '3', '3', 33, 3, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:52:53', 0, '', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(225, '21', 39, 'Lealil Palacio', '2025-05-23', '4', '44', 4, 4, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:53:14', 0, '', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(226, '23', 39, 'Marlon Juhn Timogan', '2025-05-23', '5', '5', 55, 5, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:53:59', 0, '', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(227, '22', 39, 'Daisa O. Gupit', '2025-05-23', '6', '6', 66, 6, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:54:32', 0, '', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(228, '34', 39, 'Marisol Rosario', '2025-05-23', '7', '7', 77, 7, '2025-05-23', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '2025-05-23 02:54:53', 0, '', 97, 0, '', 'Approved', 0, '', 0, '', '', 'Route 1'),
+(229, NULL, 39, NULL, '2025-05-23', 'All', 'Document approved. No additional comments.', 0, 0, '2025-05-23', NULL, '2025-05-23 02:59:42', 29, 'REA MIE OMAS-AS', 0, 41, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 'Approved', 0, '', 0, '', '', 'Route 2'),
+(230, '20', 39, 'Kenneth Barrera', '2025-05-23', '1', '11', 111, 1, '2025-05-23', NULL, '2025-05-23 03:08:42', 0, '', 0, 0, '', 'Approved', 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(231, '21', 39, 'Lealil Palacio', '2025-05-23', '2', '22', 22, 2, '2025-05-23', NULL, '2025-05-23 03:09:03', 0, '', 0, 0, '', 'Approved', 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(232, '23', 39, 'Marlon Juhn Timogan', '2025-05-23', '3', '3', 33, 3, '2025-05-23', NULL, '2025-05-23 03:09:24', 0, '', 0, 0, '', 'Approved', 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(233, '22', 39, 'Daisa O. Gupit', '2025-05-23', '4', '4', 44, 4, '2025-05-23', NULL, '2025-05-23 03:09:50', 0, '', 0, 0, '', 'Approved', 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3'),
+(234, '34', 39, 'Marisol Rosario', '2025-05-23', '5', '5', 55, 5, '2025-05-23', NULL, '2025-05-23 03:10:14', 0, '', 0, 0, '', 'Approved', 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, '', '', 'Route 3');
 
 -- --------------------------------------------------------
 
@@ -315,7 +325,7 @@ CREATE TABLE `route1final_files` (
 --
 
 INSERT INTO `route1final_files` (`route1_id`, `student_id`, `docuRoute1`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `routeNumber`) VALUES
-(21, 36, '../../../uploads/Certificate_of_Endorsement (4).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07', '123', '123', 123, '1234', '2024-2025', '0', '');
+(23, 39, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '');
 
 -- --------------------------------------------------------
 
@@ -349,8 +359,8 @@ CREATE TABLE `route1proposal_files` (
 --
 
 INSERT INTO `route1proposal_files` (`route1_id`, `student_id`, `docuRoute1`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
-(92, 36, '../../../uploads/Certificate_of_Endorsement (4).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07 18:39:36', '123', '123', 123, '1234', '2024-2025', '0', '../../../uploads/minutes/Certificate_of_Endorsement (4).pdf', ''),
-(93, 35, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 0, 0, 0, 0, 29, 'College of Computing and Information Science', NULL, '123', '123', 123, '123', '2024-2025', '', '../../../uploads/minutes/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '');
+(96, 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23 04:51:12', 'SMCC12345', '123', 123, 'TRS', '2024-2025', '34', '', ''),
+(97, 39, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23 04:51:12', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '../../../uploads/minutes/group4-finalmanuscript.pdf', '');
 
 -- --------------------------------------------------------
 
@@ -383,7 +393,7 @@ CREATE TABLE `route2final_files` (
 --
 
 INSERT INTO `route2final_files` (`route2_id`, `student_id`, `docuRoute2`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `routeNumber`) VALUES
-(16, 36, '../../../uploads/Certificate_of_Endorsement (4).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07', '123', '123', 123, '1234', '2024-2025', '0', '');
+(18, 39, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '');
 
 -- --------------------------------------------------------
 
@@ -417,7 +427,7 @@ CREATE TABLE `route2proposal_files` (
 --
 
 INSERT INTO `route2proposal_files` (`route2_id`, `student_id`, `docuRoute2`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
-(36, '36', '../../../uploads/Certificate_of_Endorsement (5).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:40:17', 29, '123', '123', 123, '1234', '2024-2025', '0', '', '');
+(41, '39', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '20', '21', '22', '23', 'College of Computing and Information Science', '2025-05-23 04:57:57', 29, 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '', '');
 
 -- --------------------------------------------------------
 
@@ -450,7 +460,7 @@ CREATE TABLE `route3final_files` (
 --
 
 INSERT INTO `route3final_files` (`route3_id`, `student_id`, `docuRoute3`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `routeNumber`) VALUES
-(21, 36, '../../../uploads/Certificate_of_Endorsement (2).pdf', 20, 0, 0, 0, 29, 'College of Computing and Information Science', '2025-05-07', '123', '123', 123, '1234', '2024-2025', '0', '');
+(24, 39, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '');
 
 -- --------------------------------------------------------
 
@@ -484,7 +494,7 @@ CREATE TABLE `route3proposal_files` (
 --
 
 INSERT INTO `route3proposal_files` (`route3_id`, `student_id`, `docuRoute3`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `department`, `date_submitted`, `adviser_id`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
-(34, '36', '../../../uploads/Certificate_of_Endorsement (2).pdf', '20', '0', '0', '0', 'College of Computing and Information Science', '2025-05-07 18:41:23', 29, '123', '123', 123, '1234', '2024-2025', '0', '', '');
+(38, '39', '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', '20', '21', '22', '23', 'College of Computing and Information Science', '2025-05-23 05:07:36', 29, 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '', '');
 
 -- --------------------------------------------------------
 
@@ -516,9 +526,7 @@ CREATE TABLE `student` (
 --
 
 INSERT INTO `student` (`student_id`, `school_id`, `password`, `confirm_password`, `fullname`, `school_year`, `department`, `course`, `adviser`, `group_number`, `group_members`, `controlNo`, `title`, `semester`, `email`, `adviser_email`) VALUES
-(32, 202251468, '123', '123', 'Rylvin Celnar Tiempo', '2024-2025', 'College of Computing and Information Science', 'BS of Information Technology\'s', 'REA MIE OMAS-AS', 2, '[\"Jenessa Ocay\"]', 'BSIT212', 'TRS', '', '', ''),
-(35, 123, '123', '123', '123', '2024-2025', 'College of Computing and Information Science', 'BS of Information Technology\'s', 'REA MIE OMAS-AS', 123, '[\"123\"]', '123', '123', 'First Semester', 'lokolomi14@gmail.com', ''),
-(36, 1234, '123', '123', '123', '2024-2025', 'College of Computing and Information Science', 'BS of Information Technology\'s', 'REA MIE OMAS-AS', 123, '[\"123\"]', '123', '1234', 'First Semester', 'lokolomi143@gmail.com', 'ljaylacaran@gmail.com');
+(39, 202251252, '123', '123', 'Jake Castillon', '2024-2025', 'College of Computing and Information Science', 'Bachelor of Science in Information Technology', 'REA MIE OMAS-AS', 2, '[\"\"]', 'SMCC12345', 'TRS', 'Second Semester', '123@smccnasipit.edu.ph', 'ljaylacaran@gmail.com');
 
 --
 -- Indexes for dumped tables
@@ -640,73 +648,73 @@ ALTER TABLE `departmentcourse`
 -- AUTO_INCREMENT for table `finaldocufinal_files`
 --
 ALTER TABLE `finaldocufinal_files`
-  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `finaldocuproposal_files`
 --
 ALTER TABLE `finaldocuproposal_files`
-  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `final_monitoring_form`
 --
 ALTER TABLE `final_monitoring_form`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=99;
 
 --
 -- AUTO_INCREMENT for table `panel`
 --
 ALTER TABLE `panel`
-  MODIFY `panel_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `panel_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `proposal_monitoring_form`
 --
 ALTER TABLE `proposal_monitoring_form`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=211;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=235;
 
 --
 -- AUTO_INCREMENT for table `route1final_files`
 --
 ALTER TABLE `route1final_files`
-  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `route1proposal_files`
 --
 ALTER TABLE `route1proposal_files`
-  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
+  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
 
 --
 -- AUTO_INCREMENT for table `route2final_files`
 --
 ALTER TABLE `route2final_files`
-  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `route2proposal_files`
 --
 ALTER TABLE `route2proposal_files`
-  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `route3final_files`
 --
 ALTER TABLE `route3final_files`
-  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `route3proposal_files`
 --
 ALTER TABLE `route3proposal_files`
-  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
