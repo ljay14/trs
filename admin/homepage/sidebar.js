@@ -16,6 +16,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Log the actual path for debugging
     console.log("Current path:", path);
     
+    // Helper function to save dropdown state
+    function saveDropdownState(isOpen) {
+        localStorage.setItem('sidebarDropdownState', isOpen ? 'open' : 'closed');
+    }
+
+    // Helper function to get dropdown state
+    function getDropdownState() {
+        return localStorage.getItem('sidebarDropdownState') === 'open';
+    }
+    
     // Helper function to close all dropdowns
     function closeAllDropdowns() {
         menuHeaders.forEach(header => {
@@ -24,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
             icon.classList.remove('expanded');
             dropdownContent.classList.remove('show');
         });
+        saveDropdownState(false);
     }
     
     // Helper function to open a specific section
@@ -32,31 +43,47 @@ document.addEventListener('DOMContentLoaded', function() {
         menuHeaders.forEach(header => {
             const label = header.querySelector('span').textContent.trim().toLowerCase();
             console.log("Checking label:", label, "against:", sectionName);
-            if (label === sectionName || (sectionName === 'title proposal' && label.includes('title proposal'))) {
+            if (label === sectionName) {
                 const dropdownContent = header.nextElementSibling;
                 const icon = header.querySelector('.dropdown-icon');
                 icon.classList.add('expanded');
                 dropdownContent.classList.add('show');
+                saveDropdownState(true);
             }
         });
     }
     
     // Helper function to set active section based on URL
     function setActiveSection(path) {
-        if (path.includes('/titleproposal/')) {
+        // Check if we're in any of the account-related pages
+        if (path.includes('/registeredaccount/') || 
+            path.includes('panel.php') || 
+            path.includes('adviser.php')) {
+            
+            // If the dropdown was previously open or we're on an accounts page, open it
+            if (getDropdownState() || path.includes('panel.php') || path.includes('adviser.php')) {
+                openSection('accounts');
+            }
+            
+            // Highlight the appropriate submenu
+            if (path.includes('panel_register.php') || path.includes('panel.php')) {
+                const panelLink = document.querySelector('a[href*="panel_register.php"]');
+                if (panelLink) panelLink.classList.add('active');
+            } else if (path.includes('adviser_register.php') || path.includes('adviser.php')) {
+                const adviserLink = document.querySelector('a[href*="adviser_register.php"]');
+                if (adviserLink) adviserLink.classList.add('active');
+            } else if (path.includes('student_register.php')) {
+                const studentLink = document.querySelector('a[href*="student_register.php"]');
+                if (studentLink) studentLink.classList.add('active');
+            }
+        }
+        // Other sections
+        else if (path.includes('/titleproposal/')) {
             openSection('title proposal');
-            openSection('research proposal');
         } else if (path.includes('/final/')) {
             openSection('final');
-            openSection('final defense');
         } else if (path.includes('/departmentcourse/')) {
             openSection('department course');
-        } else if (path.includes('/registeredaccount/') || 
-                   path.includes('/panel_register.php') || 
-                   
-                   path.includes('/adviser_register.php') || 
-                   path.includes('/student_register.php')) {
-            openSection('accounts');
         }
     }
     
@@ -65,7 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const submenuItems = document.querySelectorAll('.submenu-item');
         submenuItems.forEach(item => {
             const href = item.getAttribute('href');
-            if (href && path.includes(href)) {
+            if (href && (path.includes(href) || 
+                        (path.includes('panel.php') && href.includes('panel_register.php')) ||
+                        (path.includes('adviser.php') && href.includes('adviser_register.php')))) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
@@ -73,8 +102,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // First step: Close all dropdowns by default
-    closeAllDropdowns();
+    // First step: Close all dropdowns by default only if there's no saved state
+    if (!getDropdownState()) {
+        closeAllDropdowns();
+    }
     
     // Second step: Open the active section based on URL
     setActiveSection(path);
@@ -105,9 +136,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (wasOpen) {
                 icon.classList.remove('expanded');
                 dropdownContent.classList.remove('show');
+                saveDropdownState(false);
             } else {
                 icon.classList.add('expanded');
                 dropdownContent.classList.add('show');
+                saveDropdownState(true);
             }
         });
     });
@@ -118,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         item.addEventListener('click', function(e) {
             // Don't let the click bubble up to the parent elements
             e.stopPropagation();
+            saveDropdownState(true); // Keep dropdown open when clicking submenu items
         });
     });
     

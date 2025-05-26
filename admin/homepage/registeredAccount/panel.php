@@ -933,7 +933,7 @@ $conn->close();
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                     </svg>
                 </div>
-                <span>Final</span>
+                <span>Final Defense</span>
                 <div class="dropdown-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
@@ -1058,7 +1058,7 @@ $conn->close();
 </body>
 </html>
 
-<script src="../sidebar.js"></script>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
