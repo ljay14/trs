@@ -95,9 +95,8 @@ function sendApprovalNotificationEmail($student_email, $student_name, $adviser_n
         $mail->Subject = "Final Defense Form Approved - Thesis Routing System";
         
         // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph/trs';
-        
-        $login_url = $base_url . '/student/';
+        $base_url = 'https://capstone.smccnasipit.edu.ph/';
+        $login_url = $base_url . 'trs/student/login.php';
         
         $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>

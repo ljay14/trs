@@ -184,8 +184,8 @@ function sendPanelNotificationEmail($panelEmail, $panelName, $position, $student
         $mail->Subject = "Panel Assignment Notification - Thesis Routing System";
         
         // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph';
-        $login_url = $base_url . '/TRS/panel/';
+        $base_url = 'https://capstone.smccnasipit.edu.ph/';
+        $login_url = $base_url . 'trs/panel/login.php';
         
         $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>

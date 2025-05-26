@@ -77,8 +77,9 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
         $mail->Subject = 'Final Thesis Document Submitted for Review';
         
         // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph';
-        $login_url = $base_url . '/TRS/adviser/';
+        $base_url = 'https://capstone.smccnasipit.edu.ph/';
+        
+        $login_url = $base_url . 'trs/adviser/login.php';
         
         $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
