@@ -89,11 +89,7 @@ function sendStudentNotificationEmail($student_email, $student_name, $adviser_na
         $mail->Subject = "New Feedback Submitted - Thesis Routing System";
         
         // Get server URL dynamically
-        $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
-        $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
-        $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $base_url = $http_protocol . '://' . $server_name . $server_port;
-        
+        $base_url = 'https://capstone.smccnasipit.edu.ph';
         $login_url = $base_url . '/TRS/student/';
         
         $mail->Body = "

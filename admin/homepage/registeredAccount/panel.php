@@ -13,13 +13,14 @@ include '../../../connection.php';
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = $conn->real_escape_string($_POST['fullname']);
-    $department = $conn->real_escape_string($_POST['department']);
+    $department = isset($_POST['custom_department']) && !empty($_POST['custom_department']) 
+                 ? $conn->real_escape_string($_POST['custom_department'])
+                 : $conn->real_escape_string($_POST['department']);
     
     $position = trim(strtolower($conn->real_escape_string($_POST['position'])));
     $school_id = $conn->real_escape_string($_POST['school_id']); 
     $email = $conn->real_escape_string($_POST['email']); 
     $password = $_POST['password']; 
-    $confirm_password = $_POST['confirm_password'];
 
     // Validate email domain
     if (!preg_match('/@smccnasipit\.edu\.ph$/', $email)) {
@@ -34,12 +35,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $valid_positions = ['panel1', 'panel2', 'panel3', 'panel4', 'panel5'];
     if (!in_array($position, $valid_positions)) {
         echo "<script>alert('Invalid position! Please select a valid position.'); window.history.back();</script>";
-        exit;
-    }
-
-    // Validate passwords match
-    if ($password !== $confirm_password) {
-        echo "<script>alert('Passwords do not match!'); window.history.back();</script>";
         exit;
     }
     
@@ -1018,9 +1013,15 @@ $conn->close();
                         <input type="text" id="fullname" name="fullname" placeholder="First name / Middle name / Last name" required>
 
                         <label for="department">Department</label>
-                        <select id="department" name="department" required>
-                            <option value="">Loading departments...</option>
-                        </select>
+                        <div style="display: flex; gap: 10px; margin-bottom: 1.25rem;">
+                            <select id="department" name="department" style="margin-bottom: 0;" required>
+                                <option value="">Loading departments...</option>
+                            </select>
+                            <button type="button" id="other-dept-btn" style="white-space: nowrap; padding: 0.75rem 1rem;">Other</button>
+                        </div>
+                        <div id="custom-dept-container" style="display: none; margin-bottom: 1.25rem;">
+                            <input type="text" id="custom-department" name="custom_department" placeholder="Enter your department name">
+                        </div>
 
                         <label for="position">Position</label>
                         <select id="position" name="position" required>
@@ -1032,7 +1033,7 @@ $conn->close();
                             <option value="panel5">Panel 5</option>
                         </select>
 
-                        <label for="school_id">School ID</label>
+                        <label for="school_id">ID Number</label>
                         <input type="text" id="school_id" name="school_id" required>
 
                         <label for="email">Email Address</label>
@@ -1045,9 +1046,6 @@ $conn->close();
 
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
-
-                        <label for="confirm_password">Confirm Password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" required>
 
                         <div class="button-container">
                             <button type="submit">Register</button>
@@ -1069,6 +1067,27 @@ $conn->close();
         // Add input event listener to email field for real-time validation
         const emailInput = document.getElementById('email');
         emailInput.addEventListener('input', validateEmail);
+
+        // Custom department functionality
+        const otherDeptBtn = document.getElementById('other-dept-btn');
+        const customDeptContainer = document.getElementById('custom-dept-container');
+        const departmentSelect = document.getElementById('department');
+        const customDepartmentInput = document.getElementById('custom-department');
+
+        otherDeptBtn.addEventListener('click', function() {
+            const isHidden = customDeptContainer.style.display === 'none';
+            customDeptContainer.style.display = isHidden ? 'block' : 'none';
+            departmentSelect.required = !isHidden;
+            customDepartmentInput.required = isHidden;
+            
+            if (isHidden) {
+                departmentSelect.value = '';
+                otherDeptBtn.textContent = 'Use List';
+            } else {
+                customDepartmentInput.value = '';
+                otherDeptBtn.textContent = 'Other';
+            }
+        });
     });
     
     function validateEmail() {
@@ -1109,3 +1128,4 @@ $conn->close();
         xhr.send();
     }
 </script>
+<script src="../sidebar.js"></script>

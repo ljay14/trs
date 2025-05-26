@@ -51,8 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
             openSection('final defense');
         } else if (path.includes('/departmentcourse/')) {
             openSection('department course');
-        } else if (path.includes('/registeredAccount/') || 
+        } else if (path.includes('/registeredaccount/') || 
                    path.includes('/panel_register.php') || 
+                   
                    path.includes('/adviser_register.php') || 
                    path.includes('/student_register.php')) {
             openSection('accounts');

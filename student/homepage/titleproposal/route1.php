@@ -77,12 +77,9 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
         $mail->Subject = 'New Thesis Document Submitted for Review';
         
         // Get server URL dynamically
-        $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
-        $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
-        $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $base_url = $http_protocol . '://' . $server_name . $server_port;
+        $base_url = 'https://capstone.smccnasipit.edu.ph/';
         
-        $login_url = $base_url . '/TRS/adviser/';
+        $login_url = $base_url . 'trs/adviser/login.php';
         
         $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>

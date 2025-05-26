@@ -1060,7 +1060,7 @@ $result = $conn->query($sql);
                                 <tr>
                                     <th>Full Name</th>
                                     <th>Department</th>
-                                    <th>School ID</th>
+                                    <th>ID Number</th>
                                     <th>Email</th>
                                     <th>Password</th>
                                     <th>Action</th>

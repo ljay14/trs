@@ -1018,7 +1018,7 @@ $conn->close();
                             <option value="">Loading departments...</option>
                         </select>
 
-                        <label for="school_id">School ID</label>
+                        <label for="school_id">ID Number</label>
                         <input type="text" id="school_id" name="school_id" required>
 
                         <label for="email">Email Address</label>
