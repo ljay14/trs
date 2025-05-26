@@ -15,18 +15,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $fullname = $conn->real_escape_string($_POST['fullname']);
     $department = $conn->real_escape_string($_POST['department']);
     
-    // Sanitize and normalize position input
     $position = trim(strtolower($conn->real_escape_string($_POST['position'])));
-    $school_id = $conn->real_escape_string($_POST['school_id']); // Changed from username to school_id
-    $email = $conn->real_escape_string($_POST['email']); // Get email
-    $password = $_POST['password']; // Get password as plain text
+    $school_id = $conn->real_escape_string($_POST['school_id']); 
+    $email = $conn->real_escape_string($_POST['email']); 
+    $password = $_POST['password']; 
     $confirm_password = $_POST['confirm_password'];
-    $adviser_email = mysqli_real_escape_string($conn, $_POST['adviser_email']);
-    $group_number = mysqli_real_escape_string($conn, $_POST['group_number']);
-    $members = isset($_POST['member_fullname']) ? $_POST['member_fullname'] : [];
-    $group_members = json_encode($members); // Now properly defined    
-    $controlNo = mysqli_real_escape_string($conn, $_POST['controlNo']);
-    $title = mysqli_real_escape_string($conn, $_POST['title']);
 
     // Validate email domain
     if (!preg_match('/@smccnasipit\.edu\.ph$/', $email)) {
@@ -40,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Ensure the position is valid
     $valid_positions = ['panel1', 'panel2', 'panel3', 'panel4', 'panel5'];
     if (!in_array($position, $valid_positions)) {
-        echo "<script>alert('Invalid position! Please select a valid position.');</script>";
+        echo "<script>alert('Invalid position! Please select a valid position.'); window.history.back();</script>";
         exit;
     }
 
@@ -1030,7 +1023,14 @@ $conn->close();
                         </select>
 
                         <label for="position">Position</label>
-                        <input type="text" id="position" name="position" placeholder="Panel1, Panel2, Panel3, Panel4, Panel5" required>
+                        <select id="position" name="position" required>
+                            <option value="">Select Position</option>
+                            <option value="panel1">Panel 1</option>
+                            <option value="panel2">Panel 2</option>
+                            <option value="panel3">Panel 3</option>
+                            <option value="panel4">Panel 4</option>
+                            <option value="panel5">Panel 5</option>
+                        </select>
 
                         <label for="school_id">School ID</label>
                         <input type="text" id="school_id" name="school_id" required>

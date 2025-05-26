@@ -1199,8 +1199,8 @@ if (isset($selectedDepartment)) {
 
 <!-- Search and Submit Button -->
 <div class="search-container">
-    <input type="text" id="searchInput" class="search-box" placeholder="Search by leader name..." onkeyup="searchTable()">
-</div>
+                    <input type="text" id="searchInput" class="search-box" placeholder="Search by name, group, title or department..." onkeyup="searchTable()">
+                </div>
 
 <form id="submission-form" action="route1.php" method="POST">
     <table>
@@ -1536,10 +1536,21 @@ if (isset($selectedDepartment)) {
         const rows = table.getElementsByTagName("tr");
         
         for (let i = 0; i < rows.length; i++) {
-            const leaderCell = rows[i].getElementsByTagName("td")[2]; // Index 2 is the Leader column
-            if (leaderCell) {
+            const leaderCell = rows[i].getElementsByTagName("td")[1]; // Leader name (index 1)
+            const groupCell = rows[i].getElementsByTagName("td")[2]; // Group number (index 2)
+            const titleCell = rows[i].getElementsByTagName("td")[3]; // Title (index 3)
+            const deptCell = rows[i].getElementsByTagName("td")[4]; // Department (index 4)
+            
+            if (leaderCell && groupCell && titleCell && deptCell) {
                 const leaderName = leaderCell.textContent || leaderCell.innerText;
-                if (leaderName.toUpperCase().indexOf(filter) > -1) {
+                const groupNum = groupCell.textContent || groupCell.innerText;
+                const title = titleCell.textContent || titleCell.innerText;
+                const department = deptCell.textContent || deptCell.innerText;
+                
+                if (leaderName.toUpperCase().indexOf(filter) > -1 || 
+                    groupNum.toUpperCase().indexOf(filter) > -1 ||
+                    title.toUpperCase().indexOf(filter) > -1 ||
+                    department.toUpperCase().indexOf(filter) > -1) {
                     rows[i].style.display = "";
                 } else {
                     rows[i].style.display = "none";
