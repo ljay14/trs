@@ -1872,9 +1872,9 @@ if (isset($selectedDepartment)) {
     <div class="form-grid-container" style="margin-top: 20px;">
         <div><strong>Date Submitted</strong></div>
         <div><strong>Chapter</strong></div>
-        <div><strong>Feedback</strong></div>
-        <div><strong>Paragraph No</strong></div>
-        <div><strong>Page No</strong></div>
+       <div><strong>Page No</strong></div>
+<div><strong>Paragraph No</strong></div>
+<div><strong>Feedback</strong></div>
         <div><strong>Submitted By</strong></div>
         <div><strong>Date Released</strong></div>
         <div><strong>Status</strong></div>
@@ -1909,9 +1909,10 @@ if (isset($selectedDepartment)) {
                     rowsContainer.innerHTML += `
         <div>${row.date_submitted}</div>
         <div>${row.chapter}</div>
-        <div>${row.feedback}</div>
-        <div>${row.paragraph_number}</div>
-        <div>${row.page_number}</div>
+<div>${row.page_number}</div>
+                             <div>${row.paragraph_number}</div>
+                           
+                            <div class="feedback-cell">${row.feedback}</div>
         <div>${submittedBy}</div>
         <div>${row.date_released}</div>
         <div>${row.status}</div>

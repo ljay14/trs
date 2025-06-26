@@ -5620,3 +5620,21 @@
 
 [2025-05-26 20:11:14] PHPMailer [2]: SERVER -> CLIENT: 221 2.0.0 closing connection d9443c01a7336-2340934d8c3sm50086485ad.163 - gsmtp
 
+[2025-05-27 04:30:13] Email could not be sent to student: johnlestersaladores@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:31:34] PHPMailer [1]: SMTP ERROR: Failed to connect to server: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known.  (0)
+[2025-05-27 04:31:34] PHPMailer [2]: SMTP Error: Could not connect to SMTP host. Failed to connect to server
+[2025-05-27 04:31:34] Email could not be sent to panel: kenneth@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:31:34] PHPMailer [1]: SMTP ERROR: Failed to connect to server: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known.  (0)
+[2025-05-27 04:31:34] PHPMailer [2]: SMTP Error: Could not connect to SMTP host. Failed to connect to server
+[2025-05-27 04:31:34] Email could not be sent to panel: daisagupit@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:31:34] PHPMailer [1]: SMTP ERROR: Failed to connect to server: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known.  (0)
+[2025-05-27 04:31:34] PHPMailer [2]: SMTP Error: Could not connect to SMTP host. Failed to connect to server
+[2025-05-27 04:31:34] Email could not be sent to panel: marlonjhuntimogan@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:31:34] PHPMailer [1]: SMTP ERROR: Failed to connect to server: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known.  (0)
+[2025-05-27 04:31:34] PHPMailer [2]: SMTP Error: Could not connect to SMTP host. Failed to connect to server
+[2025-05-27 04:31:34] Email could not be sent to panel: apple@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:31:34] PHPMailer [1]: SMTP ERROR: Failed to connect to server: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known.  (0)
+[2025-05-27 04:31:34] PHPMailer [2]: SMTP Error: Could not connect to SMTP host. Failed to connect to server
+[2025-05-27 04:31:34] Email could not be sent to panel: marisol@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:50:23] Approval email could not be sent to student: johnlestersaladores@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 
+[2025-05-27 04:50:23] All approved notification email could not be sent to student: johnlestersaladores@smccnasipit.edu.ph. PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo for smtp.gmail.com failed: No such host is known. 

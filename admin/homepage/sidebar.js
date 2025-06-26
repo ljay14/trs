@@ -16,14 +16,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Log the actual path for debugging
     console.log("Current path:", path);
     
-    // Helper function to save dropdown state
-    function saveDropdownState(isOpen) {
+    // Helper function to save dropdown state and which section is open
+    function saveDropdownState(isOpen, sectionName) {
         localStorage.setItem('sidebarDropdownState', isOpen ? 'open' : 'closed');
+        if (isOpen && sectionName) {
+            localStorage.setItem('activeSection', sectionName);
+        } else {
+            localStorage.removeItem('activeSection');
+        }
     }
 
     // Helper function to get dropdown state
     function getDropdownState() {
         return localStorage.getItem('sidebarDropdownState') === 'open';
+    }
+    
+    // Helper function to get active section
+    function getActiveSection() {
+        return localStorage.getItem('activeSection');
     }
     
     // Helper function to close all dropdowns
@@ -48,24 +58,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 const icon = header.querySelector('.dropdown-icon');
                 icon.classList.add('expanded');
                 dropdownContent.classList.add('show');
-                saveDropdownState(true);
+                saveDropdownState(true, sectionName);
             }
         });
     }
     
-    // Helper function to set active section based on URL
-    function setActiveSection(path) {
-        // Check if we're in any of the account-related pages
+    // Helper function to determine which section a path belongs to
+    function getSectionForPath(path) {
+        // Accounts section
         if (path.includes('/registeredaccount/') || 
             path.includes('panel.php') || 
             path.includes('adviser.php')) {
-            
-            // If the dropdown was previously open or we're on an accounts page, open it
-            if (getDropdownState() || path.includes('panel.php') || path.includes('adviser.php')) {
-                openSection('accounts');
-            }
-            
-            // Highlight the appropriate submenu
+            return 'accounts';
+        }
+        // Research Proposal section
+        else if (path.includes('/titleproposal/') || 
+                 path.includes('/student/homepage/titleproposal/') || 
+                 path.includes('/adviser/homepage/titleproposal/') || 
+                 path.includes('/panel/homepage/titleproposal/')) {
+            return 'research proposal';
+        }
+        // Final Defense section
+        else if (path.includes('/final/') || 
+                 path.includes('/student/homepage/final/') || 
+                 path.includes('/adviser/homepage/final/') || 
+                 path.includes('/panel/homepage/final/')) {
+            return 'final defense';
+        }
+        // Department Course section
+        else if (path.includes('/departmentcourse/')) {
+            return 'department course';
+        }
+        return null;
+    }
+    
+    // Helper function to set active section based on URL
+    function setActiveSection(path) {
+        // First close all sections
+        closeAllDropdowns();
+        
+        // Get the section for this path
+        const sectionName = getSectionForPath(path);
+        
+        // If we found a matching section, open it
+        if (sectionName) {
+            openSection(sectionName);
+        }
+        
+        // Highlight the appropriate submenu for accounts section
+        if (sectionName === 'accounts') {
             if (path.includes('panel_register.php') || path.includes('panel.php')) {
                 const panelLink = document.querySelector('a[href*="panel_register.php"]');
                 if (panelLink) panelLink.classList.add('active');
@@ -76,14 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const studentLink = document.querySelector('a[href*="student_register.php"]');
                 if (studentLink) studentLink.classList.add('active');
             }
-        }
-        // Other sections
-        else if (path.includes('/titleproposal/')) {
-            openSection('title proposal');
-        } else if (path.includes('/final/')) {
-            openSection('final');
-        } else if (path.includes('/departmentcourse/')) {
-            openSection('department course');
         }
     }
     
@@ -102,12 +135,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // First step: Close all dropdowns by default only if there's no saved state
-    if (!getDropdownState()) {
-        closeAllDropdowns();
-    }
-    
-    // Second step: Open the active section based on URL
+    // Always determine the active section based on the current URL
+    // This ensures only the correct section is open
     setActiveSection(path);
     
     // Add click handlers for all menu headers
@@ -118,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const dropdownContent = this.nextElementSibling;
             const icon = this.querySelector('.dropdown-icon');
+            const sectionName = this.querySelector('span').textContent.trim().toLowerCase();
             
             // Toggle the clicked dropdown
             const wasOpen = dropdownContent.classList.contains('show');
@@ -136,11 +166,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (wasOpen) {
                 icon.classList.remove('expanded');
                 dropdownContent.classList.remove('show');
-                saveDropdownState(false);
+                saveDropdownState(false, null);
             } else {
                 icon.classList.add('expanded');
                 dropdownContent.classList.add('show');
-                saveDropdownState(true);
+                saveDropdownState(true, sectionName);
+                
+                // Log which section was clicked for debugging
+                console.log("Clicked section:", sectionName);
             }
         });
     });
@@ -151,7 +184,10 @@ document.addEventListener('DOMContentLoaded', function() {
         item.addEventListener('click', function(e) {
             // Don't let the click bubble up to the parent elements
             e.stopPropagation();
-            saveDropdownState(true); // Keep dropdown open when clicking submenu items
+            // Get the parent menu header to identify which section this is
+            const parentHeader = this.closest('.submenu').previousElementSibling;
+            const sectionName = parentHeader.querySelector('span').textContent.trim().toLowerCase();
+            saveDropdownState(true, sectionName); // Keep dropdown open when clicking submenu items
         });
     });
     

@@ -29,39 +29,52 @@ if ($route2_id > 0) {
     $stmt->close();
     
     if ($student_id) {
-        // Ignore route2 status entirely and only check route1
-        // Get route1_id
-        $get_route1 = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ?");
-        $get_route1->bind_param("s", $student_id);
-        $get_route1->execute();
-        $route1_result = $get_route1->get_result();
-        $route1_id = null;
+        // Check if there's a route2 monitoring form from the adviser (any status)
+        $check_route2 = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
+                                       WHERE route2_id = ? AND adviser_id IS NOT NULL");
+        $check_route2->bind_param("i", $route2_id);
+        $check_route2->execute();
+        $route2_result = $check_route2->get_result();
+        $route2_advised = ($route2_result && $route2_result->fetch_assoc()['count'] > 0);
+        $check_route2->close();
         
-        if ($route1_result && $route1_row = $route1_result->fetch_assoc()) {
-            $route1_id = $route1_row['route1_id'];
-        }
-        $get_route1->close();
-        
-        if ($route1_id) {
-            $check_route1 = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
-                                          WHERE route1_id = ? AND adviser_id IS NOT NULL 
-                                          AND (status = 'Approved' OR status = 'approved')");
-            $check_route1->bind_param("i", $route1_id);
-            $check_route1->execute();
-            $route1_result = $check_route1->get_result();
-            $route1_approved = ($route1_result && $route1_result->fetch_assoc()['count'] > 0);
-            $check_route1->close();
+        if ($route2_advised) {
+            // If adviser has submitted any form for route2, allow viewing
+            $response['hasReviewed'] = true;
+            $response['message'] = 'Route 2 document reviewed by adviser';
+        } else {
+            // If no route2 review exists, check if route1 has any adviser submission
+            $get_route1 = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ?");
+            $get_route1->bind_param("s", $student_id);
+            $get_route1->execute();
+            $route1_result = $get_route1->get_result();
+            $route1_id = null;
             
-            if ($route1_approved) {
-                $response['hasReviewed'] = true;
-                $response['message'] = 'Route 1 document was approved by adviser';
+            if ($route1_result && $route1_row = $route1_result->fetch_assoc()) {
+                $route1_id = $route1_row['route1_id'];
+            }
+            $get_route1->close();
+            
+            if ($route1_id) {
+                $check_route1 = $conn->prepare("SELECT COUNT(*) as count FROM proposal_monitoring_form 
+                                              WHERE route1_id = ? AND adviser_id IS NOT NULL");
+                $check_route1->bind_param("i", $route1_id);
+                $check_route1->execute();
+                $route1_result = $check_route1->get_result();
+                $route1_advised = ($route1_result && $route1_result->fetch_assoc()['count'] > 0);
+                $check_route1->close();
+                
+                if ($route1_advised) {
+                    $response['hasReviewed'] = true;
+                    $response['message'] = 'Route 1 document was reviewed by adviser';
+                } else {
+                    $response['hasReviewed'] = false;
+                    $response['message'] = 'Adviser must submit a form for Route 1 or Route 2 before panel members can view this document';
+                }
             } else {
                 $response['hasReviewed'] = false;
-                $response['message'] = 'Adviser must approve Route 1 before panel members can view Route 2 documents';
+                $response['message'] = 'Route 1 document not found. Adviser must review Route 2 first';
             }
-        } else {
-            $response['hasReviewed'] = false;
-            $response['message'] = 'Route 1 document not found. Adviser must complete Route 1 review first';
         }
     }
 }

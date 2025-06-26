@@ -1583,10 +1583,10 @@ document.addEventListener('DOMContentLoaded', function() {
         dropdownContent.classList.remove('show');
 
         // Expand the right one based on URL
-        if (path.includes('/titleproposal/') && label.includes('title proposal')) {
+        if (path.includes('/titleproposal/') && label.includes('research proposal')) {
             header.querySelector('.dropdown-icon').classList.add('expanded');
             dropdownContent.classList.add('show');
-        } else if (path.includes('/final/') && label === 'final') {
+        } else if (path.includes('/final/') && label === 'final defense') {
             header.querySelector('.dropdown-icon').classList.add('expanded');
             dropdownContent.classList.add('show');
         }
@@ -1622,3 +1622,4 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 </body>
 </html>
+
