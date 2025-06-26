@@ -246,10 +246,11 @@
                 <div>→</div>    
             </a>
         </div>
-        
         <div class="footer">
             <p>© 2025 Saint Michael College of Caraga | All Rights Reserved</p>
             <p>Lacaran, EJ., Castillon, J., Ocay, J., Saladores, JL., Tiempo, RC.</p>
+            <p>Adviser: Rea Mie A. Omas-as</p>
+            <p>CCIS</p>
         </div>
     </div>
 </body>

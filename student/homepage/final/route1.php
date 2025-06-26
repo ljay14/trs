@@ -28,60 +28,15 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
             error_log("Invalid email address format: $adviser_email");
             return false;
         }
-        
-        // Check for Composer autoloader
-        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
-        
-        if (!file_exists($autoloader_path)) {
-            error_log("PHPMailer autoloader not found. Please install PHPMailer via Composer.");
-            return false;
-        }
-        
-        // Include the autoloader
-        require_once $autoloader_path;
-        
-        // Create instance of PHPMailer
-        $mail = new PHPMailer(true);
 
-        // Server settings
-        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
-        
-        // Recommended Gmail-specific settings
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        
-        // Set Timeout values
-        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
-        $mail->SMTPKeepAlive = true; // SMTP keep alive
-
-        // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($adviser_email, $adviser_name);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = 'New Final Defense Document (Route 1) Submitted for Review';
-        
-        // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph/';
-        
-        $login_url = $base_url . 'trs/adviser/login.php';
-        
-        $mail->Body = "
+        // Prepare email data
+        $emailData = [
+            'to' => $adviser_email,
+            'name' => $adviser_name,
+            'from' => 'trssmcc01@gmail.com',
+            'from_name' => 'Thesis Routing System',
+            'subject' => 'New Final Defense Document (Route 1) Submitted for Review',
+            'body' => "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
                 <p>Dear <strong>{$adviser_name}</strong>,</p>
@@ -90,44 +45,50 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
                 <p><strong>Title:</strong> {$title}</p>
                 <p>Please log in to the Thesis Routing System to review this document.</p>
                 <div style='margin-top: 30px; text-align: center;'>
-                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                    <a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
                 </div>
-                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php'>https://capstone.smccnasipit.edu.ph/trs/adviser/login.php</a></p>
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
             </div>
-        ";
-        $mail->AltBody = "Dear {$adviser_name}, A new final defense document (Route 1) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: {$login_url}";
+            ",
+            'alt_body' => "Dear {$adviser_name}, A new final defense document (Route 1) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: https://capstone.smccnasipit.edu.ph/trs/adviser/login.php",
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+            'smtp_user' => 'trssmcc01@gmail.com',
+            'smtp_pass' => 'zcyz stno rcjw kmla',
+            'smtp_secure' => 'tls'
+        ];
 
-        // Add additional headers that may help with deliverability
-        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
-        $mail->addCustomHeader('X-Priority', '3');
+        // Create temporary file with email data
+        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
+        if (!$tempFile) {
+            error_log("Failed to create temporary file for email data");
+            return false;
+        }
 
-        $mail->send();
-        error_log("Email sent successfully to: $adviser_email using PHPMailer");
+        // Write email data to file
+        if (!file_put_contents($tempFile, json_encode($emailData))) {
+            error_log("Failed to write email data to temporary file");
+            unlink($tempFile);
+            return false;
+        }
+
+        // Get path to background script
+        $backgroundScript = __DIR__ . '/../../../send_email_background.php';
+        if (!file_exists($backgroundScript)) {
+            error_log("Background email script not found at: $backgroundScript");
+            unlink($tempFile);
+            return false;
+        }
+
+        // Execute background script
+        $cmd = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
+        exec($cmd);
+
+        error_log("Email notification queued for adviser: $adviser_email");
         return true;
     } catch (Exception $e) {
-        $errorMsg = "Email could not be sent to: $adviser_email. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        error_log($errorMsg);
+        error_log("Error preparing email notification: " . $e->getMessage());
         return false;
     }
 }

@@ -112,32 +112,9 @@ function sendStudentNotificationEmail($student_email, $student_name, $panel_name
         $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
         $mail->addCustomHeader('X-Priority', '3');
 
-        $mail->send();
-        error_log("Email sent successfully to student: $student_email using PHPMailer");
         return true;
     } catch (Exception $e) {
-        $errorMsg = "Email could not be sent to student: $student_email. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        logEmailError($errorMsg);
+        logEmailError("Error preparing email data: " . $e->getMessage());
         return false;
     }
 }
@@ -1009,6 +986,23 @@ function toggleForms(route1_id) {
         // Show forms
         loadAllForms(route1_id);
     }
+}
+
+function addFormRow() {
+    const today = new Date().toISOString().split('T')[0];
+    const row = `
+        <div class="form-grid-container">
+            <div><input type="text" name="dateSubmitted[]" value="${today}" readonly></div>
+            <div><input type="text" name="chapter[]" required></div>
+            <div><textarea name="feedback[]" required oninput="autoGrow(this)"></textarea></div>
+            <div><input type="number" name="paragraphNumber[]" required></div>
+            <div><input type="number" name="pageNumber[]" required></div>
+            <div><input type="text" name="panelName[]" value="${panelName}" readonly></div>
+            <div><input type="date" name="dateReleased[]" value="${today}" required></div>
+            <div><input type="text" name="routeNumber[]" value="Route 2" required></div>
+        </div>
+    `;
+    document.getElementById("routingRowsContainer").insertAdjacentHTML("beforeend", row);
 }
 
 function loadAllForms(route1_id) {

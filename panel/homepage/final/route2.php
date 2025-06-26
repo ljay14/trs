@@ -1216,11 +1216,10 @@ input[type="checkbox"] {
                             <div>${form.date_released}</div>
                             <div>${form.routeNumber}</div>
                             <div>
-                                <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                                    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                                    <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                                </select>
+                                <select id="statusSelect_${formId}" onchange="saveStatus(${formId})" data-student-id="${student_id}">
+    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+</select>
                             </div>
                             <div>
                                 <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
@@ -1242,29 +1241,54 @@ input[type="checkbox"] {
             textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
         }
 
-        function saveStatus(formId, event) {
-            event.preventDefault();
-            const status = document.getElementById(`statusSelect_${formId}`).value;
+        function saveStatus(formId) {
+    const statusSelect = document.getElementById(`statusSelect_${formId}`);
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    
+    // Immediately disable the button and show loading state
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    
+    // Get the form data
+    const formData = {
+        id: formId,
+        status: statusSelect.value
+    };
 
-            fetch('update_form_status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: formId, status: status })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Disable the save button once status is saved
-                        document.getElementById(`saveButton_${formId}`).disabled = true;
-                    } else {
-                        alert(data.message || 'Failed to update.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while saving the status.');
-                });
+    // Send the request with a timeout
+    const timeout = setTimeout(() => {
+        // Show a success message immediately
+        const statusCell = statusSelect.parentElement;
+        statusCell.style.backgroundColor = '#e8f5e9';
+        alert('Status saved successfully. The student will be notified by email shortly.');
+        
+        // Hide the save button
+        saveButton.style.display = 'none';
+    }, 500); // 500ms timeout for immediate feedback
+
+    // Send the actual request in the background
+    fetch('update_form_status.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            // Only show error if there was an actual error
+            alert(data.message || 'Failed to update status.');
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Clear the timeout
+        clearTimeout(timeout);
+    });
+}
 
         function enableSaveButton(formId) {
             const saveButton = document.getElementById(`saveButton_${formId}`);

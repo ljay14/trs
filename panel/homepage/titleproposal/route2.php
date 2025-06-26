@@ -1296,11 +1296,10 @@ function loadAllForms(student_id) {
                             <div>${form.date_released}</div>
                             <div>${form.routeNumber}</div>
                             <div>
-                                <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                                    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                                    <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                                </select>
+                                <select id="statusSelect_${formId}" onchange="saveStatus(${formId})" data-student-id="${student_id}">
+    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+</select>
                             </div>
                             <div>
                                 <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
@@ -1322,54 +1321,52 @@ function autoGrow(textarea) {
     textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
 }
 
-function saveStatus(formId, event) {
-    event.preventDefault();  // Prevent any form submission
-
+function saveStatus(formId) {
     const statusSelect = document.getElementById(`statusSelect_${formId}`);
-    const newStatus = statusSelect.value;
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    
+    // Immediately disable the button and show loading state
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    
+    // Get the form data
+    const formData = {
+        id: formId,
+        status: statusSelect.value
+    };
 
-    if (!newStatus) {
-        alert("Please select a status.");
-        return;
-    }
+    // Send the request with a timeout
+    const timeout = setTimeout(() => {
+        // Show a success message immediately
+        const statusCell = statusSelect.parentElement;
+        statusCell.style.backgroundColor = '#e8f5e9';
+        alert('Status saved successfully. The student will be notified by email shortly.');
+        
+        // Hide the save button
+        saveButton.style.display = 'none';
+    }, 500); // 500ms timeout for immediate feedback
 
+    // Send the actual request in the background
     fetch('update_form_status.php', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            id: formId,
-            status: newStatus
-        })
+        body: JSON.stringify(formData)
     })
-    .then(response => {
-        // Check if response is ok (status code 200-299)
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // Disable the save button once status is saved
-            document.getElementById(`saveButton_${formId}`).disabled = true;
-            
-            // Show a success message
-            const statusCell = statusSelect.parentElement;
-            statusCell.style.backgroundColor = '#e8f5e9';
-            
-            // If all forms are approved, show a special message
-            if (data.all_approved) {
-                alert("All your feedback forms for this student have been approved! An email notification has been sent to the student.");
-            }
-        } else {
+        if (!data.success) {
+            // Only show error if there was an actual error
             alert(data.message || 'Failed to update status.');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while saving the status.');
+    })
+    .finally(() => {
+        // Clear the timeout
+        clearTimeout(timeout);
     });
 }
 

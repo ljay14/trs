@@ -187,72 +187,43 @@ function logEmailError($message) {
 }
 
 // Function to send email notification to student
+function sendEmailInBackground($email_data) {
+    try {
+        // Create a temporary file with unique name
+        $temp_file = tempnam(sys_get_temp_dir(), 'email_');
+        
+        // Write email data to file
+        file_put_contents($temp_file, json_encode($email_data));
+        
+        // Execute background PHP script to send email
+        exec("php " . __DIR__ . "/../../send_email_background.php " . escapeshellarg($temp_file) . " > /dev/null 2>&1 &");
+        
+        return true;
+    } catch (Exception $e) {
+        logEmailError("Failed to prepare email for background sending: " . $e->getMessage());
+        return false;
+    }
+}
+
 function sendStudentNotificationEmail($student_email, $student_name, $adviser_name, $feedback_summary) {
     try {
-        // Validate email address first
         if (!isValidEmail($student_email)) {
             logEmailError("Invalid email address format: $student_email");
             return false;
         }
-        
-        // Check for Composer autoloader
-        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
-        
-        if (!file_exists($autoloader_path)) {
-            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
-            return false;
-        }
-        
-        // Include the autoloader
-        require_once $autoloader_path;
-        
-        // Create instance of PHPMailer
-        $mail = new PHPMailer(true);
-
-        // Server settings
-        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
-        
-        // Recommended Gmail-specific settings
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        
-        // Set Timeout values
-        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
-        $mail->SMTPKeepAlive = true; // SMTP keep alive
-
-        // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($student_email, $student_name);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = "New Feedback Submitted - Thesis Routing System";
         
         // Get server URL dynamically
         $server_name = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
         $server_port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' ? ':' . $_SERVER['SERVER_PORT'] : '';
         $http_protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $base_url = $http_protocol . '://' . $server_name . $server_port;
-        
         $login_url = $base_url . '/TRS/student/';
-        
-        $mail->Body = "
-            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+
+        $email_data = [
+            'to' => $student_email,
+            'to_name' => $student_name,
+            'subject' => "New Feedback Submitted - Thesis Routing System",
+            'body' => "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
                 <p>Dear <strong>{$student_name}</strong>,</p>
                 <p>Your adviser <strong>{$adviser_name}</strong> has submitted feedback on your thesis final.</p>
@@ -263,40 +234,27 @@ function sendStudentNotificationEmail($student_email, $student_name, $adviser_na
                 </div>
                 <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
-            </div>
-        ";
-        $mail->AltBody = "Dear {$student_name}, Your adviser {$adviser_name} has submitted feedback on your thesis final. Feedback Summary: {$feedback_summary}. Please login at: {$login_url} to review the detailed feedback.";
-
-        // Add additional headers that may help with deliverability
-        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
-        $mail->addCustomHeader('X-Priority', '3');
-
-        $mail->send();
-        error_log("Email sent successfully to student: $student_email using PHPMailer");
-        return true;
+            </div>",
+            'smtp_settings' => [
+                'host' => 'smtp.gmail.com',
+                'username' => 'trssmcc01@gmail.com',
+                'password' => 'zcyz stno rcjw kmla',
+                'port' => 587,
+                'secure' => 'tls'
+            ],
+            'from' => [
+                'email' => 'trssmcc01@gmail.com',
+                'name' => 'Thesis Routing System'
+            ],
+            'reply_to' => [
+                'email' => 'trssmcc01@gmail.com',
+                'name' => 'Thesis Routing System'
+            ]
+        ];
+        
+        return sendEmailInBackground($email_data);
     } catch (Exception $e) {
-        $errorMsg = "Email could not be sent to student: $student_email. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        logEmailError($errorMsg);
+        logEmailError("Failed to prepare feedback notification email: " . $e->getMessage());
         return false;
     }
 }
@@ -1163,7 +1121,7 @@ input[type="checkbox"] {
                 <div><strong>Date Released</strong></div>
                 <div><strong>Status</strong></div>
                 <div><strong>Route Number</strong></div>
-                <div><strong>Action</strong></div>
+              
             </div>
 
             <!-- Container for submitted form data -->
@@ -1254,11 +1212,10 @@ function loadAllForms(student_id) {
                     <div>${form.date_released}</div>
                     <div>${form.routeNumber}</div>
                     <div>
-                        <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                            <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                        </select>
+                        <select id="statusSelect_${formId}" onchange="saveStatus(${formId})" data-student-id="${student_id}">
+    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+</select>
                     </div>
                     <div>
                         <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
@@ -1297,43 +1254,52 @@ function autoGrow(textarea) {
     textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
 }
 
-function saveStatus(formId, event) {
-    event.preventDefault();  // Prevent any form submission
-
+function saveStatus(formId) {
     const statusSelect = document.getElementById(`statusSelect_${formId}`);
-    const newStatus = statusSelect.value;
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    
+    // Immediately disable the button and show loading state
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    
+    // Get the form data
+    const formData = {
+        id: formId,
+        status: statusSelect.value
+    };
 
-    if (!newStatus) {
-        alert("Please select a status.");
-        return;
-    }
+    // Send the request with a timeout
+    const timeout = setTimeout(() => {
+        // Show a success message immediately
+        const statusCell = statusSelect.parentElement;
+        statusCell.style.backgroundColor = '#e8f5e9';
+        alert('Status saved successfully. The student will be notified by email shortly.');
+        
+        // Hide the save button
+        saveButton.style.display = 'none';
+    }, 500); // 500ms timeout for immediate feedback
 
+    // Send the actual request in the background
     fetch('update_form_status.php', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            id: formId,
-            status: newStatus  // Update to status (changed from adviser_status)
-        })
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Response from update_form_status.php:", data);
-        if (data.success) {
-            const saveButton = document.getElementById(`saveButton_${formId}`);
-            saveButton.disabled = true;
-            saveButton.textContent = "Saved ✔";
-            saveButton.style.backgroundColor = "green";
-            saveButton.style.color = "white";
-        } else {
-            alert("Failed to save status: " + data.message);
+        if (!data.success) {
+            // Only show error if there was an actual error
+            alert(data.message || 'Failed to update status.');
         }
     })
     .catch(error => {
-        alert("Error saving status.");
-        console.error(error);
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Clear the timeout
+        clearTimeout(timeout);
     });
 }
 

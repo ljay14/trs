@@ -37,6 +37,26 @@ function logEmailError($message) {
     file_put_contents($logFile, $logMessage, FILE_APPEND);
 }
 
+// Function to send email in background
+function sendEmailInBackground($emailData) {
+    try {
+        // Create a temporary file with unique name
+        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
+        
+        // Write email data to file
+        file_put_contents($tempFile, json_encode($emailData));
+        
+        // Execute background PHP script
+        $cmd = "php send_email_background.php $tempFile > /dev/null 2>&1 &";
+        exec($cmd);
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Error preparing background email: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Function to send approval notification email to student
 function sendApprovalNotificationEmail($student_email, $student_name, $adviser_name, $form_details) {
     try {
@@ -45,60 +65,13 @@ function sendApprovalNotificationEmail($student_email, $student_name, $adviser_n
             logEmailError("Invalid email address format: $student_email");
             return false;
         }
-        
-        // Check for Composer autoloader
-        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
-        
-        if (!file_exists($autoloader_path)) {
-            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
-            return false;
-        }
-        
-        // Include the autoloader
-        require_once $autoloader_path;
-        
-        // Create instance of PHPMailer
-        $mail = new PHPMailer(true);
 
-        // Server settings
-        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
-        
-        // Recommended Gmail-specific settings
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        
-        // Set Timeout values
-        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
-        $mail->SMTPKeepAlive = true; // SMTP keep alive
-
-        // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($student_email, $student_name);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = "Final Defense Form Approved - Thesis Routing System";
-        
-        // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph/';
-        $login_url = $base_url . 'trs/student/login.php';
-        
-        $mail->Body = "
+        // Prepare email data
+        $emailData = [
+            'to' => $student_email,
+            'toName' => $student_name,
+            'subject' => "Final Defense Form Approved - Thesis Routing System",
+            'body' => "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
                 <p>Dear <strong>{$student_name}</strong>,</p>
@@ -112,44 +85,33 @@ function sendApprovalNotificationEmail($student_email, $student_name, $adviser_n
                 </ul>
                 <p>Please log in to the Thesis Routing System to review the approval and proceed with your next steps.</p>
                 <div style='margin-top: 30px; text-align: center;'>
-                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to System</a>
+                    <a href='https://capstone.smccnasipit.edu.ph/trs/student/login.php' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to System</a>
                 </div>
-                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/student/login.php'>https://capstone.smccnasipit.edu.ph/trs/student/login.php</a></p>
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
-            </div>
-        ";
-        $mail->AltBody = "Dear {$student_name}, Your adviser {$adviser_name} has APPROVED your final defense submission for Chapter: {$form_details['chapter']}, Paragraph: {$form_details['paragraph_number']}, Page: {$form_details['page_number']}, Route: {$form_details['routeNumber']}. Please login at: {$login_url} to review.";
+            </div>",
+            'altBody' => "Dear {$student_name}, Your adviser {$adviser_name} has APPROVED your final defense submission for Chapter: {$form_details['chapter']}, Paragraph: {$form_details['paragraph_number']}, Page: {$form_details['page_number']}, Route: {$form_details['routeNumber']}. Please login at: https://capstone.smccnasipit.edu.ph/trs/student/login.php to review.",
+            'smtp' => [
+                'host' => 'smtp.gmail.com',
+                'port' => 587,
+                'username' => 'trssmcc01@gmail.com',
+                'password' => 'zcyz stno rcjw kmla',
+                'encryption' => 'tls'
+            ],
+            'from' => [
+                'email' => 'trssmcc01@gmail.com',
+                'name' => 'Thesis Routing System'
+            ],
+            'headers' => [
+                'X-Mailer' => 'Thesis Routing System',
+                'X-Priority' => '3'
+            ]
+        ];
 
-        // Add additional headers that may help with deliverability
-        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
-        $mail->addCustomHeader('X-Priority', '3');
-
-        $mail->send();
-        error_log("Approval email sent successfully to student: $student_email using PHPMailer");
-        return true;
+        // Send email in background
+        return sendEmailInBackground($emailData);
     } catch (Exception $e) {
-        $errorMsg = "Approval email could not be sent to student: $student_email. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        logEmailError($errorMsg);
+        logEmailError("Error preparing approval notification email: " . $e->getMessage());
         return false;
     }
 }
@@ -162,61 +124,13 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
             logEmailError("Invalid email address format: $student_email");
             return false;
         }
-        
-        // Check for Composer autoloader
-        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
-        
-        if (!file_exists($autoloader_path)) {
-            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
-            return false;
-        }
-        
-        // Include the autoloader
-        require_once $autoloader_path;
-        
-        // Create instance of PHPMailer
-        $mail = new PHPMailer(true);
 
-        // Server settings
-        $mail->SMTPDebug  = 0;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
-        
-        // Recommended Gmail-specific settings
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        
-        // Set Timeout values
-        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
-        $mail->SMTPKeepAlive = true; // SMTP keep alive
-
-        // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($student_email, $student_name);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = "All Final Defense Feedback Approved - Thesis Routing System";
-        
-        // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph/trs';
-        
-        $login_url = $base_url . '/student/';
-        
-        $mail->Body = "
+        // Prepare email data
+        $emailData = [
+            'to' => $student_email,
+            'toName' => $student_name,
+            'subject' => "All Final Defense Feedback Approved - Thesis Routing System",
+            'body' => "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System - All Feedback Approved</h2>
                 <p>Dear <strong>{$student_name}</strong>,</p>
@@ -225,44 +139,33 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
                 <p><strong>Route:</strong> {$route_number}</p>
                 <p>You may now proceed to the next step in your thesis workflow. Please log in to the Thesis Routing System to view all approved feedback and continue with your thesis progress.</p>
                 <div style='margin-top: 30px; text-align: center;'>
-                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to System</a>
+                    <a href='https://capstone.smccnasipit.edu.ph/trs/student/' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to System</a>
                 </div>
-                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/student/'>https://capstone.smccnasipit.edu.ph/trs/student/</a></p>
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
-            </div>
-        ";
-        $mail->AltBody = "Dear {$student_name}, Congratulations! Your adviser {$adviser_name} has APPROVED ALL feedback for your final defense. Summary: {$feedback_summary}, Route: {$route_number}. Please login at: {$login_url} to view all approved feedback and continue with your thesis progress.";
+            </div>",
+            'altBody' => "Dear {$student_name}, Congratulations! Your adviser {$adviser_name} has APPROVED ALL feedback for your final defense. Summary: {$feedback_summary}, Route: {$route_number}. Please login at: https://capstone.smccnasipit.edu.ph/trs/student/ to view all approved feedback and continue with your thesis progress.",
+            'smtp' => [
+                'host' => 'smtp.gmail.com',
+                'port' => 587,
+                'username' => 'trssmcc01@gmail.com',
+                'password' => 'zcyz stno rcjw kmla',
+                'encryption' => 'tls'
+            ],
+            'from' => [
+                'email' => 'trssmcc01@gmail.com',
+                'name' => 'Thesis Routing System'
+            ],
+            'headers' => [
+                'X-Mailer' => 'Thesis Routing System',
+                'X-Priority' => '3'
+            ]
+        ];
 
-        // Add additional headers that may help with deliverability
-        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
-        $mail->addCustomHeader('X-Priority', '3');
-
-        $mail->send();
-        error_log("All approved notification email sent successfully to student: $student_email using PHPMailer");
-        return true;
+        // Send email in background
+        return sendEmailInBackground($emailData);
     } catch (Exception $e) {
-        $errorMsg = "All approved notification email could not be sent to student: $student_email. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        logEmailError($errorMsg);
+        logEmailError("Error preparing all approved notification email: " . $e->getMessage());
         return false;
     }
 }

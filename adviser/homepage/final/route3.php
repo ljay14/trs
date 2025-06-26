@@ -56,6 +56,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         die("Error preparing the insert query: " . $conn->error);
     }
 
+    // Get student email for notification
+    $studentEmailStmt = $conn->prepare("SELECT email, fullname FROM student WHERE student_id = ?");
+    $studentEmailStmt->bind_param("s", $student_id);
+    $studentEmailStmt->execute();
+    $studentEmailResult = $studentEmailStmt->get_result();
+    $studentEmailData = $studentEmailResult->fetch_assoc();
+    $studentEmail = $studentEmailData['email'] ?? '';
+    $studentName = $studentEmailData['fullname'] ?? 'Student';
+    $studentEmailStmt->close();
+
+    // Summary of feedback for email notification
+    $feedbackSummary = "New feedback for chapters: " . implode(", ", array_slice($chapterArr, 0, 3));
+    if (count($chapterArr) > 3) {
+        $feedbackSummary .= " and " . (count($chapterArr) - 3) . " more";
+    }
+
     // Loop through the form data and insert each row
     for ($i = 0; $i < count($chapterArr); $i++) {
         $dateSubmitted = $dateSubmittedArr[$i];
@@ -91,8 +107,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         }
     }
 
-    echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
-    exit;
+    // Send email notification to student if data was inserted successfully
+    if (!empty($studentEmail)) {
+        // Check if all adviser feedback items for this route are approved
+        $adviserStatusQuery = $conn->prepare("
+            SELECT COUNT(*) as total, 
+                   SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved 
+            FROM final_monitoring_form 
+            WHERE route3_id = ? AND adviser_id = ?
+        ");
+        $adviserStatusQuery->bind_param("ss", $route3_id, $adviser_id);
+        $adviserStatusQuery->execute();
+        $adviserResult = $adviserStatusQuery->get_result();
+        $adviserStatus = $adviserResult->fetch_assoc();
+        $allAdviserApproved = ($adviserStatus['total'] > 0 && $adviserStatus['total'] == $adviserStatus['approved']);
+        $adviserStatusQuery->close();
+        
+        if (isValidEmail($studentEmail) && $allAdviserApproved) {
+            $emailSent = sendStudentNotificationEmail($studentEmail, $studentName, $fullname, $feedbackSummary);
+            if ($emailSent) {
+                echo "<script>alert('Form submitted successfully and notification email sent to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            } else {
+                echo "<script>alert('Form submitted successfully but failed to send notification email to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            }
+        } else {
+            $message = 'Form submitted successfully.';
+            if (!isValidEmail($studentEmail)) {
+                $message .= ' Student email address is invalid.';
+            } else if (!$allAdviserApproved) {
+                $message .= ' Email will be sent when all your feedback is marked as Approved.';
+            }
+            echo "<script>alert('$message'); window.location.href=window.location.href;</script>";
+            exit;
+        }
+    } else {
+        echo "<script>alert('Form submitted successfully. No student email available for notification.'); window.location.href=window.location.href;</script>";
+        exit;
+    }
+}
+
+// Email sending functions
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+function sendEmailInBackground($emailData) {
+    try {
+        // Create a temporary file with unique name
+        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
+        
+        // Write email data to file
+        file_put_contents($tempFile, json_encode($emailData));
+        
+        // Execute background PHP script
+        $cmd = "php send_email_background.php $tempFile > /dev/null 2>&1 &";
+        exec($cmd);
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Error preparing background email: " . $e->getMessage());
+        return false;
+    }
+}
+
+function sendStudentNotificationEmail($studentEmail, $studentName, $adviserName, $feedbackSummary) {
+    try {
+        if (!isValidEmail($studentEmail)) {
+            error_log("Invalid email address format: $studentEmail");
+            return false;
+        }
+
+        // Prepare email data
+        $emailData = [
+            'to' => $studentEmail,
+            'toName' => $studentName,
+            'subject' => "New Feedback from $adviserName",
+            'body' => "Dear $studentName,\n\nYou have received new feedback from $adviserName. Please find the summary below:\n\n$feedbackSummary\n\nBest regards,\nThesis Routing System",
+            'smtp' => [
+                'host' => 'smtp.gmail.com',
+                'port' => 587,
+                'username' => 'trssmcc01@gmail.com',
+                'password' => 'zcyz stno rcjw kmla',
+                'encryption' => 'tls'
+            ],
+            'from' => [
+                'email' => 'trssmcc01@gmail.com',
+                'name' => 'Thesis Routing System'
+            ]
+        ];
+
+        // Send email in background
+        return sendEmailInBackground($emailData);
+    } catch (Exception $e) {
+        error_log("Error sending notification email: " . $e->getMessage());
+        return false;
+    }
 }
 ?>
 
@@ -1090,11 +1201,10 @@ function loadAllForms(student_id) {
                     <div>${form.date_released}</div>
                     <div>${form.routeNumber}</div>
                     <div>
-                        <select id="statusSelect_${formId}" onchange="enableSaveButton(${formId})">
-                            <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
-                            <option value="For Revision" ${statusValue === 'For Revision' ? 'selected' : ''}>For Revision</option>
-                        </select>
+                        <select id="statusSelect_${formId}" onchange="saveStatus(${formId})" data-student-id="${student_id}">
+    <option value="Pending" ${statusValue === 'Pending' ? 'selected' : ''}>Pending</option>
+    <option value="Approved" ${statusValue === 'Approved' ? 'selected' : ''}>Approved</option>
+</select>
                     </div>
                     <div>
                         <button id="saveButton_${formId}" onclick="saveStatus(${formId}, event)" disabled>Save</button>
@@ -1133,43 +1243,52 @@ function autoGrow(textarea) {
     textarea.style.height = textarea.scrollHeight + 'px'; // Set to scrollHeight
 }
 
-function saveStatus(formId, event) {
-    event.preventDefault();  // Prevent any form submission
-
+function saveStatus(formId) {
     const statusSelect = document.getElementById(`statusSelect_${formId}`);
-    const newStatus = statusSelect.value;
+    const saveButton = document.getElementById(`saveButton_${formId}`);
+    
+    // Immediately disable the button and show loading state
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+    
+    // Get the form data
+    const formData = {
+        id: formId,
+        status: statusSelect.value
+    };
 
-    if (!newStatus) {
-        alert("Please select a status.");
-        return;
-    }
+    // Send the request with a timeout
+    const timeout = setTimeout(() => {
+        // Show a success message immediately
+        const statusCell = statusSelect.parentElement;
+        statusCell.style.backgroundColor = '#e8f5e9';
+        alert('Status saved successfully. The student will be notified by email shortly.');
+        
+        // Hide the save button
+        saveButton.style.display = 'none';
+    }, 500); // 500ms timeout for immediate feedback
 
+    // Send the actual request in the background
     fetch('update_form_status.php', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            id: formId,
-            status: newStatus  // Update to status (changed from adviser_status)
-        })
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Response from update_form_status.php:", data);
-        if (data.success) {
-            const saveButton = document.getElementById(`saveButton_${formId}`);
-            saveButton.disabled = true;
-            saveButton.textContent = "Saved ✔";
-            saveButton.style.backgroundColor = "green";
-            saveButton.style.color = "white";
-        } else {
-            alert("Failed to save status: " + data.message);
+        if (!data.success) {
+            // Only show error if there was an actual error
+            alert(data.message || 'Failed to update status.');
         }
     })
     .catch(error => {
-        alert("Error saving status.");
-        console.error(error);
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Clear the timeout
+        clearTimeout(timeout);
     });
 }
 

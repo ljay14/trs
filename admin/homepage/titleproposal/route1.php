@@ -126,7 +126,58 @@ function logEmailError($message) {
     file_put_contents($logFile, $logMessage, FILE_APPEND);
 }
 
-// Function to send email notification to panel
+// Function to prepare email data for background processing
+function prepareEmailData($panelEmail, $panelName, $position, $studentName, $title) {
+    $emailData = [
+        'email' => $panelEmail,
+        'name' => $panelName,
+        'position' => $position,
+        'student_name' => $studentName,
+        'title' => $title,
+        'smtp_config' => [
+            'host' => 'smtp.gmail.com',
+            'username' => 'trssmcc01@gmail.com',
+            'password' => 'zcyz stno rcjw kmla',
+            'secure' => 'tls',
+            'port' => 587,
+            'charset' => 'UTF-8',
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true,
+            'timeout' => 60,
+            'keep_alive' => true
+        ],
+        'headers' => [
+            'from' => 'trssmcc01@gmail.com',
+            'reply_to' => 'trssmcc01@gmail.com',
+            'subject' => "Panel Assignment Notification - Thesis Routing System",
+            'x_mailer' => 'Thesis Routing System',
+            'x_priority' => '3'
+        ],
+        'content' => [
+            'html' => "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                    <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                    <p>Dear <strong>{$panelName}</strong>,</p>
+                    <p>You have been assigned as <strong>{$position}</strong> for the following thesis:</p>
+                    <p><strong>Student:</strong> {$studentName}</p>
+                    <p><strong>Title:</strong> {$title}</p>
+                    <p>Please log in to the Thesis Routing System to review the proposal.</p>
+                    <div style='margin-top: 30px; text-align: center;'>
+                        <a href='https://capstone.smccnasipit.edu.ph/trs/panel/login.php' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                    </div>
+                    <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/panel/login.php'>https://capstone.smccnasipit.edu.ph/trs/panel/login.php</a></p>
+                    <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+                </div>
+            ",
+            'text' => "Dear {$panelName}, You have been assigned as {$position} for the thesis '{$title}' by {$studentName}. Please login at: https://capstone.smccnasipit.edu.ph/trs/panel/login.php to review the proposal."
+        ]
+    ];
+
+    return serialize($emailData);
+}
+
+// Function to send email notification to panel (asynchronous)
 function sendPanelNotificationEmail($panelEmail, $panelName, $position, $studentName, $title) {
     try {
         // Validate email address first
@@ -134,106 +185,28 @@ function sendPanelNotificationEmail($panelEmail, $panelName, $position, $student
             logEmailError("Invalid email address format: $panelEmail");
             return false;
         }
-        
-        // Check for Composer autoloader
-        $autoloader_path = __DIR__ . '/../../../vendor/autoload.php';
-        
-        if (!file_exists($autoloader_path)) {
-            logEmailError("PHPMailer autoloader not found at: $autoloader_path. Please install PHPMailer via Composer.");
+
+        // Prepare email data
+        $emailData = prepareEmailData($panelEmail, $panelName, $position, $studentName, $title);
+
+        // Create temporary file with email data
+        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
+        file_put_contents($tempFile, $emailData);
+
+        // Execute background script to send email
+        $backgroundScript = __DIR__ . '/send_email_background.php';
+        if (!file_exists($backgroundScript)) {
+            logEmailError("Background script not found: $backgroundScript");
             return false;
         }
-        
-        // Include the autoloader
-        require_once $autoloader_path;
-        
-        // Create instance of PHPMailer
-        $mail = new PHPMailer(true);
 
-        // Server settings
-        $mail->SMTPDebug  = 2;  // Enable verbose debug output (0 for no output, 2 for verbose)
-        $mail->Debugoutput = function($str, $level) { logEmailError("PHPMailer [$level]: $str"); };
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-        $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
-        
-        // Recommended Gmail-specific settings
-        $mail->SMTPOptions = array(
-            'ssl' => array(
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true
-            )
-        );
-        
-        // Set Timeout values
-        $mail->Timeout    = 60; // Increased HTTP timeout in seconds
-        $mail->SMTPKeepAlive = true; // SMTP keep alive
+        // Run background script asynchronously
+        $command = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
+        exec($command);
 
-        // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
-        $mail->addAddress($panelEmail, $panelName);
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = "Panel Assignment Notification - Thesis Routing System";
-        
-        // Get server URL dynamically
-        $base_url = 'https://capstone.smccnasipit.edu.ph/';
-        $login_url = $base_url . 'trs/panel/login.php';
-        
-        $mail->Body = "
-            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
-                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
-                <p>Dear <strong>{$panelName}</strong>,</p>
-                <p>You have been assigned as <strong>{$position}</strong> for the following thesis:</p>
-                <p><strong>Student:</strong> {$studentName}</p>
-                <p><strong>Title:</strong> {$title}</p>
-                <p>Please log in to the Thesis Routing System to review the proposal.</p>
-                <div style='margin-top: 30px; text-align: center;'>
-                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
-                </div>
-                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
-                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
-            </div>
-        ";
-        $mail->AltBody = "Dear {$panelName}, You have been assigned as {$position} for the thesis '{$title}' by {$studentName}. Please login at: {$login_url} to review the proposal.";
-
-        // Add additional headers that may help with deliverability
-        $mail->addCustomHeader('X-Mailer', 'Thesis Routing System');
-        $mail->addCustomHeader('X-Priority', '3');
-
-        $mail->send();
-        error_log("Email sent successfully to panel: $panelEmail using PHPMailer");
         return true;
     } catch (Exception $e) {
-        $errorMsg = "Email could not be sent to panel: $panelEmail. ";
-        
-        if (isset($mail)) {
-            $errorMsg .= "PHPMailer Error: " . $mail->ErrorInfo;
-            
-            // Log SMTP debug info for connection issues
-            if (strpos($mail->ErrorInfo, 'SMTP connect() failed') !== false) {
-                $errorMsg .= ". Possible connection issue with SMTP server.";
-            } else if (strpos($mail->ErrorInfo, 'authentication failed') !== false) {
-                $errorMsg .= ". Authentication issue - check username and password.";
-            } else if (strpos($mail->ErrorInfo, 'Invalid address') !== false) {
-                $errorMsg .= ". Invalid email address format.";
-            } else if (strpos($mail->ErrorInfo, 'Could not authenticate') !== false) {
-                $errorMsg .= ". Gmail may be blocking this attempt. Check Gmail settings and app password.";
-            } else if (strpos($mail->ErrorInfo, 'Recipient') !== false) {
-                $errorMsg .= ". There's an issue with the recipient address. Check if the address is valid.";
-            }
-        } else {
-            $errorMsg .= "Exception: " . $e->getMessage();
-        }
-        
-        logEmailError($errorMsg);
+        logEmailError("Error preparing email data: " . $e->getMessage());
         return false;
     }
 }
@@ -454,8 +427,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     // Validation
     if (empty($selectedFiles)) {
         echo "<script>alert('Please select at least one file.');</script>";
-    } elseif (empty($panel1) || empty($panel2) || empty($panel3) || empty($panel4) || empty($panel5)) {
-        echo "<script>alert('All 5 panel positions must be filled. Please select a panel member for each position.');</script>";
+        return;
+    }
+
+    // Get all selected panels
+    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5];
+    $selectedPanels = array_filter($panels, function($panel) { 
+        return !empty($panel);
+    });
+
+    // Check if at least one panel is selected
+    if (empty($selectedPanels)) {
+        echo "<script>alert('Please select at least one panel member.');</script>";
+        return;
+    }
+
+    // Check for duplicate panel assignments
+    $uniquePanels = array_unique($selectedPanels);
+    if (count($uniquePanels) !== count($selectedPanels)) {
+        echo "<script>alert('Each panel position must have a unique panel member. Please remove duplicates.');</script>";
+        return;
     } else {
         foreach ($selectedFiles as $filePath) {
             $fileName = $filePath; // Use the full path stored in the DB
@@ -474,7 +465,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 $updatePanelStmt = $conn->prepare("UPDATE route1proposal_files 
                     SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
                     WHERE docuRoute1 = ?");
-                $updatePanelStmt->bind_param("iiiiiss", $panel1, $panel2, $panel3, $panel4, $panel5, $dateNow, $fileName);
+                
+                // Set NULL for empty panels
+                $panelIds = [
+                    empty($panel1) ? null : $panel1,
+                    empty($panel2) ? null : $panel2,
+                    empty($panel3) ? null : $panel3,
+                    empty($panel4) ? null : $panel4,
+                    empty($panel5) ? null : $panel5
+                ];
+                
+                $updatePanelStmt->bind_param("iiiiiss", 
+                    $panelIds[0], $panelIds[1], $panelIds[2], $panelIds[3], $panelIds[4], 
+                    $dateNow, $fileName
+                );
                 $updatePanelStmt->execute();
                 $updatePanelStmt->close();
 
@@ -496,20 +500,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     5 => $panel5
                 ];
 
-                foreach ($panelPositions as $position => $panelId) {
-                    if ($panelId) {
-                        $panelInfo = getPanelName($conn, $panelId);
-                        if ($panelInfo && !empty($panelInfo['email'])) {
-                            sendPanelNotificationEmail(
-                                $panelInfo['email'],
-                                $panelInfo['fullname'],
-                                "Panel {$position}",
-                                $studentName,
-                                $thesisTitle
-                            );
-                        }
-                    }
-                }
+
 
                 echo "<script>alert('Successfully Submitted. Email notifications sent to panel members.');</script>";
             } else {
@@ -528,14 +519,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $panel5 = $_POST['panel5'] ?? null;
     $adviser_id = $_POST['adviser_id'] ?? null;
 
-    // Validate all panel positions are filled
-    if (empty($panel1) || empty($panel2) || empty($panel3) || empty($panel4) || empty($panel5)) {
+    // Get all selected panels
+    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5];
+    $selectedPanels = array_filter($panels, function($panel) { 
+        return !empty($panel);
+    });
+
+    // Check if at least one panel is selected
+    if (empty($selectedPanels)) {
         if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
-            echo "<script>alert('All 5 panel positions must be filled. Please select a panel member for each position.');</script>";
+            echo "<script>alert('Please select at least one panel member.');</script>";
         } else {
             if (!headers_sent()) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'All 5 panel positions must be filled. Please select a panel member for each position.']);
+                echo json_encode(['success' => false, 'message' => 'Please select at least one panel member.']);
+                exit;
+            }
+        }
+        return;
+    }
+
+    // Check for duplicate panel assignments
+    $uniquePanels = array_unique($selectedPanels);
+    if (count($uniquePanels) !== count($selectedPanels)) {
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+            echo "<script>alert('Each panel position must have a unique panel member. Please remove duplicates.');</script>";
+        } else {
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Each panel position must have a unique panel member. Please remove duplicates.']);
                 exit;
             }
         }
@@ -1577,9 +1589,19 @@ if (isset($selectedDepartment)) {
             return;
         }
 
-        // Check if all 5 panel positions are filled
-        if (!panel1 || !panel2 || !panel3 || !panel4 || !panel5) {
-            alert("All 5 panel positions must be filled. Please select a panel member for each position.");
+        // Check if at least one panel is selected
+        const panels = [panel1, panel2, panel3, panel4, panel5];
+        const selectedPanels = panels.filter(panel => panel !== '' && panel !== null);
+        
+        if (selectedPanels.length === 0) {
+            alert("Please select at least one panel member.");
+            return;
+        }
+        
+        // Check for duplicate panel assignments
+        const uniquePanels = [...new Set(selectedPanels)];
+        if (uniquePanels.length !== selectedPanels.length) {
+            alert("Each panel position must have a unique panel member.");
             return;
         }
 
@@ -2057,15 +2079,26 @@ if (isset($selectedDepartment)) {
             updateForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                // Check if all 5 panel positions are filled
-                const panel1 = document.getElementById('edit-panel1').value;
-                const panel2 = document.getElementById('edit-panel2').value;
-                const panel3 = document.getElementById('edit-panel3').value;
-                const panel4 = document.getElementById('edit-panel4').value;
-                const panel5 = document.getElementById('edit-panel5').value;
+                // Check if at least one panel position is filled
+                const panels = [
+                    document.getElementById('edit-panel1').value,
+                    document.getElementById('edit-panel2').value,
+                    document.getElementById('edit-panel3').value,
+                    document.getElementById('edit-panel4').value,
+                    document.getElementById('edit-panel5').value
+                ];
                 
-                if (!panel1 || !panel2 || !panel3 || !panel4 || !panel5) {
-                    alert("All 5 panel positions must be filled. Please select a panel member for each position.");
+                const selectedPanels = panels.filter(panel => panel && panel.trim() !== '');
+                
+                if (selectedPanels.length === 0) {
+                    alert("Please select at least one panel member.");
+                    return;
+                }
+
+                // Check for duplicate panel assignments
+                const uniquePanels = [...new Set(selectedPanels)];
+                if (uniquePanels.length !== selectedPanels.length) {
+                    alert("Each panel position must have a unique panel member. Please remove duplicates.");
                     return;
                 }
                 
