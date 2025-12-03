@@ -44,8 +44,8 @@ try {
     $mail->isSMTP();                                            
     $mail->Host       = 'smtp.gmail.com';                    
     $mail->SMTPAuth   = true;                                 
-    $mail->Username   = 'trssmcc01@gmail.com'; // Your Gmail
-    $mail->Password   = 'zcyz stno rcjw kmla';   // App password
+    $mail->Username   = 'smcctrs@gmail.com'; // Your Gmail
+    $mail->Password   = 'YOUR_GMAIL_APP_PASSWORD_HERE';   // App password for smcctrs@gmail.com
     $mail->SMTPSecure = 'tls';
     $mail->Port       = 587;                                    
     $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
@@ -64,8 +64,8 @@ try {
     $mail->SMTPKeepAlive = true; // SMTP keep alive
 
     // Sender and recipient settings
-    $mail->setFrom('trssmcc01@gmail.com', 'Thesis Routing System', false);
-    $mail->addReplyTo('trssmcc01@gmail.com', 'Thesis Routing System');
+    $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System', false);
+    $mail->addReplyTo('smcctrs@gmail.com', 'Thesis Routing System');
     $mail->addAddress($emailData['adviser_email'], $emailData['adviser_name']);     
 
     // Content

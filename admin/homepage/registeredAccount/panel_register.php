@@ -11,7 +11,21 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-$sql = "SELECT fullname, department, school_id, password, position, email FROM panel ORDER BY fullname ASC";
+// Handle delete request (use panel_id as primary key)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_panel_id'])) {
+    $delete_panel_id = (int) $_POST['delete_panel_id'];
+
+    if ($delete_panel_id > 0) {
+        $delete_sql = "DELETE FROM panel WHERE panel_id = $delete_panel_id";
+        if ($conn->query($delete_sql) === TRUE) {
+            header("Location: panel_register.php?status=success");
+            exit;
+        }
+    }
+}
+
+// Also select panel_id so we can use it for actions
+$sql = "SELECT panel_id, fullname, department, school_id, password, position, email FROM panel ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -1102,6 +1116,7 @@ $result = $conn->query($sql);
                                                 <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')" id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
                                                 <button type="submit" style="display:none;" id="save_btn_<?= $row['school_id'] ?>">Save</button>
                                                 <button type="button" style="display:none;" onclick="cancelEdit('<?= $row['school_id'] ?>')" id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
+                                                <button type="button" class="delete-button" onclick="deletePanel(<?= (int) $row['panel_id'] ?>)">Delete</button>
                                             </td>
                                         </form>
                                     </tr>
@@ -1153,6 +1168,25 @@ $result = $conn->query($sql);
             document.getElementById('cancel_btn_' + school_id).style.display = 'none';
         }
         
+        function deletePanel(panelId) {
+            if (!confirm('Are you sure you want to delete this panel account?')) {
+                return;
+            }
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'panel_register.php';
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'delete_panel_id';
+            input.value = panelId;
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Search functionality
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();

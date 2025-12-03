@@ -20,30 +20,55 @@ function isValidEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-// Create function to send email notification to adviser
+// Create function to send email notification to adviser (direct, no exec)
 function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title) {
-    // Create a temporary file to store email details
-    $tempFile = tempnam(sys_get_temp_dir(), 'email_');
-    
-    // Write email details to file
-    $emailData = json_encode([
-        'adviser_email' => $adviser_email,
-        'adviser_name' => $adviser_name,
-        'fullname' => $fullname,
-        'title' => $title
-    ]);
-    
-    file_put_contents($tempFile, $emailData);
-    
-    // Create background process to send email
-    $backgroundScript = __DIR__ . '/../../../send_email_background.php';
-    
-    // Run the background process
-    $cmd = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
-    exec($cmd);
-    
-    // Return true immediately since we're processing in background
-    return true;
+    try {
+        if (!isValidEmail($adviser_email)) {
+            error_log("Invalid email address format: $adviser_email");
+            return false;
+        }
+
+        require_once '../../../src/PHPMailer.php';
+        require_once '../../../src/SMTP.php';
+        require_once '../../../src/Exception.php';
+
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'smcctrs@gmail.com';
+        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($adviser_email, $adviser_name);
+        $mail->isHTML(true);
+        $mail->Subject = 'New Thesis Document (Route 2) Submitted for Review';
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$adviser_name}</strong>,</p>
+                <p>A new thesis document (Route 2) has been submitted and requires your review.</p>
+                <p><strong>Student:</strong> {$fullname}</p>
+                <p><strong>Title:</strong> {$title}</p>
+                <p>Please log in to the Thesis Routing System to review this document.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                </div>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php'>https://capstone.smccnasipit.edu.ph/trs/adviser/login.php</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$adviser_name}, A new thesis document (Route 2) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: https://capstone.smccnasipit.edu.ph/trs/adviser/login.php";
+
+        $mail->send();
+        error_log("Adviser notification sent (Route 2) to: $adviser_email");
+        return true;
+    } catch (Exception $e) {
+        error_log("Mailer Error in sendAdviserNotificationEmail (Route 2): " . $e->getMessage());
+        return false;
+    }
 }
 
 $alertMessage = "";

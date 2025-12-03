@@ -11,7 +11,21 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-$sql = "SELECT fullname, department, school_id, password, email FROM adviser ORDER BY fullname ASC";
+// Handle delete request (use adviser_id as primary key)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_adviser_id'])) {
+    $delete_adviser_id = (int) $_POST['delete_adviser_id'];
+
+    if ($delete_adviser_id > 0) {
+        $delete_sql = "DELETE FROM adviser WHERE adviser_id = $delete_adviser_id";
+        if ($conn->query($delete_sql) === TRUE) {
+            header("Location: adviser_register.php?status=success");
+            exit;
+        }
+    }
+}
+
+// Also select adviser_id so we can use it for actions
+$sql = "SELECT adviser_id, fullname, department, school_id, password, email FROM adviser ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -99,21 +113,6 @@ $result = $conn->query($sql);
         .user-info {
             display: flex;
             align-items: center;
-        }
-
-        .user-info a {
-            color: white;
-            margin-right: 15px;
-            padding: 8px 15px;
-            background-color: var(--accent);
-            border-radius: 5px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-
-        .user-info a:hover {
-            background-color: var(--primary);
         }
 
         .vl {
@@ -292,6 +291,13 @@ $result = $conn->query($sql);
         button:hover {
             opacity: 0.9;
             transform: translateY(-1px);
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            margin-left: 0.25rem;
+            
         }
 
         input[type="text"],
@@ -884,6 +890,25 @@ $result = $conn->query($sql);
             document.getElementById('cancel_btn_' + school_id).style.display = 'none';
         }
         
+        function deleteAdviser(adviserId) {
+            if (!confirm('Are you sure you want to delete this adviser account?')) {
+                return;
+            }
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'adviser_register.php';
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'delete_adviser_id';
+            input.value = adviserId;
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
         window.onload = function() {
             // Show success message if status is success
             var status = new URLSearchParams(window.location.search).get('status');
@@ -1071,6 +1096,7 @@ $result = $conn->query($sql);
                                     <tr id="row_<?= $row['school_id'] ?>">
                                         <form action="update_adviser_inline.php" method="POST"
                                             id="form_<?= $row['school_id'] ?>">
+                                            <input type="hidden" name="adviser_id" value="<?= (int) $row['adviser_id'] ?>">
                                             <td>
                                                 <span
                                                     id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
@@ -1087,9 +1113,8 @@ $result = $conn->query($sql);
                                                     required>
                                             </td>
                                             <td>
-                                                <?= htmlspecialchars($row['school_id']) ?>
-                                                <input type="hidden" name="school_id"
-                                                    value="<?= htmlspecialchars($row['school_id']) ?>">
+                                                <span id="schoolid_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['school_id']) ?></span>
+                                                <input type="text" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>" id="schoolid_input_<?= $row['school_id'] ?>" style="display:none;" required oninput="validateAdviserId('<?= $row['school_id'] ?>')">
                                             </td>
                                             <td>
                                                 <span
@@ -1113,6 +1138,7 @@ $result = $conn->query($sql);
                                                 <button type="button" style="display:none;"
                                                     onclick="cancelEdit('<?= $row['school_id'] ?>')"
                                                     id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
+                                                <button type="button" class="delete-button" onclick="deleteAdviser(<?= (int) $row['adviser_id'] ?>)">Delete</button>
                                             </td>
                                         </form>
                                     </tr>

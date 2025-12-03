@@ -11,6 +11,85 @@ include '../../../connection.php';
 $adviser_id = $_SESSION['adviser_id'];
 $fullname = $_SESSION['fullname'] ?? 'Adviser';
 
+// Function to validate email address
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Custom error logging function for email issues
+function logEmailError($message) {
+    $logFile = __DIR__ . '/../../../email_debug.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logMessage = "[$timestamp] $message\n";
+    
+    // Also log to PHP error log
+    error_log($message);
+    
+    // Write to custom log file
+    file_put_contents($logFile, $logMessage, FILE_APPEND);
+}
+
+// Function to send email notification to student in background process
+function sendStudentNotificationEmail($student_email, $student_name, $adviser_name, $feedback_summary) {
+    try {
+        // Validate email address first
+        if (!isValidEmail($student_email)) {
+            logEmailError("Invalid email address format: $student_email");
+            return false;
+        }
+        
+        // Prepare email data
+        $email_data = [
+            'to' => $student_email,
+            'student_name' => $student_name,
+            'adviser_name' => $adviser_name,
+            'feedback_summary' => $feedback_summary,
+            'subject' => "New Feedback Submitted - Thesis Routing System",
+            'smtp' => [
+                'host' => 'smtp.gmail.com',
+                'port' => 587,
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
+                'secure' => 'tls',
+                'options' => [
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true
+                    ]
+                ]
+            ],
+            'sender' => [
+                'email' => 'smcctrs@gmail.com',
+                'name' => 'Thesis Routing System'
+            ]
+        ];
+        
+        // Create temporary file
+        $temp_file = tempnam(sys_get_temp_dir(), 'trs_email_');
+        if ($temp_file === false) {
+            logEmailError("Failed to create temporary file for email data");
+            return false;
+        }
+        
+        // Write email data to file
+        if (!file_put_contents($temp_file, json_encode($email_data))) {
+            logEmailError("Failed to write email data to temporary file");
+            unlink($temp_file);
+            return false;
+        }
+        
+        // Execute background PHP script
+        $cmd = escapeshellcmd("php " . __DIR__ . '/../../../send_email_background.php "' . $temp_file . '"');
+        exec($cmd . ' > /dev/null 2>&1 &');
+        
+        return true;
+    } catch (Exception $e) {
+        logEmailError("Error preparing background email: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Query to get student id and finaldocu_id based on adviser_id
 $stmt = $conn->prepare("SELECT student_id, finaldocu_id FROM finaldocuproposal_files WHERE adviser_id = ?");
 if ($stmt === false) {
@@ -56,7 +135,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         die("Error preparing the insert query: " . $conn->error);
     }
 
+    // Get student email for notification
+    $studentEmailStmt = $conn->prepare("SELECT email, fullname FROM student WHERE student_id = ?");
+    $studentEmailStmt->bind_param("s", $student_id);
+    $studentEmailStmt->execute();
+    $studentEmailResult = $studentEmailStmt->get_result();
+    $studentEmailData = $studentEmailResult->fetch_assoc();
+    $studentEmail = $studentEmailData['email'] ?? '';
+    $studentName = $studentEmailData['fullname'] ?? 'Student';
+    $studentEmailStmt->close();
+
+    // Summary of feedback for email notification
+    $feedbackSummary = "New feedback for chapters: " . implode(", ", array_slice($chapterArr, 0, 3));
+    if (count($chapterArr) > 3) {
+        $feedbackSummary .= " and " . (count($chapterArr) - 3) . " more";
+    }
+
     // Loop through the form data and insert each row
+    $insertSuccess = true;
     for ($i = 0; $i < count($chapterArr); $i++) {
         $dateSubmitted = $dateSubmittedArr[$i];
         $chapter = $chapterArr[$i];
@@ -88,12 +184,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dateSubmitted'])) {
         // Execute the statement
         if (!$stmt->execute()) {
             echo "<script>alert('Error on row $i: " . addslashes($stmt->error) . "');</script>";
+            $insertSuccess = false;
             break;
         }
     }
 
-    echo "<script>alert('Form submitted successfully.'); window.location.href=window.location.href;</script>";
-    exit;
+    // Send email notification to student if data was inserted successfully
+    if ($insertSuccess && !empty($studentEmail)) {
+        if (isValidEmail($studentEmail)) {
+            $emailSent = sendStudentNotificationEmail($studentEmail, $studentName, $fullname, $feedbackSummary);
+            if ($emailSent) {
+                echo "<script>alert('Form submitted successfully and notification email sent to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            } else {
+                echo "<script>alert('Form submitted successfully but failed to send notification email to student.'); window.location.href=window.location.href;</script>";
+                exit;
+            }
+        } else {
+            echo "<script>alert('Form submitted successfully but student email address is invalid.'); window.location.href=window.location.href;</script>";
+            exit;
+        }
+    } else if ($insertSuccess) {
+        echo "<script>alert('Form submitted successfully. No student email available for notification.'); window.location.href=window.location.href;</script>";
+        exit;
+    }
 }
 
 // Add a function to check if all routes are approved for a student

@@ -40,6 +40,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
+    // Check if school_id already exists to prevent duplicate student registration
+    $checkSql = "SELECT 1 FROM student WHERE school_id = '$school_id' LIMIT 1";
+    $checkResult = $conn->query($checkSql);
+    if ($checkResult && $checkResult->num_rows > 0) {
+        echo "<script>alert('This school ID is already registered. Please use a different school ID.'); window.history.back();</script>";
+        exit;
+    }
+
     // Insert data into the database (no need for student_id since it's auto-incremented)
     $sql = "INSERT INTO student (title, controlNo, school_id, password, confirm_password, fullname, email, school_year, semester, department, course, adviser, adviser_email, group_number, group_members) 
             VALUES ('$title', '$controlNo','$school_id', '$password','$confirm_password', '$fullname', '$email', '$school_year', '$semester', '$department', '$course', '$adviser', '$adviser_email', '$group_number', '$group_members')";

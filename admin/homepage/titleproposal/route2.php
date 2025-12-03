@@ -277,6 +277,27 @@ if ($fileStmt === false) {
     $fileStmt->close();
 }
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
+    $routeId = $_POST['delete_file'];
+    $filepath = $_POST['filepath'] ?? '';
+    
+    if (!empty($filepath) && file_exists('../../../' . $filepath)) {
+        @unlink('../../../' . $filepath);
+    }
+    
+    $deleteStmt = $conn->prepare("DELETE FROM route2proposal_files WHERE route2_id = ?");
+    $deleteStmt->bind_param("i", $routeId);
+    
+    if ($deleteStmt->execute()) {
+        echo "<script>alert('File deleted successfully!'); window.location.href = window.location.href;</script>";
+    } else {
+        echo "<script>alert('Error deleting file: ' + " . json_encode($conn->error) . "); window.location.href = window.location.href;</script>";
+    }
+    
+    $deleteStmt->close();
+    exit();
+}
+
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $selectedFiles = $_POST['selected_files'];
@@ -581,6 +602,21 @@ if (isset($selectedDepartment)) {
 }
 
 .cancel-button:hover {
+    background-color: #d32f2f;
+}
+
+.delete-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.delete-button:hover {
     background-color: #d32f2f;
 }
 
@@ -917,6 +953,7 @@ if (isset($selectedDepartment)) {
                         <?php if ($file['minutes']): ?>
                         <button type="button" class="view-button" onclick="viewMinutes('<?= htmlspecialchars($file['minutes'], ENT_QUOTES) ?>')">View Minutes</button>
                         <?php endif; ?>
+                        <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['route2_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -1616,6 +1653,29 @@ if (isset($selectedDepartment)) {
             contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
         } else {
             contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+        }
+    }
+
+    function confirmDelete(routeId, filepath, studentName, title) {
+        if (confirm(`Are you sure you want to delete the file for ${studentName} (${title})?\nThis action cannot be undone.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+
+            const routeInput = document.createElement('input');
+            routeInput.type = 'hidden';
+            routeInput.name = 'delete_file';
+            routeInput.value = routeId;
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'hidden';
+            fileInput.name = 'filepath';
+            fileInput.value = filepath;
+
+            form.appendChild(routeInput);
+            form.appendChild(fileInput);
+            document.body.appendChild(form);
+            form.submit();
         }
     }
 </script>

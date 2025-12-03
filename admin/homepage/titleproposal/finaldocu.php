@@ -416,6 +416,27 @@ if ($fileStmt === false) {
     $fileStmt->close();
 }
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
+    $finaldocuId = $_POST['delete_file'];
+    $filepath = $_POST['filepath'] ?? '';
+
+    if (!empty($filepath) && file_exists('../../../' . $filepath)) {
+        @unlink('../../../' . $filepath);
+    }
+
+    $deleteStmt = $conn->prepare("DELETE FROM finaldocuproposal_files WHERE finaldocu_id = ?");
+    $deleteStmt->bind_param("i", $finaldocuId);
+
+    if ($deleteStmt->execute()) {
+        echo "<script>alert('File deleted successfully!'); window.location.href = window.location.href;</script>";
+    } else {
+        echo "<script>alert('Error deleting file: ' + " . json_encode($conn->error) . "); window.location.href = window.location.href;</script>";
+    }
+
+    $deleteStmt->close();
+    exit();
+}
+
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $selectedFiles = $_POST['selected_files'];
@@ -705,6 +726,21 @@ if (isset($selectedDepartment)) {
 }
 
 .cancel-button:hover {
+    background-color: #d32f2f;
+}
+
+.delete-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.delete-button:hover {
     background-color: #d32f2f;
 }
 
@@ -1077,6 +1113,7 @@ if (isset($selectedDepartment)) {
                     </td>
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['finaldocu_id'] ?? '' ?>')">View</button>
+                        <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['finaldocu_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -1787,5 +1824,28 @@ if (isset($selectedDepartment)) {
             });
         }
     });
+
+    function confirmDelete(finaldocuId, filepath, studentName, title) {
+        if (confirm(`Are you sure you want to delete the file for ${studentName} (${title})?\nThis action cannot be undone.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'delete_file';
+            idInput.value = finaldocuId;
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'hidden';
+            fileInput.name = 'filepath';
+            fileInput.value = filepath;
+
+            form.appendChild(idInput);
+            form.appendChild(fileInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
 </script>
 <script src="../sidebar.js"></script>

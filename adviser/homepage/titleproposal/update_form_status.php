@@ -66,8 +66,8 @@ function sendApprovalNotificationEmail($student_email, $student_name, $adviser_n
             <p>Best regards,<br>Thesis Routing System</p>",
             'smtp_settings' => [
                 'host' => 'smtp.gmail.com',
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
                 'port' => 587,
                 'secure' => 'tls'
             ]
@@ -100,8 +100,8 @@ function sendAllApprovedNotification($student_email, $student_name, $adviser_nam
             <p>Best regards,<br>Thesis Routing System</p>",
             'smtp_settings' => [
                 'host' => 'smtp.gmail.com',
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
                 'port' => 587,
                 'secure' => 'tls'
             ]

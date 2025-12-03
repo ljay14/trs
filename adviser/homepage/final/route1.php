@@ -64,8 +64,8 @@ function sendStudentNotificationEmail($student_email, $student_name, $adviser_na
             <p>Best regards,<br>Thesis Routing System</p>",
             'smtp_settings' => [
                 'host' => 'smtp.gmail.com',
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
                 'port' => 587,
                 'secure' => 'tls'
             ]

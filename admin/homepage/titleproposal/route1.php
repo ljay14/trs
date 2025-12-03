@@ -136,8 +136,8 @@ function prepareEmailData($panelEmail, $panelName, $position, $studentName, $tit
         'title' => $title,
         'smtp_config' => [
             'host' => 'smtp.gmail.com',
-            'username' => 'trssmcc01@gmail.com',
-            'password' => 'zcyz stno rcjw kmla',
+            'username' => 'smcctrs@gmail.com',
+            'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
             'secure' => 'tls',
             'port' => 587,
             'charset' => 'UTF-8',
@@ -148,8 +148,8 @@ function prepareEmailData($panelEmail, $panelName, $position, $studentName, $tit
             'keep_alive' => true
         ],
         'headers' => [
-            'from' => 'trssmcc01@gmail.com',
-            'reply_to' => 'trssmcc01@gmail.com',
+            'from' => 'smcctrs@gmail.com',
+            'reply_to' => 'smcctrs@gmail.com',
             'subject' => "Panel Assignment Notification - Thesis Routing System",
             'x_mailer' => 'Thesis Routing System',
             'x_priority' => '3'
@@ -277,7 +277,7 @@ if (isset($_SESSION['selected_department'])) {
             group_number,
             fullname,
             title,
-            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
+            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, panel6_id, adviser_id,
             minutes,
             route1_id,
             department
@@ -333,18 +333,20 @@ if (isset($_SESSION['selected_department'])) {
     
     $fileStmt = $conn->prepare($sqlQuery);
     
-    // Correctly bind parameters by reference if there are any
+    // Bind parameters if there are any
     if (!empty($params)) {
+        // Create an array of references
         $bind_params = array();
-        $bind_params[] = &$types; // First parameter is always the types string
+        $bind_params[] = $types; // First parameter is the types string
         
-        // Add references to each parameter
-        for ($i = 0; $i < count($params); $i++) {
-            $bind_params[] = &$params[$i];
+        // Add parameters by reference
+        foreach ($params as $key => $value) {
+            $bind_params[] = &$params[$key];
         }
         
-        // Call bind_param with references
-        call_user_func_array([$fileStmt, 'bind_param'], $bind_params);
+        // Call bind_param with the parameters
+        $ref = new \ReflectionMethod('mysqli_stmt', 'bind_param');
+        $ref->invokeArgs($fileStmt, $bind_params);
     }
     
     $fileStmt->execute();
@@ -362,6 +364,7 @@ if (isset($_SESSION['selected_department'])) {
             'panel3_id' => $row['panel3_id'],
             'panel4_id' => $row['panel4_id'],
             'panel5_id' => $row['panel5_id'],
+            'panel6_id' => $row['panel6_id'],
             'adviser_id' => $row['adviser_id'],
             'title' => $row['title'],
             'minutes' => $row['minutes'],
@@ -381,7 +384,7 @@ if (isset($_SESSION['selected_department'])) {
             group_number,
             fullname,
             title,
-            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, adviser_id,
+            student_id, panel1_id, panel2_id, panel3_id, panel4_id, panel5_id, panel6_id, adviser_id,
             minutes,
             route1_id,
             department
@@ -404,6 +407,7 @@ if (isset($_SESSION['selected_department'])) {
             'panel3_id' => $row['panel3_id'],
             'panel4_id' => $row['panel4_id'],
             'panel5_id' => $row['panel5_id'],
+            'panel6_id' => $row['panel6_id'],
             'adviser_id' => $row['adviser_id'],
             'title' => $row['title'],
             'minutes' => $row['minutes'],
@@ -415,6 +419,30 @@ if (isset($_SESSION['selected_department'])) {
     $fileStmt->close();
 }
 
+// Handle file deletion
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['delete_file'])) {
+    $routeId = $_POST['delete_file'];
+    $filepath = $_POST['filepath'] ?? '';
+    
+    // First, delete the file from the server if it exists
+    if (!empty($filepath) && file_exists('../../../' . $filepath)) {
+        @unlink('../../../' . $filepath);
+    }
+    
+    // Then delete the database record using route1_id
+    $deleteStmt = $conn->prepare("DELETE FROM route1proposal_files WHERE route1_id = ?");
+    $deleteStmt->bind_param("i", $routeId);
+    
+    if ($deleteStmt->execute()) {
+        echo "<script>alert('File deleted successfully!'); window.location.href = window.location.href;</script>";
+    } else {
+        echo "<script>alert('Error deleting file: ' + " . json_encode($conn->error) . "); window.location.href = window.location.href;</script>";
+    }
+    
+    $deleteStmt->close();
+    exit();
+}
+
 // Handle file submission for panelists and adviser
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $selectedFiles = $_POST['selected_files'];
@@ -423,6 +451,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     $panel3 = $_POST['panel3'] ?? null;
     $panel4 = $_POST['panel4'] ?? null;
     $panel5 = $_POST['panel5'] ?? null;
+    $panel6 = $_POST['panel6'] ?? null;
 
     // Validation
     if (empty($selectedFiles)) {
@@ -431,7 +460,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
     }
 
     // Get all selected panels
-    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5];
+    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5, $panel6];
     $selectedPanels = array_filter($panels, function($panel) { 
         return !empty($panel);
     });
@@ -463,7 +492,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 // Update panel IDs and set date_submitted
                 $dateNow = date('Y-m-d H:i:s'); // Get the current date and time
                 $updatePanelStmt = $conn->prepare("UPDATE route1proposal_files 
-                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, date_submitted = ? 
+                    SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, panel6_id = ?, date_submitted = ? 
                     WHERE docuRoute1 = ?");
                 
                 // Set NULL for empty panels
@@ -472,11 +501,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                     empty($panel2) ? null : $panel2,
                     empty($panel3) ? null : $panel3,
                     empty($panel4) ? null : $panel4,
-                    empty($panel5) ? null : $panel5
+                    empty($panel5) ? null : $panel5,
+                    empty($panel6) ? null : $panel6
                 ];
                 
-                $updatePanelStmt->bind_param("iiiiiss", 
-                    $panelIds[0], $panelIds[1], $panelIds[2], $panelIds[3], $panelIds[4], 
+                $updatePanelStmt->bind_param("iiiiiiis", 
+                    $panelIds[0], $panelIds[1], $panelIds[2], $panelIds[3], $panelIds[4], $panelIds[5], 
                     $dateNow, $fileName
                 );
                 $updatePanelStmt->execute();
@@ -491,18 +521,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_files'])) {
                 $thesisTitle = $studentInfo['title'] ?? 'Unknown Title';
                 $studentInfoStmt->close();
 
-                // Send emails to newly assigned panels
+                // Send emails to newly assigned panels (including Panel 6)
                 $panelPositions = [
                     1 => $panel1,
                     2 => $panel2,
                     3 => $panel3,
                     4 => $panel4,
-                    5 => $panel5
+                    5 => $panel5,
+                    6 => $panel6
                 ];
 
 
 
-                echo "<script>alert('Successfully Submitted. Email notifications sent to panel members.');</script>";
+                echo "<script>alert('Successfully Submitted. Email notifications sent to panel members.'); window.location.href = window.location.href;</script>";
             } else {
                 echo "<script>alert('File $fileName not found in the database.');</script>";
             }
@@ -517,10 +548,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
     $panel3 = $_POST['panel3'] ?? null;
     $panel4 = $_POST['panel4'] ?? null;
     $panel5 = $_POST['panel5'] ?? null;
+    $panel6 = $_POST['panel6'] ?? null;
     $adviser_id = $_POST['adviser_id'] ?? null;
 
     // Get all selected panels
-    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5];
+    $panels = [$panel1, $panel2, $panel3, $panel4, $panel5, $panel6];
     $selectedPanels = array_filter($panels, function($panel) { 
         return !empty($panel);
     });
@@ -565,9 +597,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_assignments'])
 
     // Update panel IDs in the database
     $updateStmt = $conn->prepare("UPDATE route1proposal_files 
-        SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?
+        SET panel1_id = ?, panel2_id = ?, panel3_id = ?, panel4_id = ?, panel5_id = ?, panel6_id = ?
         WHERE docuRoute1 = ?");
-    $updateStmt->bind_param("iiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $filepath);
+    $updateStmt->bind_param("iiiiiis", $panel1, $panel2, $panel3, $panel4, $panel5, $panel6, $filepath);
     
     if ($updateStmt->execute()) {
         // Send emails to newly assigned panels
@@ -805,6 +837,21 @@ if (isset($selectedDepartment)) {
 }
 
 .cancel-button:hover {
+    background-color: #d32f2f;
+}
+
+.delete-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.delete-button:hover {
     background-color: #d32f2f;
 }
 
@@ -1202,6 +1249,26 @@ if (isset($selectedDepartment)) {
         }
         ?>
     </select>
+    
+    <select id="panel6-dropdown">
+        <option value="">Panel 6</option>
+        <?php
+        if (isset($selectedDepartment)) {
+            // Modified query to include all Panel 6 members regardless of department
+            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
+            $panelStmt->execute();
+            $panelResult = $panelStmt->get_result();
+            while ($row = $panelResult->fetch_assoc()):
+                // You can optionally show the department in the dropdown option
+            ?>
+                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
+                </option>
+            <?php endwhile;
+            $panelStmt->close();
+        }
+        ?>
+    </select>
     <button id="external-submit-button" type="button">Submit</button>
 </div>
 
@@ -1240,7 +1307,7 @@ if (isset($selectedDepartment)) {
                 
                 // Panel and adviser information
                 $assigned_panels = [];
-                for ($i = 1; $i <= 5; $i++) {
+                for ($i = 1; $i <= 6; $i++) {
                     $panel_id_key = "panel{$i}_id";
                     if (!empty($file[$panel_id_key])) {
                         $panel_info = getPanelName($conn, $file[$panel_id_key]);
@@ -1285,6 +1352,7 @@ if (isset($selectedDepartment)) {
                     'panel3_id' => $file['panel3_id'] ?? '',
                     'panel4_id' => $file['panel4_id'] ?? '',
                     'panel5_id' => $file['panel5_id'] ?? '',
+                    'panel6_id' => $file['panel6_id'] ?? '',
                     'adviser_id' => $adviser_id,
                     'is_assigned' => $is_assigned,
                     'has_panels' => $has_panels,
@@ -1325,6 +1393,7 @@ if (isset($selectedDepartment)) {
                     <?php if ($file['minutes']): ?>
                     <button type="button" class="view-button" onclick="viewMinutes('<?= htmlspecialchars($file['minutes'], ENT_QUOTES) ?>')">View Minutes</button>
                     <?php endif; ?>
+                    <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['route1_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -1342,6 +1411,7 @@ if (isset($selectedDepartment)) {
     <input type="hidden" name="panel3" id="hidden-panel3">
     <input type="hidden" name="panel4" id="hidden-panel4">
     <input type="hidden" name="panel5" id="hidden-panel5">
+    <input type="hidden" name="panel6" id="hidden-panel6">
 </form>
             </div>
         </div>
@@ -1499,6 +1569,27 @@ if (isset($selectedDepartment)) {
                 </div>
                 
                 <div class="form-group">
+                    <label for="edit-panel6">Panel 6:</label>
+                    <select id="edit-panel6" name="panel6" class="form-control">
+                        <option value="">None</option>
+                        <?php
+                        if (isset($selectedDepartment)) {
+                            $panelStmt = $conn->prepare("SELECT panel_id, fullname, department FROM panel");
+                            $panelStmt->execute();
+                            $panelResult = $panelStmt->get_result();
+                            while ($row = $panelResult->fetch_assoc()):
+                            ?>
+                                <option value="<?= htmlspecialchars($row['panel_id']) ?>">
+                                    <?= htmlspecialchars($row['fullname']) ?> <?= ($row['department'] != $selectedDepartment) ? '(' . htmlspecialchars($row['department']) . ')' : '' ?>
+                                </option>
+                            <?php endwhile;
+                            $panelStmt->close();
+                        }
+                        ?>
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label for="edit-adviser">Adviser:</label>
                     <select id="edit-adviser" name="adviser_id" class="form-control" disabled>
                         <option value="">None</option>
@@ -1574,6 +1665,7 @@ if (isset($selectedDepartment)) {
         const panel3 = document.getElementById("panel3-dropdown").value.trim();
         const panel4 = document.getElementById("panel4-dropdown").value.trim();
         const panel5 = document.getElementById("panel5-dropdown").value.trim();
+        const panel6 = document.getElementById("panel6-dropdown").value.trim();
 
         // Set hidden fields
         document.getElementById("hidden-panel1").value = panel1;
@@ -1581,6 +1673,7 @@ if (isset($selectedDepartment)) {
         document.getElementById("hidden-panel3").value = panel3;
         document.getElementById("hidden-panel4").value = panel4;
         document.getElementById("hidden-panel5").value = panel5;
+        document.getElementById("hidden-panel6").value = panel6;
 
         // Validate file selection
         const selectedFiles = document.querySelectorAll("input[name='selected_files[]']:checked:not(:disabled)");
@@ -1590,7 +1683,7 @@ if (isset($selectedDepartment)) {
         }
 
         // Check if at least one panel is selected
-        const panels = [panel1, panel2, panel3, panel4, panel5];
+        const panels = [panel1, panel2, panel3, panel4, panel5, panel6];
         const selectedPanels = panels.filter(panel => panel !== '' && panel !== null);
         
         if (selectedPanels.length === 0) {
@@ -1598,7 +1691,7 @@ if (isset($selectedDepartment)) {
             return;
         }
         
-        // Check for duplicate panel assignments
+        // Check for duplicate panel assignments (including Panel 6)
         const uniquePanels = [...new Set(selectedPanels)];
         if (uniquePanels.length !== selectedPanels.length) {
             alert("Each panel position must have a unique panel member.");
@@ -1640,7 +1733,8 @@ if (isset($selectedDepartment)) {
             document.getElementById('panel2-dropdown'),
             document.getElementById('panel3-dropdown'),
             document.getElementById('panel4-dropdown'),
-            document.getElementById('panel5-dropdown')
+            document.getElementById('panel5-dropdown'),
+            document.getElementById('panel6-dropdown')
         ];
         
         // Store original options for each dropdown
@@ -2079,13 +2173,14 @@ if (isset($selectedDepartment)) {
             updateForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                // Check if at least one panel position is filled
+                // Check if at least one panel position is filled (including Panel 6)
                 const panels = [
                     document.getElementById('edit-panel1').value,
                     document.getElementById('edit-panel2').value,
                     document.getElementById('edit-panel3').value,
                     document.getElementById('edit-panel4').value,
-                    document.getElementById('edit-panel5').value
+                    document.getElementById('edit-panel5').value,
+                    document.getElementById('edit-panel6').value
                 ];
                 
                 const selectedPanels = panels.filter(panel => panel && panel.trim() !== '');
@@ -2136,6 +2231,7 @@ if (isset($selectedDepartment)) {
                     const panel3Id = document.getElementById('edit-panel3').value;
                     const panel4Id = document.getElementById('edit-panel4').value;
                     const panel5Id = document.getElementById('edit-panel5').value;
+                    const panel6Id = document.getElementById('edit-panel6').value;
                     
                     // Keep the existing adviser_id from currentEditFile
                     const adviserId = currentEditFile.adviser_id;
@@ -2146,6 +2242,7 @@ if (isset($selectedDepartment)) {
                     currentEditFile.panel3_id = panel3Id;
                     currentEditFile.panel4_id = panel4Id;
                     currentEditFile.panel5_id = panel5Id;
+                    currentEditFile.panel6_id = panel6Id;
                     // Note: adviser_id is not changed
                     
                     // Get selected panel and adviser names
@@ -2174,6 +2271,11 @@ if (isset($selectedDepartment)) {
                         const panel5Select = document.getElementById('edit-panel5');
                         const panel5Name = panel5Select.options[panel5Select.selectedIndex].text;
                         panels.push({position: 'Panel 5', name: panel5Name});
+                    }
+                    if (panel6Id) {
+                        const panel6Select = document.getElementById('edit-panel6');
+                        const panel6Name = panel6Select.options[panel6Select.selectedIndex].text;
+                        panels.push({position: 'Panel 6', name: panel6Name});
                     }
                     
                     // Get adviser name from existing select element (even though it's disabled)
@@ -2294,6 +2396,33 @@ if (isset($selectedDepartment)) {
         // Ensure minimum height
         if (textarea.scrollHeight < 40) {
             textarea.style.height = '40px';
+        }
+    }
+    
+    // Function to handle file deletion with confirmation
+    function confirmDelete(routeId, filepath, studentName, title) {
+        if (confirm(`Are you sure you want to delete the file for ${studentName} (${title})?\nThis action cannot be undone.`)) {
+            // Create a form to submit the delete request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            // Add route_id as the primary identifier
+            const routeInput = document.createElement('input');
+            routeInput.type = 'hidden';
+            routeInput.name = 'delete_file';
+            routeInput.value = routeId;
+            
+            // Also include filepath for file deletion if needed
+            const fileInput = document.createElement('input');
+            fileInput.type = 'hidden';
+            fileInput.name = 'filepath';
+            fileInput.value = filepath;
+            
+            form.appendChild(routeInput);
+            form.appendChild(fileInput);
+            document.body.appendChild(form);
+            form.submit();
         }
     }
 </script>

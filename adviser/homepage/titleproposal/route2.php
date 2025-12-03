@@ -199,7 +199,7 @@ function sendEmailInBackground($student_email, $student_name, $adviser_name, $fe
         $email_data = [
             'to' => $student_email,
             'to_name' => $student_name,
-            'from' => 'trssmcc01@gmail.com',
+            'from' => 'smcctrs@gmail.com',
             'from_name' => 'Thesis Routing System',
             'subject' => 'New Feedback Submitted - Thesis Routing System',
             'template' => 'student_feedback_notification',
@@ -212,8 +212,8 @@ function sendEmailInBackground($student_email, $student_name, $adviser_name, $fe
             'smtp_config' => [
                 'host' => 'smtp.gmail.com',
                 'port' => 587,
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
                 'secure' => 'tls'
             ]
         ];
@@ -1191,6 +1191,7 @@ input[type="checkbox"] {
                 <div><strong>Date Released</strong></div>
                 <div><strong>Route Number</strong></div>
                 <div><strong>Status</strong></div>
+                <div><strong>Action</strong></div>
                 
             </div>
 

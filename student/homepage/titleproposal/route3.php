@@ -21,21 +21,32 @@ function isValidEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-// Create function to send email notification to adviser
+// Create function to send email notification to adviser (direct, no exec)
 function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title) {
     try {
-        // Validate email address first
         if (!isValidEmail($adviser_email)) {
             error_log("Invalid email address format: $adviser_email");
             return false;
         }
 
-        // Prepare email data for background processing
-        $emailData = [
-            'to_email' => $adviser_email,
-            'to_name' => $adviser_name,
-            'subject' => 'New Thesis Document (Route 3) Submitted for Review',
-            'body' => "
+        require_once '../../../src/PHPMailer.php';
+        require_once '../../../src/SMTP.php';
+        require_once '../../../src/Exception.php';
+
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'smcctrs@gmail.com';
+        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($adviser_email, $adviser_name);
+        $mail->isHTML(true);
+        $mail->Subject = 'New Thesis Document (Route 3) Submitted for Review';
+        $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
                 <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
                 <p>Dear <strong>{$adviser_name}</strong>,</p>
@@ -48,43 +59,15 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
                 </div>
                 <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php'>https://capstone.smccnasipit.edu.ph/trs/adviser/login.php</a></p>
                 <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
-            </div>",
-            'alt_body' => "Dear {$adviser_name}, A new thesis document (Route 3) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: https://capstone.smccnasipit.edu.ph/trs/adviser/login.php",
-            'from_email' => 'trssmcc01@gmail.com',
-            'from_name' => 'Thesis Routing System'
-        ];
+            </div>
+        ";
+        $mail->AltBody = "Dear {$adviser_name}, A new thesis document (Route 3) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: https://capstone.smccnasipit.edu.ph/trs/adviser/login.php";
 
-        // Create temporary file to store email data
-        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
-        if (!$tempFile) {
-            error_log("Failed to create temporary file for email data");
-            return false;
-        }
-
-        // Write email data to temporary file
-        if (!file_put_contents($tempFile, json_encode($emailData))) {
-            error_log("Failed to write email data to temporary file");
-            unlink($tempFile);
-            return false;
-        }
-
-        // Get path to background script
-        $backgroundScript = __DIR__ . '/../../../send_email_background.php';
-        if (!file_exists($backgroundScript)) {
-            error_log("Background email script not found at: $backgroundScript");
-            unlink($tempFile);
-            return false;
-        }
-
-        // Execute background script in a non-blocking way
-        $cmd = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
-        exec($cmd);
-
-        error_log("Background email process started for: $adviser_email");
+        $mail->send();
+        error_log("Adviser notification sent (Route 3) to: $adviser_email");
         return true;
-
     } catch (Exception $e) {
-        error_log("Error in sendAdviserNotificationEmail: " . $e->getMessage());
+        error_log("Mailer Error in sendAdviserNotificationEmail (Route 3): " . $e->getMessage());
         return false;
     }
 }

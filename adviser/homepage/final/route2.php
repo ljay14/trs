@@ -237,17 +237,17 @@ function sendStudentNotificationEmail($student_email, $student_name, $adviser_na
             </div>",
             'smtp_settings' => [
                 'host' => 'smtp.gmail.com',
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
+                'username' => 'smcctrs@gmail.com',
+                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
                 'port' => 587,
                 'secure' => 'tls'
             ],
             'from' => [
-                'email' => 'trssmcc01@gmail.com',
+                'email' => 'smcctrs@gmail.com',
                 'name' => 'Thesis Routing System'
             ],
             'reply_to' => [
-                'email' => 'trssmcc01@gmail.com',
+                'email' => 'smcctrs@gmail.com',
                 'name' => 'Thesis Routing System'
             ]
         ];
@@ -1119,9 +1119,9 @@ input[type="checkbox"] {
                 <div><strong>Page No</strong></div>
                 <div><strong>Submitted By</strong></div>
                 <div><strong>Date Released</strong></div>
-                <div><strong>Status</strong></div>
                 <div><strong>Route Number</strong></div>
-              
+                <div><strong>Status</strong></div>
+                <div><strong>Action</strong></div>
             </div>
 
             <!-- Container for submitted form data -->

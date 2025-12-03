@@ -25,79 +25,57 @@ function isValidEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-// Create function to send email notification to adviser
+// Create function to send email notification to adviser (direct, no exec)
 function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title) {
     try {
-        // Validate email address first
         if (!isValidEmail($adviser_email)) {
             error_log("Invalid email address format: $adviser_email");
             return false;
         }
-        
-        // Prepare email data
+
+        require_once '../../../src/PHPMailer.php';
+        require_once '../../../src/SMTP.php';
+        require_once '../../../src/Exception.php';
+
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'smcctrs@gmail.com';
+        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($adviser_email, $adviser_name);
+        $mail->isHTML(true);
+        $mail->Subject = 'New Final Defense Document (Route 3) Submitted for Review';
+
         $base_url = 'https://capstone.smccnasipit.edu.ph/';
         $login_url = $base_url . 'trs/adviser/login.php';
-        
-        $emailData = [
-            'to' => $adviser_email,
-            'to_name' => $adviser_name,
-            'subject' => 'New Final Defense Document (Route 3) Submitted for Review',
-            'body' => "
-                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
-                    <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
-                    <p>Dear <strong>{$adviser_name}</strong>,</p>
-                    <p>A new final defense document (Route 3) has been submitted and requires your review.</p>
-                    <p><strong>Student:</strong> {$fullname}</p>
-                    <p><strong>Title:</strong> {$title}</p>
-                    <p>Please log in to the Thesis Routing System to review this document.</p>
-                    <div style='margin-top: 30px; text-align: center;'>
-                        <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
-                    </div>
-                    <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
-                    <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$adviser_name}</strong>,</p>
+                <p>A new final defense document (Route 3) has been submitted and requires your review.</p>
+                <p><strong>Student:</strong> {$fullname}</p>
+                <p><strong>Title:</strong> {$title}</p>
+                <p>Please log in to the Thesis Routing System to review this document.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='{$login_url}' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
                 </div>
-            ",
-            'alt_body' => "Dear {$adviser_name}, A new final defense document (Route 3) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: {$login_url}",
-            'smtp' => [
-                'host' => 'smtp.gmail.com',
-                'port' => 587,
-                'username' => 'trssmcc01@gmail.com',
-                'password' => 'zcyz stno rcjw kmla',
-                'secure' => 'tls',
-                'options' => [
-                    'ssl' => [
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                        'allow_self_signed' => true
-                    ]
-                ]
-            ]
-        ];
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='{$login_url}'>{$login_url}</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$adviser_name}, A new final defense document (Route 3) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: {$login_url}";
 
-        // Create temporary file to store email data
-        $tempFile = tempnam(sys_get_temp_dir(), 'email_');
-        if (!$tempFile) {
-            error_log("Failed to create temporary file for email data");
-            return false;
-        }
-
-        // Write email data to temporary file
-        if (!file_put_contents($tempFile, json_encode($emailData))) {
-            error_log("Failed to write email data to temporary file");
-            unlink($tempFile);
-            return false;
-        }
-
-        // Get path to background script
-        $backgroundScript = __DIR__ . '/../../../send_email_background.php';
-        
-        // Execute background script
-        $cmd = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
-        exec($cmd);
-
+        $mail->send();
+        error_log("Adviser notification sent (Final Route 3) to: $adviser_email");
         return true;
     } catch (Exception $e) {
-        error_log("Error preparing email data: " . $e->getMessage());
+        error_log("Mailer Error in sendAdviserNotificationEmail (Final Route 3): " . $e->getMessage());
         return false;
     }
 }

@@ -11,7 +11,21 @@ if (!isset($_SESSION['admin_id'])) {
 // Database connection
 include '../../../connection.php';
 
-$sql = "SELECT fullname, department, school_id, password, confirm_password, email FROM student ORDER BY fullname ASC";
+// Handle delete request (use student_id as primary key)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_student_id'])) {
+    $delete_student_id = (int) $_POST['delete_student_id'];
+
+    if ($delete_student_id > 0) {
+        $delete_sql = "DELETE FROM student WHERE student_id = $delete_student_id";
+        if ($conn->query($delete_sql) === TRUE) {
+            header("Location: student_register.php?status=success");
+            exit;
+        }
+    }
+}
+
+// Also select student_id so we can use it for actions
+$sql = "SELECT student_id, fullname, department, school_id, password, confirm_password, email FROM student ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
 
@@ -290,6 +304,12 @@ $result = $conn->query($sql);
         button:hover {
             opacity: 0.9;
             transform: translateY(-1px);
+        }
+        
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            margin-left: 0.25rem;
         }
         
         input[type="text"], input[type="password"] {
@@ -1012,6 +1032,7 @@ $result = $conn->query($sql);
                                 <?php while ($row = $result->fetch_assoc()): ?>
                                     <tr id="row_<?= $row['school_id'] ?>">
                                         <form action="update_student_inline.php" method="POST" id="form_<?= $row['school_id'] ?>">
+                                            <input type="hidden" name="student_id" value="<?= (int) $row['student_id'] ?>">
                                             <td>
                                                 <span id="fullname_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['fullname']) ?></span>
                                                 <input type="text" name="fullname" value="<?= htmlspecialchars($row['fullname']) ?>" id="fullname_input_<?= $row['school_id'] ?>" style="display:none;" required>
@@ -1021,8 +1042,10 @@ $result = $conn->query($sql);
                                                 <input type="text" name="department" value="<?= htmlspecialchars($row['department']) ?>" id="department_input_<?= $row['school_id'] ?>" style="display:none;" required>
                                             </td>
                                             <td>
-                                                <?= htmlspecialchars($row['school_id']) ?>
-                                                <input type="hidden" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
+                                                <span id="schoolid_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['school_id']) ?></span>
+                                                <input type="text" name="school_id" value="<?= htmlspecialchars($row['school_id']) ?>" id="schoolid_input_<?= $row['school_id'] ?>" style="display:none;" required oninput="validateIdNumber('<?= $row['school_id'] ?>')">
+                                                <input type="hidden" name="original_school_id" value="<?= htmlspecialchars($row['school_id']) ?>">
+                                                <small id="id-warning_<?= $row['school_id'] ?>" style="color:red; display:none;">ID Number should only contain digits!</small>
                                             </td>
                                             <td>
                                                 <span id="email_text_<?= $row['school_id'] ?>"><?= htmlspecialchars($row['email']) ?></span>
@@ -1043,6 +1066,7 @@ $result = $conn->query($sql);
                                                 <button type="button" onclick="enableEdit('<?= $row['school_id'] ?>')" id="edit_btn_<?= $row['school_id'] ?>">Edit</button>
                                                 <button type="submit" style="display:none;" id="save_btn_<?= $row['school_id'] ?>" disabled>Save</button>
                                                 <button type="button" style="display:none;" onclick="cancelEdit('<?= $row['school_id'] ?>')" id="cancel_btn_<?= $row['school_id'] ?>">Cancel</button>
+                                                <button type="button" class="delete-button" onclick="deleteStudent(<?= (int) $row['student_id'] ?>)">Delete</button>
                                             </td>
                                         </form>
                                     </tr>
@@ -1061,11 +1085,13 @@ $result = $conn->query($sql);
        function enableEdit(school_id) {
             document.getElementById('fullname_text_' + school_id).style.display = 'none';
             document.getElementById('department_text_' + school_id).style.display = 'none';
+            document.getElementById('schoolid_text_' + school_id).style.display = 'none';
             document.getElementById('password_text_' + school_id).style.display = 'none';
             document.getElementById('email_text_' + school_id).style.display = 'none';
 
             document.getElementById('fullname_input_' + school_id).style.display = 'inline';
             document.getElementById('department_input_' + school_id).style.display = 'inline';
+            document.getElementById('schoolid_input_' + school_id).style.display = 'inline';
             document.getElementById('password_inputs_' + school_id).style.display = 'block';
             document.getElementById('email_input_' + school_id).style.display = 'inline';
 
@@ -1080,11 +1106,13 @@ $result = $conn->query($sql);
         function cancelEdit(school_id) {
             document.getElementById('fullname_text_' + school_id).style.display = 'inline';
             document.getElementById('department_text_' + school_id).style.display = 'inline';
+            document.getElementById('schoolid_text_' + school_id).style.display = 'inline';
             document.getElementById('password_text_' + school_id).style.display = 'inline';
             document.getElementById('email_text_' + school_id).style.display = 'inline';
 
             document.getElementById('fullname_input_' + school_id).style.display = 'none';
             document.getElementById('department_input_' + school_id).style.display = 'none';
+            document.getElementById('schoolid_input_' + school_id).style.display = 'none';
             document.getElementById('password_inputs_' + school_id).style.display = 'none';
             document.getElementById('email_input_' + school_id).style.display = 'none';
 
@@ -1101,6 +1129,7 @@ $result = $conn->query($sql);
             var mismatchText = document.getElementById('mismatch_' + school_id);
             var saveBtn = document.getElementById('save_btn_' + school_id);
 
+
             // Only validate if both password fields have content
             if (password !== "" || confirm_password !== "") {
                 if (password !== confirm_password) {
@@ -1115,6 +1144,18 @@ $result = $conn->query($sql);
                 mismatchText.style.display = 'none';
                 saveBtn.disabled = false;
             }
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'student_register.php';
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'delete_student_id';
+            input.value = studentId;
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
         }
 
         window.onload = function() {

@@ -60,8 +60,8 @@ function sendStudentNotificationEmail($student_email, $student_name, $panel_name
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'lokolomi14@gmail.com'; // Your Gmail
-        $mail->Password   = 'appf rexr omgy ngjw';   // App password
+        $mail->Username   = 'smcctrs@gmail.com'; // Your Gmail
+        $mail->Password   = 'YOUR_GMAIL_APP_PASSWORD_HERE';   // App password for smcctrs@gmail.com
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
@@ -80,8 +80,8 @@ function sendStudentNotificationEmail($student_email, $student_name, $panel_name
         $mail->SMTPKeepAlive = true; // SMTP keep alive
 
         // Sender and recipient settings
-        $mail->setFrom('lokolomi14@gmail.com', 'Thesis Routing System', false);
-        $mail->addReplyTo('lokolomi14@gmail.com', 'Thesis Routing System');
+        $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System', false);
+        $mail->addReplyTo('smcctrs@gmail.com', 'Thesis Routing System');
         $mail->addAddress($student_email, $student_name);
 
         // Content
@@ -1269,18 +1269,23 @@ function loadAllForms(route1_id) {
             <?php
             $query = "
                 SELECT 
-                    docuRoute1, 
-                    department, 
-                    student_id, 
-                    route1_id, 
-                    controlNo, 
-                    fullname, 
-                    group_number,
-                    title,
-                    minutes
-                FROM route1proposal_files 
-                WHERE (panel1_id = ? OR panel2_id = ? OR panel3_id = ? OR panel4_id = ? OR panel5_id = ?)
-                " . ($selectedDepartment ? " AND department = ?" : "");
+                    r.docuRoute1, 
+                    r.department, 
+                    r.student_id, 
+                    r.route1_id, 
+                    r.controlNo, 
+                    r.fullname, 
+                    r.group_number,
+                    r.title,
+                    r.minutes
+                FROM route1proposal_files r
+                WHERE (r.panel1_id = ? OR r.panel2_id = ? OR r.panel3_id = ? OR r.panel4_id = ? OR r.panel5_id = ?)
+                  AND EXISTS (
+                      SELECT 1 FROM proposal_monitoring_form pm
+                      WHERE pm.route1_id = r.route1_id
+                        AND pm.adviser_id IS NOT NULL
+                  )
+                " . ($selectedDepartment ? " AND r.department = ?" : "");
 
             $stmt = $conn->prepare($query);
 

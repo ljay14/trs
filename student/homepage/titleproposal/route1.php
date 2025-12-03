@@ -20,30 +20,55 @@ function isValidEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
 
-// Create function to send email notification to adviser
+// Create function to send email notification to adviser (direct, no exec)
 function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, $title) {
-    // Create a temporary file to store email details
-    $tempFile = tempnam(sys_get_temp_dir(), 'email_');
-    
-    // Write email details to file
-    $emailData = json_encode([
-        'adviser_email' => $adviser_email,
-        'adviser_name' => $adviser_name,
-        'fullname' => $fullname,
-        'title' => $title
-    ]);
-    
-    file_put_contents($tempFile, $emailData);
-    
-    // Create background process to send email
-    $backgroundScript = __DIR__ . '/../../../send_email_background.php';
-    
-    // Run the background process
-    $cmd = escapeshellcmd("php $backgroundScript $tempFile > /dev/null 2>&1 &");
-    exec($cmd);
-    
-    // Return true immediately since we're processing in background
-    return true;
+    try {
+        if (!isValidEmail($adviser_email)) {
+            error_log("Invalid email address format: $adviser_email");
+            return false;
+        }
+
+        require_once '../../../src/PHPMailer.php';
+        require_once '../../../src/SMTP.php';
+        require_once '../../../src/Exception.php';
+
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'smcctrs@gmail.com';
+        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('smcctrs@gmail.com', 'Thesis Routing System');
+        $mail->addAddress($adviser_email, $adviser_name);
+        $mail->isHTML(true);
+        $mail->Subject = 'New Thesis Document (Route 1) Submitted for Review';
+        $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;'>
+                <h2 style='color: #4366b3; text-align: center;'>Thesis Routing System Notification</h2>
+                <p>Dear <strong>{$adviser_name}</strong>,</p>
+                <p>A new thesis document (Route 1) has been submitted and requires your review.</p>
+                <p><strong>Student:</strong> {$fullname}</p>
+                <p><strong>Title:</strong> {$title}</p>
+                <p>Please log in to the Thesis Routing System to review this document.</p>
+                <div style='margin-top: 30px; text-align: center;'>
+                    <a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php' style='background-color: #4366b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Login to Review</a>
+                </div>
+                <p style='margin-top: 10px; text-align: center;'>If the button above doesn't work, copy and paste this URL into your browser: <br><a href='https://capstone.smccnasipit.edu.ph/trs/adviser/login.php'>https://capstone.smccnasipit.edu.ph/trs/adviser/login.php</a></p>
+                <p style='margin-top: 30px; font-size: 12px; color: #777; text-align: center;'>This is an automated message from the Thesis Routing System. Please do not reply to this email.</p>
+            </div>
+        ";
+        $mail->AltBody = "Dear {$adviser_name}, A new thesis document (Route 1) has been submitted by {$fullname} with the title '{$title}' and requires your review. Please login at: https://capstone.smccnasipit.edu.ph/trs/adviser/login.php";
+
+        $mail->send();
+        error_log("Adviser notification sent (Route 1) to: $adviser_email");
+        return true;
+    } catch (Exception $e) {
+        error_log("Mailer Error in sendAdviserNotificationEmail (Route 1): " . $e->getMessage());
+        return false;
+    }
 }
 
 $alertMessage = "";
@@ -54,17 +79,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["minutesFile"]) && is
     $route1_id = $_POST['route1_id'];
     
     // Verify the route1_id belongs to this student
-    $stmt = $conn->prepare("SELECT route1_id FROM route1proposal_files WHERE student_id = ? AND route1_id = ?");
+    $stmt = $conn->prepare("SELECT minutes FROM route1proposal_files WHERE student_id = ? AND route1_id = ?");
     $stmt->bind_param("si", $student_id, $route1_id);
     $stmt->execute();
     $stmt->store_result();
+    $stmt->bind_result($oldMinutesPath);
+    $stmt->fetch();
     
     if ($stmt->num_rows > 0) {
         // Process the minutes file upload
         $fileTmpPath = $_FILES["minutesFile"]["tmp_name"];
         $fileName = $_FILES["minutesFile"]["name"];
         $uploadDir = "../../../uploads/minutes/";
-        $filePath = $uploadDir . basename($fileName);
+        $uniqueName = $student_id . "_" . $route1_id . "_" . time() . "_" . basename($fileName);
+        $filePath = $uploadDir . $uniqueName;
         
         $allowedTypes = [
             "application/pdf"
@@ -74,12 +102,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["minutesFile"]) && is
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
-            
+            // Optionally remove the old minutes file
+            if (!empty($oldMinutesPath) && file_exists($oldMinutesPath)) {
+                unlink($oldMinutesPath);
+            }
             if (move_uploaded_file($fileTmpPath, $filePath)) {
-                // Update the database with the minutes file path
-                $updateStmt = $conn->prepare("UPDATE route1proposal_files SET minutes = ? WHERE route1_id = ?");
-                $updateStmt->bind_param("si", $filePath, $route1_id);
-                
+                // Update the database with the minutes file path (uniquely)
+                $updateStmt = $conn->prepare("UPDATE route1proposal_files SET minutes = ? WHERE student_id = ? AND route1_id = ?");
+                $updateStmt->bind_param("sii", $filePath, $student_id, $route1_id);
                 if ($updateStmt->execute()) {
                     $alertMessage = "Minutes file uploaded successfully.";
                 } else {
@@ -1516,9 +1546,11 @@ input[type="checkbox"] {
             }
             
             // If not disabled and doesn't have an onclick handler, handle it here
-            if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
-                document.getElementById("old_file_path").value = filePath;
-                document.getElementById("docuRoute1_reupload").click();
+            if (!event.target.hasAttribute('onclick') && event.target.dataset.path) {
+                if (confirm("Do you want to reupload this file? The current file will be replaced.")) {
+                    document.getElementById("old_file_path").value = event.target.dataset.path;
+                    document.getElementById("docuRoute1_reupload").click();
+                }
             }
         }
         

@@ -1131,6 +1131,7 @@ function viewFile(filePath, student_id, finaldocu_id) {
                 <div><strong>Date Released</strong></div>
                 <div><strong>Route Number</strong></div>
                 <div><strong>Status</strong></div>
+                <div><strong>Action</strong></div>
             </div>
 
             <!-- Container for submitted form data -->
