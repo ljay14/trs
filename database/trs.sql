@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 23, 2025 at 10:03 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Generation Time: Dec 04, 2025 at 04:27 AM
+-- Server version: 10.4.28-MariaDB
+-- PHP Version: 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -111,7 +111,8 @@ CREATE TABLE `finaldocufinal_files` (
   `group_number` int(255) NOT NULL,
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
-  `routeNumber` varchar(254) NOT NULL
+  `routeNumber` varchar(254) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -138,7 +139,8 @@ CREATE TABLE `finaldocuproposal_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `minutes` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -246,7 +248,8 @@ CREATE TABLE `route1final_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -273,16 +276,9 @@ CREATE TABLE `route1proposal_files` (
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
   `minutes` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `route1proposal_files`
---
-
-INSERT INTO `route1proposal_files` (`route1_id`, `student_id`, `docuRoute1`, `panel1_id`, `panel2_id`, `panel3_id`, `panel4_id`, `adviser_id`, `department`, `date_submitted`, `controlNo`, `fullname`, `group_number`, `title`, `school_year`, `panel5_id`, `minutes`, `routeNumber`) VALUES
-(96, 38, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23 04:51:12', 'SMCC12345', '123', 123, 'TRS', '2024-2025', '34', '', ''),
-(97, 39, '../../../uploads/TEMPLATE-RESEARCH-CCIS-LACARAN.pdf', 30, 21, 22, 23, 29, 'College of Computing and Information Science', '2025-05-23 04:51:12', 'SMCC12345', 'Jake Castillon', 2, 'TRS', '2024-2025', '34', '../../../uploads/minutes/group4-finalmanuscript.pdf', '');
 
 -- --------------------------------------------------------
 
@@ -307,7 +303,8 @@ CREATE TABLE `route2final_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(266) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -334,7 +331,8 @@ CREATE TABLE `route2proposal_files` (
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
   `minutes` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -360,7 +358,8 @@ CREATE TABLE `route3final_files` (
   `title` varchar(255) NOT NULL,
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -387,7 +386,8 @@ CREATE TABLE `route3proposal_files` (
   `school_year` varchar(255) NOT NULL,
   `panel5_id` varchar(255) NOT NULL,
   `minutes` varchar(255) NOT NULL,
-  `routeNumber` varchar(255) NOT NULL
+  `routeNumber` varchar(255) NOT NULL,
+  `panel6_id` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -523,7 +523,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `adviser`
 --
 ALTER TABLE `adviser`
-  MODIFY `adviser_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `adviser_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `departmentcourse`
@@ -541,7 +541,7 @@ ALTER TABLE `finaldocufinal_files`
 -- AUTO_INCREMENT for table `finaldocuproposal_files`
 --
 ALTER TABLE `finaldocuproposal_files`
-  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `finaldocu_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `final_monitoring_form`
@@ -553,13 +553,13 @@ ALTER TABLE `final_monitoring_form`
 -- AUTO_INCREMENT for table `panel`
 --
 ALTER TABLE `panel`
-  MODIFY `panel_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `panel_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `proposal_monitoring_form`
 --
 ALTER TABLE `proposal_monitoring_form`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=235;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=239;
 
 --
 -- AUTO_INCREMENT for table `route1final_files`
@@ -571,7 +571,7 @@ ALTER TABLE `route1final_files`
 -- AUTO_INCREMENT for table `route1proposal_files`
 --
 ALTER TABLE `route1proposal_files`
-  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
+  MODIFY `route1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT for table `route2final_files`
@@ -583,7 +583,7 @@ ALTER TABLE `route2final_files`
 -- AUTO_INCREMENT for table `route2proposal_files`
 --
 ALTER TABLE `route2proposal_files`
-  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `route2_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `route3final_files`
@@ -595,13 +595,13 @@ ALTER TABLE `route3final_files`
 -- AUTO_INCREMENT for table `route3proposal_files`
 --
 ALTER TABLE `route3proposal_files`
-  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `route3_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
