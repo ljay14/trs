@@ -1046,7 +1046,8 @@ input[type="checkbox"] {
                         controlNo, 
                         fullname, 
                         group_number,
-                        title
+                        title,
+                        minutes
                     FROM 
                         route1final_files 
                     WHERE 
@@ -1066,6 +1067,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1079,6 +1081,9 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                        $minutes = htmlspecialchars($row['minutes'], ENT_QUOTES);
+
+                        $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                         // Check if any feedback forms exist for this file
                         $feedbackStmt = $conn->prepare("SELECT COUNT(*) as form_count FROM final_monitoring_form WHERE route1_id = ?");
@@ -1097,10 +1102,12 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route1_id')\">View</button>
                                     <button class='delete-button' onclick=\"confirmReupload('$filePath', $disableReupload)\" data-disable-reupload=\"$disableReupload\">Reupload</button>
+                                    " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
                         </tr>
@@ -1144,6 +1151,16 @@ input[type="checkbox"] {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for viewing minutes -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1381,7 +1398,24 @@ input[type="checkbox"] {
                 document.getElementById("docuRoute1_reupload").click();
             }
         }
-        
+
+        function viewMinutes(minutesPath) {
+            const modal = document.getElementById("minutesModal");
+            const contentArea = document.getElementById("minutesModalContent");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+            
+            const extension = minutesPath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                const separator = minutesPath.includes("?") ? "&" : "?";
+                const minutesUrl = `${minutesPath}${separator}t=${Date.now()}`;
+                contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+            }
+        }
+
         document.getElementById("docuRoute1_reupload").addEventListener("change", function() {
             document.getElementById("file-reupload-form").submit();
         });
@@ -1390,6 +1424,7 @@ input[type="checkbox"] {
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeMinutesModal();
             }
         });
         

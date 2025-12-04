@@ -61,7 +61,7 @@ function sendStudentNotificationEmail($student_email, $student_name, $panel_name
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
         $mail->Username   = 'smcctrs@gmail.com'; // Your Gmail
-        $mail->Password   = 'YOUR_GMAIL_APP_PASSWORD_HERE';   // App password for smcctrs@gmail.com
+        $mail->Password   = 'cplw gwfe vxcy naoi';   // App password for smcctrs@gmail.com
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding
@@ -1094,7 +1094,10 @@ function loadAllForms(route1_id) {
         
         const extension = minutesPath.split('.').pop().toLowerCase();
         if (extension === "pdf") {
-            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+            // Add cache-busting query parameter to ensure the correct/latest minutes file is always loaded
+            const separator = minutesPath.includes("?") ? "&" : "?";
+            const minutesUrl = `${minutesPath}${separator}t=${Date.now()}`;
+            contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
         } else {
             contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
         }
@@ -1315,17 +1318,20 @@ function loadAllForms(route1_id) {
                 ";
 
                 while ($row = $result->fetch_assoc()) {
-                    $filePath = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
-                    $route1_id = htmlspecialchars($row['route1_id'], ENT_QUOTES);
+                    $filePath   = htmlspecialchars($row['docuRoute1'], ENT_QUOTES);
+                    $route1_id  = htmlspecialchars($row['route1_id'], ENT_QUOTES);
                     $student_id = htmlspecialchars($row['student_id'], ENT_QUOTES);
-                    $fileName = basename($filePath);
-                    $controlNo = htmlspecialchars($row['controlNo'], ENT_QUOTES);
-                    $fullname = htmlspecialchars($row['fullname'], ENT_QUOTES);
-                    $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
-                    $title = htmlspecialchars($row['title'], ENT_QUOTES);
-                    $minutes = $row['minutes'] ? htmlspecialchars($row['minutes'], ENT_QUOTES) : '';
-                    
-                    $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
+                    $fileName   = basename($filePath);
+                    $controlNo  = htmlspecialchars($row['controlNo'], ENT_QUOTES);
+                    $fullname   = htmlspecialchars($row['fullname'], ENT_QUOTES);
+                    $groupNo    = htmlspecialchars($row['group_number'], ENT_QUOTES);
+                    $title      = htmlspecialchars($row['title'], ENT_QUOTES);
+
+                    $rawMinutes   = isset($row['minutes']) ? $row['minutes'] : '';
+                    $minutesAttr  = $rawMinutes !== '' ? htmlspecialchars($rawMinutes, ENT_QUOTES) : '';
+                    $minutesStatus = $rawMinutes !== ''
+                        ? '<span style="color: green;">Available</span>'
+                        : '<span style="color: red;">Not Available</span>';
 
                     echo "
                         <tr>
@@ -1337,8 +1343,8 @@ function loadAllForms(route1_id) {
                             <td style='text-align: center;'>
                                 <button class='view-button' onclick=\"viewFile('$filePath', '$route1_id', '$student_id')\">View</button>";
                                 
-                    if ($minutes) {
-                        echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                    if ($rawMinutes !== '') {
+                        echo "<button class='view-button' onclick=\"viewMinutes('$minutesAttr')\">View Minutes</button>";
                     }
                     
                     echo "    </td>

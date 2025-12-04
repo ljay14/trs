@@ -38,7 +38,7 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'smcctrs@gmail.com';
-        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE';
+        $mail->Password = 'cplw gwfe vxcy naoi';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
@@ -1493,21 +1493,28 @@ input[type="checkbox"] {
             modal.style.display = "flex";
             contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
             
+            // Helper to add cache-busting param
+            const withCacheBust = (path) => {
+                const separator = path.includes("?") ? "&" : "?";
+                return `${path}${separator}t=${Date.now()}`;
+            };
+
             // Check if the file exists using a fetch call with HEAD method
             fetch(minutesPath, { method: 'HEAD' })
                 .then(response => {
+                    const extension = minutesPath.split('.').pop().toLowerCase();
+                    const minutesUrl = withCacheBust(minutesPath);
+
                     if (response.ok) {
-                        const extension = minutesPath.split('.').pop().toLowerCase();
                         if (extension === "pdf") {
-                            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                            contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
                         } else {
                             contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
                         }
                     } else {
                         // If fetch fails, try to display the file directly anyway
-                        const extension = minutesPath.split('.').pop().toLowerCase();
                         if (extension === "pdf") {
-                            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                            contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
                         } else {
                             contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
                         }
@@ -1517,8 +1524,10 @@ input[type="checkbox"] {
                     console.error('Error checking minutes file:', error);
                     // Even if fetch fails, try to display the file anyway
                     const extension = minutesPath.split('.').pop().toLowerCase();
+                    const minutesUrl = withCacheBust(minutesPath);
+
                     if (extension === "pdf") {
-                        contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                        contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
                     } else {
                         contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
                     }

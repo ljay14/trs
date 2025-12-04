@@ -1137,11 +1137,12 @@ input[type="checkbox"] {
                                 <td><span style='color: $statusColor; font-weight: bold;'>$statusLabel</span></td>
                                 <td style='text-align: center;'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$finaldocu_id', '$student_id')\">View</button>";
-                                    
+
                         if ($minutes) {
-                            echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                            $minutesJs = json_encode($minutes);
+                            echo "<button class='view-button' onclick='viewMinutes($minutesJs)'>View Minutes</button>";
                         }
-                        
+
                         echo "    </td>
                             </tr>
                         ";

@@ -45,7 +45,7 @@ try {
     $mail->Host       = 'smtp.gmail.com';                    
     $mail->SMTPAuth   = true;                                 
     $mail->Username   = 'smcctrs@gmail.com'; // Your Gmail
-    $mail->Password   = 'YOUR_GMAIL_APP_PASSWORD_HERE';   // App password for smcctrs@gmail.com
+    $mail->Password   = 'cplw gwfe vxcy naoi';   // App password for smcctrs@gmail.com
     $mail->SMTPSecure = 'tls';
     $mail->Port       = 587;                                    
     $mail->CharSet    = 'UTF-8'; // Ensure proper character encoding

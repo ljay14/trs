@@ -1228,7 +1228,8 @@ input[type="checkbox"] {
                         controlNo, 
                         fullname, 
                         group_number,
-                        title
+                        title,
+                        minutes
                     FROM 
                         finaldocufinal_files 
                     WHERE 
@@ -1248,6 +1249,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th>Status</th>
                                 <th class='action-label'>Action</th>
                             </tr>
@@ -1262,6 +1264,10 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
+
+                        $rawMinutes = isset($row['minutes']) ? $row['minutes'] : '';
+                        $minutes = $rawMinutes !== '' ? htmlspecialchars($rawMinutes, ENT_QUOTES) : '';
+                        $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                         // Check all routes status
                         $routeStatus = checkAllRoutesApproved($conn, $student_id);
@@ -1283,6 +1289,8 @@ input[type="checkbox"] {
                         // Use both checks to determine if Route 3 is approved
                         // This fixes the issue where reupload button was not being disabled
                         $disabledAttr = ($isRoute3Approved || $routeStatus['route3']) ? 'disabled' : '';
+
+                        $minutesJs = $rawMinutes !== '' ? json_encode($rawMinutes) : '""';
                         
                         // Determine status label and color
                         $statusLabel = '';
@@ -1333,11 +1341,13 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td><span style='color: $statusColor; font-weight: bold;'>$statusLabel</span></td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$finaldocu_id')\">View</button>
                                     <button class='delete-button' onclick=\"confirmReupload('$filePath')\" $disabledAttr>Reupload</button>
+                                    " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes($minutesJs)\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
                         </tr>
@@ -1381,6 +1391,15 @@ input[type="checkbox"] {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">&times;</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1638,7 +1657,9 @@ document.getElementById("submit-file-button").addEventListener("click", function
             // Load file
             const extension = filePath.split('.').pop().toLowerCase();
             if (extension === "pdf") {
-                contentArea.innerHTML = `<iframe src="${filePath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                const separator = filePath.includes("?") ? "&" : "?";
+                const fileUrl = `${filePath}${separator}t=${Date.now()}`;
+                contentArea.innerHTML = `<iframe src="${fileUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
             } else if (extension === "docx") {
                 fetch(filePath)
                     .then((response) => response.arrayBuffer())
@@ -1660,6 +1681,29 @@ document.getElementById("submit-file-button").addEventListener("click", function
             modal.style.display = "none";
             document.getElementById("fileModalContent").innerHTML = '';
             document.getElementById("routingForm").innerHTML = '';
+        }
+
+        function viewMinutes(minutesPath) {
+            const modal = document.getElementById("minutesModal");
+            const contentArea = document.getElementById("minutesModalContent");
+
+            modal.style.display = "flex";
+            contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+            
+            const extension = minutesPath.split('.').pop().toLowerCase();
+            if (extension === "pdf") {
+                const separator = minutesPath.includes("?") ? "&" : "?";
+                const minutesUrl = `${minutesPath}${separator}t=${Date.now()}`;
+                contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
+            } else {
+                contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+            }
+        }
+
+        function closeMinutesModal() {
+            const modal = document.getElementById("minutesModal");
+            modal.style.display = "none";
+            document.getElementById("minutesModalContent").innerHTML = '';
         }
 
         function confirmDelete(filePath) {
@@ -1703,6 +1747,7 @@ document.getElementById("submit-file-button").addEventListener("click", function
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeMinutesModal();
             }
         });
         

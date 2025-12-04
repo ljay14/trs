@@ -213,7 +213,7 @@ function sendEmailInBackground($student_email, $student_name, $adviser_name, $fe
                 'host' => 'smtp.gmail.com',
                 'port' => 587,
                 'username' => 'smcctrs@gmail.com',
-                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
+                'password' => 'cplw gwfe vxcy naoi',
                 'secure' => 'tls'
             ]
         ];

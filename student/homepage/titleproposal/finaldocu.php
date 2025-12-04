@@ -37,7 +37,7 @@ function sendAdviserNotificationEmail($adviser_email, $adviser_name, $fullname, 
         $mail->Host = 'smtp.gmail.com'; // Set to your SMTP server
         $mail->SMTPAuth = true;
         $mail->Username = 'smcctrs@gmail.com'; // SMTP username (your Gmail)
-        $mail->Password = 'YOUR_GMAIL_APP_PASSWORD_HERE'; // TODO: replace with your Gmail APP password (not your normal password)
+        $mail->Password = 'cplw gwfe vxcy naoi'; // TODO: replace with your Gmail APP password (not your normal password)
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
@@ -1730,7 +1730,10 @@ input[type="checkbox"] {
             
             const extension = minutesPath.split('.').pop().toLowerCase();
             if (extension === "pdf") {
-                contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+                // Add cache-busting query parameter to ensure the correct/latest minutes file is always loaded
+                const separator = minutesPath.includes("?") ? "&" : "?";
+                const minutesUrl = `${minutesPath}${separator}t=${Date.now()}`;
+                contentArea.innerHTML = `<iframe src="${minutesUrl}" width="100%" height="100%" style="border: none;"></iframe>`;
             } else {
                 contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
             }

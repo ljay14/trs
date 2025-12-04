@@ -1015,7 +1015,8 @@ input[type="checkbox"] {
                         controlNo, 
                         fullname, 
                         group_number,
-                        title
+                        title,
+                        minutes
                     FROM 
                         route3final_files 
                     WHERE 
@@ -1035,6 +1036,7 @@ input[type="checkbox"] {
                                 <th>Leader</th>
                                 <th>Group No.</th>
                                 <th>Title</th>
+                                <th>Minutes</th>
                                 <th class='action-label'>Action</th>
                             </tr>
                         </thead>
@@ -1048,6 +1050,9 @@ input[type="checkbox"] {
                         $fullName = htmlspecialchars($row['fullname'], ENT_QUOTES);
                         $groupNo = htmlspecialchars($row['group_number'], ENT_QUOTES);
                         $title = htmlspecialchars($row['title'], ENT_QUOTES);
+                        $minutes = htmlspecialchars($row['minutes'], ENT_QUOTES);
+
+                        $minutesStatus = $minutes ? '<span style="color: green;">Available</span>' : '<span style="color: red;">Not Available</span>';
 
                         // Check if route2 has approved status
                         $route2StatusQuery = $conn->prepare("
@@ -1089,10 +1094,12 @@ input[type="checkbox"] {
                             <td>$fullName</td>
                             <td>$groupNo</td>
                             <td>$title</td>
+                            <td>$minutesStatus</td>
                             <td>
                                 <div class='action-buttons'>
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$student_id', '$route3_id')\">View</button>
                                     <button class='delete-button' onclick=\"confirmReupload('$filePath', $disableReupload, '$disableReason')\" data-disable-reupload=\"$disableReupload\" title=\"" . ($disableReupload === 'true' ? $disableReason : "Reupload file") . "\">Reupload</button>
+                                    " . ($minutes ? "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>" : "") . "
                                 </div>
                             </td>
                         </tr>

@@ -137,7 +137,7 @@ function prepareEmailData($panelEmail, $panelName, $position, $studentName, $tit
         'smtp_config' => [
             'host' => 'smtp.gmail.com',
             'username' => 'smcctrs@gmail.com',
-            'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
+            'password' => 'cplw gwfe vxcy naoi',
             'secure' => 'tls',
             'port' => 587,
             'charset' => 'UTF-8',
@@ -1391,7 +1391,8 @@ if (isset($selectedDepartment)) {
                 <td>
                     <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['route1_id'] ?? '' ?>')">View</button>
                     <?php if ($file['minutes']): ?>
-                    <button type="button" class="view-button" onclick="viewMinutes('<?= htmlspecialchars($file['minutes'], ENT_QUOTES) ?>')">View Minutes</button>
+                        <?php $minutesJs = json_encode($file['minutes']); ?>
+                        <button type="button" class="view-button" onclick='viewMinutes(<?= $minutesJs ?>)'>View Minutes</button>
                     <?php endif; ?>
                     <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['route1_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                 </td>

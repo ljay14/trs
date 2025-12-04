@@ -65,7 +65,7 @@ function sendStudentNotificationEmail($student_email, $student_name, $adviser_na
             'smtp_settings' => [
                 'host' => 'smtp.gmail.com',
                 'username' => 'smcctrs@gmail.com',
-                'password' => 'YOUR_GMAIL_APP_PASSWORD_HERE',
+                'password' => 'cplw gwfe vxcy naoi',
                 'port' => 587,
                 'secure' => 'tls'
             ]

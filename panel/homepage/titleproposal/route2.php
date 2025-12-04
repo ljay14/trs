@@ -1011,7 +1011,8 @@ input[type="checkbox"] {
                                     <button class='view-button' onclick=\"viewFile('$filePath', '$route2_id', '$student_id')\">View</button>";
                                     
                         if ($minutes) {
-                            echo "<button class='view-button' onclick=\"viewMinutes('$minutes')\">View Minutes</button>";
+                            $minutesJs = json_encode($minutes);
+                            echo "<button class='view-button' onclick='viewMinutes($minutesJs)'>View Minutes</button>";
                         }
                         
                         echo "    </td>

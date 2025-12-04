@@ -325,7 +325,8 @@ if (!empty($selectedDepartment)) {
 }
 
 // Fetch files
-// Create SQL query with placeholders
+// Create SQL query with placeholders. Minutes are stored with the student's Route 1 record,
+// so we mirror the panel finaldocu query by LEFT JOINing route1proposal_files on student_id.
 $sqlQuery = "SELECT 
     fd.finaldocu AS filepath, 
     fd.finaldocu AS filename, 
@@ -342,8 +343,10 @@ $sqlQuery = "SELECT
     fd.panel5_id, 
     fd.adviser_id,
     fd.finaldocu_id,
-    fd.department
+    fd.department,
+    r1.minutes
  FROM finaldocuproposal_files fd
+ LEFT JOIN route1proposal_files r1 ON fd.student_id = r1.student_id
  WHERE 1=1";
 
 // Create array of parameters (must be variables, not direct values)
@@ -409,7 +412,8 @@ if ($fileStmt === false) {
             'adviser_id' => $row['adviser_id'],
             'title' => $row['title'],
             'finaldocu_id' => $row['finaldocu_id'],
-            'department' => $row['department']
+            'department' => $row['department'],
+            'minutes' => $row['minutes'] ?? ''
         ];
     }
     
@@ -1113,6 +1117,10 @@ if (isset($selectedDepartment)) {
                     </td>
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['finaldocu_id'] ?? '' ?>')">View</button>
+                        <?php if (!empty($file['minutes'])): ?>
+                            <?php $minutesJs = json_encode($file['minutes']); ?>
+                            <button type="button" class="view-button" onclick='viewMinutes(<?= $minutesJs ?>)'>View Minutes</button>
+                        <?php endif; ?>
                         <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['finaldocu_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                     </td>
                 </tr>
@@ -1144,6 +1152,16 @@ if (isset($selectedDepartment)) {
             <div class="modal-layout">
                 <div id="fileModalContent" class="file-preview-section"></div>
                 <div id="routingForm" class="routing-form-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minutes Modal Viewer -->
+    <div id="minutesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMinutesModal()">×</span>
+            <div class="modal-layout">
+                <div id="minutesModalContent" class="file-preview-section" style="flex: 1;"></div>
             </div>
         </div>
     </div>
@@ -1639,7 +1657,26 @@ if (isset($selectedDepartment)) {
         document.getElementById("routingForm").innerHTML = '';
     }
 
+    function closeMinutesModal() {
+        const modal = document.getElementById("minutesModal");
+        modal.style.display = "none";
+        document.getElementById("minutesModalContent").innerHTML = '';
+    }
 
+    function viewMinutes(minutesPath) {
+        const modal = document.getElementById("minutesModal");
+        const contentArea = document.getElementById("minutesModalContent");
+
+        modal.style.display = "flex";
+        contentArea.innerHTML = "<div style='display: flex; justify-content: center; align-items: center; height: 100%;'><div style='text-align: center;'><div class='spinner' style='border: 4px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto;'></div><p style='margin-top: 10px;'>Loading minutes file...</p></div></div>";
+
+        const extension = minutesPath.split('.').pop().toLowerCase();
+        if (extension === "pdf") {
+            contentArea.innerHTML = `<iframe src="${minutesPath}" width="100%" height="100%" style="border: none;"></iframe>`;
+        } else {
+            contentArea.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: #dc3545;'>Unsupported file type. Only PDF files are supported.</p></div>";
+        }
+    }
 
     // Modify the update form to use AJAX for submission
     document.addEventListener('DOMContentLoaded', function() {

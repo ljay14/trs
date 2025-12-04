@@ -16,9 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Get form data
     $fullname = $_POST['fullname'];
     $department = $_POST['department'];
-    $school_id = $_POST['school_id']; // Changed from username to school_id
-    $email = $_POST['email']; // Get email
-    $password = $_POST['password']; // Get password as plain text
+    $school_id = $_POST['school_id'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
 
     // Input validation
     if (empty($fullname) || empty($department) || empty($school_id) || empty($email) || empty($password)) {
@@ -30,12 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $school_id = mysqli_real_escape_string($conn, $school_id);
         $email = mysqli_real_escape_string($conn, $email);
         $password = mysqli_real_escape_string($conn, $password);
-
-        // Validate email domain
-        if (!preg_match('/@smccnasipit\.edu\.ph$/', $email)) {
-            echo "<script>alert('Email must use the @smccnasipit.edu.ph domain!'); window.history.back();</script>";
-            exit;
-        }
 
         // SQL query to insert data into the database
         $sql = "INSERT INTO adviser (fullname, department, school_id, email, password) 
@@ -370,20 +364,21 @@ $conn->close();
         }
 
         :root {
---primary: #4366b3;
---primary-light: #0a3885;
---accent: #4a6fd1;
---light: #f5f7fd;
---dark: #333;
---success: #28a745;
---shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
---border: #e0e0e0;
---white: #ffffff;
---hover: #f5f7fd;
---active: #e5ebf8;
---text-light: #777777;
---radius: 8px;
+    --primary: #4366b3;
+    --primary-light: #0a3885;
+    --accent: #4a6fd1;
+    --light: #f5f7fd;
+    --dark: #333;
+    --success: #28a745;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border: #e0e0e0;
+    --white: #ffffff;
+    --hover: #f5f7fd;
+    --active: #e5ebf8;
+    --text-light: #777777;
+    --radius: 8px;
 }
+
 
     * {
         margin: 0;
@@ -874,6 +869,7 @@ $conn->close();
             }
         }
     </script>
+    
 </head>
 
 <body>
@@ -968,8 +964,6 @@ $conn->close();
             </div>
         </div>
 
-
-
         <!-- Registered Account Section -->
         <div class="menu-item dropdown">
             <div class="menu-header">
@@ -1022,12 +1016,7 @@ $conn->close();
                         <input type="text" id="school_id" name="school_id" required>
 
                         <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" placeholder="Enter your email address (@smccnasipit.edu.ph)" 
-                               pattern="[a-zA-Z0-9._%+-]+@smccnasipit\.edu\.ph$" 
-                               title="Email must use the @smccnasipit.edu.ph domain" required>
-                        <small id="email-feedback" style="color: #666; font-size: 12px; margin-top: -10px; margin-bottom: 15px; display: block;">
-                            Email must use the @smccnasipit.edu.ph domain
-                        </small>
+                        <input type="email" id="email" name="email" placeholder="Enter your email address" required>
 
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
@@ -1048,27 +1037,7 @@ $conn->close();
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadDepartments();
-        
-        // Add input event listener to email field for real-time validation
-        const emailInput = document.getElementById('email');
-        emailInput.addEventListener('input', validateEmail);
     });
-    
-    function validateEmail() {
-        const emailInput = document.getElementById('email');
-        const email = emailInput.value;
-        const emailFeedback = document.getElementById('email-feedback');
-        
-        if (email && !email.endsWith('@smccnasipit.edu.ph')) {
-            emailFeedback.textContent = 'Email must use the @smccnasipit.edu.ph domain';
-            emailFeedback.style.color = '#dc3545'; // red for error
-            emailInput.setCustomValidity('Email must use the @smccnasipit.edu.ph domain');
-        } else {
-            emailFeedback.textContent = 'Email must use the @smccnasipit.edu.ph domain';
-            emailFeedback.style.color = '#666'; // normal text color
-            emailInput.setCustomValidity('');
-        }
-    }
     
     function loadDepartments() {
         const departmentSelect = document.getElementById('department');

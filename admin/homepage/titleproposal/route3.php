@@ -946,7 +946,8 @@ if (isset($selectedDepartment)) {
                     <td>
                         <button type="button" class="view-button" onclick="viewFile('<?= $filepath ?>', '<?= $student_id ?>', '<?= $file['route3_id'] ?? '' ?>')">View</button>
                         <?php if ($file['minutes']): ?>
-                        <button type="button" class="view-button" onclick="viewMinutes('<?= htmlspecialchars($file['minutes'], ENT_QUOTES) ?>')">View Minutes</button>
+                            <?php $minutesJs = json_encode($file['minutes']); ?>
+                            <button type="button" class="view-button" onclick='viewMinutes(<?= $minutesJs ?>)'>View Minutes</button>
                         <?php endif; ?>
                         <button type="button" class="delete-button" onclick="confirmDelete('<?= $file['route3_id'] ?>', '<?= $filepath ?>', '<?= $fullname ?>', '<?= $title ?>')">Delete</button>
                     </td>
