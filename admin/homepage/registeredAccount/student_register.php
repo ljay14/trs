@@ -16,11 +16,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_student_id']))
     $delete_student_id = (int) $_POST['delete_student_id'];
 
     if ($delete_student_id > 0) {
-        $delete_sql = "DELETE FROM student WHERE student_id = $delete_student_id";
-        if ($conn->query($delete_sql) === TRUE) {
-            header("Location: student_register.php?status=success");
+        $delete_sql = "DELETE FROM student WHERE student_id = ?";
+        $stmt = $conn->prepare($delete_sql);
+        $stmt->bind_param("i", $delete_student_id);
+        
+        if ($stmt->execute()) {
+            header("Location: student_register.php?status=delete_success");
+            exit;
+        } else {
+            header("Location: student_register.php?status=delete_error");
             exit;
         }
+        $stmt->close();
     }
 }
 
@@ -28,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_student_id']))
 $sql = "SELECT student_id, fullname, department, school_id, password, confirm_password, email FROM student ORDER BY fullname ASC";
 $result = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1081,8 +1087,8 @@ $result = $conn->query($sql);
         </div>
     </div>
 
-    <script>
-       function enableEdit(school_id) {
+<script>
+        function enableEdit(school_id) {
             document.getElementById('fullname_text_' + school_id).style.display = 'none';
             document.getElementById('department_text_' + school_id).style.display = 'none';
             document.getElementById('schoolid_text_' + school_id).style.display = 'none';
@@ -1099,7 +1105,6 @@ $result = $conn->query($sql);
             document.getElementById('save_btn_' + school_id).style.display = 'inline';
             document.getElementById('cancel_btn_' + school_id).style.display = 'inline';
             
-            // Enable save button by default (will be disabled if passwords are entered and don't match)
             document.getElementById('save_btn_' + school_id).disabled = false;
         }
 
@@ -1129,8 +1134,6 @@ $result = $conn->query($sql);
             var mismatchText = document.getElementById('mismatch_' + school_id);
             var saveBtn = document.getElementById('save_btn_' + school_id);
 
-
-            // Only validate if both password fields have content
             if (password !== "" || confirm_password !== "") {
                 if (password !== confirm_password) {
                     mismatchText.style.display = 'block';
@@ -1140,33 +1143,54 @@ $result = $conn->query($sql);
                     saveBtn.disabled = false;
                 }
             } else {
-                // If both password fields are empty, enable the save button
                 mismatchText.style.display = 'none';
                 saveBtn.disabled = false;
             }
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'student_register.php';
+        }
 
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'delete_student_id';
-            input.value = studentId;
-            form.appendChild(input);
+        function deleteStudent(studentId) {
+            if (confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'student_register.php';
 
-            document.body.appendChild(form);
-            form.submit();
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_student_id';
+                input.value = studentId;
+                form.appendChild(input);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         window.onload = function() {
-            // Show success message if status is success
+            // Show success message based on status
             var status = new URLSearchParams(window.location.search).get('status');
+            var successAlert = document.getElementById('success-alert');
+            var successMessage = document.getElementById('success-message');
+            
             if (status === 'success') {
-                document.getElementById('success-alert').style.display = 'block';
-                
-                // Auto-hide the success message after 5 seconds
+                successMessage.textContent = 'Student updated successfully!';
+                successAlert.style.display = 'block';
                 setTimeout(function() {
-                    document.getElementById('success-alert').style.display = 'none';
+                    successAlert.style.display = 'none';
+                }, 5000);
+            } else if (status === 'delete_success') {
+                successMessage.textContent = 'Student deleted successfully!';
+                successAlert.style.display = 'block';
+                setTimeout(function() {
+                    successAlert.style.display = 'none';
+                }, 5000);
+            } else if (status === 'delete_error') {
+                successAlert.style.backgroundColor = '#f8d7da';
+                successAlert.style.color = '#721c24';
+                successAlert.style.borderLeft = '5px solid #dc3545';
+                successMessage.textContent = 'Error deleting student!';
+                successAlert.style.display = 'block';
+                setTimeout(function() {
+                    successAlert.style.display = 'none';
                 }, 5000);
             }
             
